@@ -1,0 +1,11 @@
+#Folder
+
+old/
+
+#File
+
+
+#Extension
+
+.DS_Store
+.env

@@ -1,0 +1,41 @@
+/* MobileSelect Customization */
+
+.ms-mobile-select {
+    z-index: 2147483647 !important;
+    /* Max z-index */
+    position: fixed !important;
+    /* Ensure it covers the viewport */
+}
+
+/* Correct class name is .ms-gray-layer, not .ms-overlay */
+.ms-mobile-select .ms-gray-layer {
+    z-index: 2147483646 !important;
+}
+
+.ms-mobile-select .ms-content {
+    z-index: 2147483647 !important;
+    background-color: #fff !important;
+}
+
+/* Ensure content slides up */
+.ms-mobile-select.ms-show .ms-content {
+    bottom: 0 !important;
+}
+
+/* Optional: Dark theme adjustments if needed */
+.ms-mobile-select .ms-content {
+    border-radius: 10px 10px 0 0;
+}
+
+.ms-mobile-select .ms-ensure {
+    color: #007bff;
+}
+
+.ms-mobile-select .ms-cancel {
+    color: #666;
+}
+
+/* Ensure text is visible - correct selector */
+.ms-mobile-select .ms-select-container li {
+    color: #333 !important;
+}

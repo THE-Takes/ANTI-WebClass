@@ -1,0 +1,190 @@
+/* download.css - Download button styles for WebClass UX Improver */
+
+/* ============================================================
+   Download Button Group
+   ============================================================ */
+
+.ux-download-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 4px;
+}
+
+.ux-pdf-download-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+}
+
+/* ============================================================
+   Download Buttons Base
+   ============================================================ */
+
+.ux-download-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ux-download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ux-download-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* ============================================================
+   Rename Download Button (Green)
+   ============================================================ */
+
+.ux-download-rename {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.ux-download-rename:hover {
+    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
+}
+
+/* ============================================================
+   Original Filename Download Button (Blue)
+   ============================================================ */
+
+.ux-download-original {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: white;
+    padding: 4px 8px;
+}
+
+.ux-download-original:hover {
+    background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
+}
+
+/* ============================================================
+   Save as Image Button (Purple)
+   ============================================================ */
+
+.ux-download-image {
+    background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+    color: white;
+}
+
+.ux-download-image:hover {
+    background: linear-gradient(135deg, #7B1FA2 0%, #6A1B9A 100%);
+}
+
+.ux-download-image:disabled {
+    background: linear-gradient(135deg, #CE93D8 0%, #BA68C8 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ============================================================
+   PDF Viewer Buttons
+   ============================================================ */
+
+.ux-pdf-download-group .ux-download-rename,
+.ux-pdf-download-group .ux-download-original {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+/* ============================================================
+   Download Window Styles
+   ============================================================ */
+
+/* file_down.php ページ用 */
+body .ux-download-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+body .ux-download-group .ux-download-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    justify-content: center;
+    width: 100%;
+}
+
+/* ============================================================
+   Tooltip Styles
+   ============================================================ */
+
+.ux-download-btn[title] {
+    position: relative;
+}
+
+.ux-download-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: #333;
+    color: white;
+    font-size: 11px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-bottom: 4px;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    animation: fadeIn 0.2s ease forwards;
+    animation-delay: 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ============================================================
+   Dark Mode Support (if applicable)
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+    .ux-download-rename {
+        background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+    }
+    
+    .ux-download-original {
+        background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
+    }
+    
+    .ux-download-image {
+        background: linear-gradient(135deg, #AB47BC 0%, #9C27B0 100%);
+    }
+}
+
+/* ============================================================
+   Responsive Adjustments
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .ux-download-group {
+        flex-wrap: wrap;
+    }
+    
+    .ux-download-btn {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+}
+

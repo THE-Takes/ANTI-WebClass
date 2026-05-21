@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>WebClass UX 改善設定</title>
+  <style>
+    body {
+      width: 400px;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      margin: 10px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 5px;
+    }
+
+    .section h2 {
+      font-size: 16px;
+      margin-top: 0;
+    }
+
+    .section-sync {
+      background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+      border: 1px solid #90caf9;
+    }
+
+    .warning {
+      color: #d32f2f;
+      background-color: #ffebee;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1565c0;
+    }
+
+    .btn-ms {
+      background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    .btn-ms:hover {
+      background: linear-gradient(135deg, #106ebe 0%, #0050a0 100%);
+    }
+
+    .btn-ms svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .btn-reset {
+      background: #f5f5f5;
+      color: #666;
+      border: 1px solid #ddd;
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+    }
+
+    .btn-reset:hover {
+      background: #ffebee;
+      color: #c62828;
+      border-color: #ef9a9a;
+    }
+
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .sync-status.connected {
+      color: #2e7d32;
+    }
+
+    .sync-status.disconnected {
+      color: #f57c00;
+    }
+
+    #status {
+      margin-top: 10px;
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>WebClass UX 改善設定</h1>
+
+  <!-- Microsoft To Do 連携セクション -->
+  <div class="section section-sync">
+    <h2>📋 Microsoft To Do 連携</h2>
+    <p style="font-size: 13px; color: #555; margin-bottom: 12px;">
+      WebClassの課題をMicrosoft To Doに自動同期します。<br>
+      iPhoneのTo Doアプリで課題を管理できます。
+    </p>
+    
+    <div id="msSyncStatus" class="sync-status disconnected">
+      ⚪ 未設定
+    </div>
+    
+    <!-- リマインダー設定 -->
+    <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 6px;">
+      <label style="font-weight: bold; font-size: 13px; margin-bottom: 8px; display: block;">
+        🔔 リマインダー通知タイミング
+      </label>
+      
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+        <select id="reminderDays" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+          <option value="0">通知しない</option>
+          <option value="1" selected>1日前</option>
+          <option value="2">2日前</option>
+          <option value="3">3日前</option>
+          <option value="4">4日前</option>
+          <option value="5">5日前</option>
+          <option value="6">6日前</option>
+          <option value="7">7日前</option>
+        </select>
+        
+        <select id="reminderTime" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+          <option value="exact">ちょうど（同時刻）</option>
+          <option value="9am" selected>朝9時</option>
+        </select>
+      </div>
+      
+      <p style="font-size: 11px; color: #666; margin-top: 6px; margin-bottom: 0;">
+        MTodoに同期する際にリマインダーが設定されます。
+      </p>
+    </div>
+    
+    <button type="button" id="openMsSettings" class="btn-ms" style="margin-top: 12px;">
+      <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Microsoft To Do 設定を開く
+    </button>
+    
+    <button type="button" id="resetSyncData" class="btn-reset" style="margin-top: 8px;">
+      🗑️ 同期データをリセット
+    </button>
+    <p id="resetStatus" style="font-size: 12px; color: #666; margin-top: 5px;"></p>
+  </div>
+
+  <div class="section">
+    <h2>高度な設定 (Advanced Settings)</h2>
+    <div class="warning">
+      <strong>警告:</strong> 自動ログインを有効にすると、ユーザー名とパスワードがブラウザ内に保存されます。
+      暗号化は簡易的なものであり、完全に安全ではありません。
+      <strong>共用PCや公共の場所では絶対に使用しないでください。</strong>
+    </div>
+
+    <label>
+      <input type="checkbox" id="autoLoginEnabled">
+      自動ログインを有効にする
+    </label>
+
+    <div id="credentialsArea" style="display: none; margin-top: 15px;">
+      <label for="username">ユーザーID:</label>
+      <input type="text" id="username" placeholder="ユーザーIDを入力">
+
+      <label for="password">パスワード:</label>
+      <input type="password" id="password" placeholder="パスワードを入力">
+    </div>
+  </div>
+
+  <button id="save">保存</button>
+  <div id="status"></div>
+
+  <script src="options.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,165 @@
+/* home.css */
+
+/* General Layout Tweaks */
+body.ux-enhanced-home {
+  background-color: #f4f7f6;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Flexレイアウトでrowを拡張 */
+.ux-flex-row {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+}
+
+/* 左サイドバー（col-sm-3）はそのまま */
+.ux-flex-row > .col-sm-3:first-child {
+  flex-shrink: 0;
+}
+
+/* メインコンテンツ（col-sm-9）は元の幅を維持 */
+.ux-flex-row > .col-sm-9 {
+  flex-shrink: 0;
+}
+
+/* 右サイドバーカラム（追加分） */
+#ux-sidebar-column {
+  flex-shrink: 0;
+  width: 320px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* ダッシュボード */
+#ux-dashboard {
+  /* ページ内に固定（スクロール追従なし） */
+}
+
+/* side-block のスタイル（左サイドバーと同じ） */
+#ux-dashboard .side-block-outer {
+  margin-bottom: 1em;
+}
+
+#ux-dashboard .side-block {
+  border: solid 1px #f0f0f0;
+  border-radius: 5px;
+}
+
+#ux-dashboard .side-block-title {
+  margin: 0;
+  padding: 0.5em;
+  font-size: 14px;
+  border-bottom: 1px solid #efefef;
+  background-color: #f8f8f8;
+}
+
+#ux-dashboard .side-block-content {
+  padding: 0;
+}
+
+/* スクロールバーのスタイル（内側のコンテンツ用） */
+#ux-dashboard ::-webkit-scrollbar {
+  width: 6px;
+}
+
+#ux-dashboard ::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+#ux-dashboard ::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+#ux-dashboard ::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Cards */
+.ux-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ux-card h3 {
+  background: #0056b3;
+  /* Kanagawa U Blue-ish */
+  color: white;
+  margin: 0;
+  padding: 15px;
+  font-size: 1.1rem;
+}
+
+.ux-card-body {
+  padding: 15px;
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* ToDo List Styles */
+.ux-todo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ux-todo-list li {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  transition: background 0.2s;
+}
+
+.ux-todo-list li:hover {
+  background: #f9f9f9;
+}
+
+.ux-todo-list li.completed {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.ux-todo-list input[type="checkbox"] {
+  margin-right: 10px;
+}
+
+.todo-text {
+  flex-grow: 1;
+  margin-right: 10px;
+  outline: none;
+}
+
+.todo-text:focus {
+  background: #eef;
+  border-radius: 3px;
+}
+
+.todo-date {
+  font-size: 0.85rem;
+  color: #666;
+  margin-right: 10px;
+  min-width: 80px;
+  text-align: right;
+  outline: none;
+}
+
+.todo-date:focus {
+  background: #eef;
+  border-radius: 3px;
+}
+
+.ux-todo-list a {
+  text-decoration: none;
+  color: #0056b3;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* Hide original content if needed, or style it down */
+/* Example: .container { display: none; } - Be careful not to break functionality */

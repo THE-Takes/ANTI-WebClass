@@ -1,0 +1,27 @@
+/* Flatpickr Customization */
+
+/* Reorder AM/PM to be on the left */
+.flatpickr-time {
+    display: flex !important;
+    justify-content: center;
+}
+
+.flatpickr-time .flatpickr-am-pm {
+    order: -1;
+    /* Move to the beginning */
+    margin-right: 10px;
+}
+
+.flatpickr-time .numInputWrapper {
+    order: 0;
+}
+
+.flatpickr-time .flatpickr-time-separator {
+    order: 0;
+}
+
+/* Ensure the calendar is above other elements */
+.flatpickr-calendar {
+    z-index: 2147483647 !important;
+    /* Max z-index */
+}

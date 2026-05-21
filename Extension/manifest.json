@@ -1,0 +1,81 @@
+{
+  "manifest_version": 3,
+  "name": "ANTI-WebClass",
+  "version": "0.1.0",
+  "description": "神奈川大学WebClassのUX/UIを改善します。",
+  "permissions": [
+    "storage",
+    "downloads",
+    "tabs",
+    "scripting",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://kulms.kanagawa-u.ac.jp/*",
+    "https://caldav.icloud.com/*",
+    "https://*.icloud.com/*",
+    "https://graph.microsoft.com/*",
+    "https://login.microsoftonline.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://kulms.kanagawa-u.ac.jp/webclass/login.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/?acs_=*"
+      ],
+      "js": [
+        "src/login.js"
+      ]
+    },
+    {
+      "matches": [
+        "https://kulms.kanagawa-u.ac.jp/webclass/index.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/*"
+      ],
+      "js": [
+        "lib/flatpickr.min.js",
+        "lib/ja.js",
+        "lib/mobile-select.js",
+        "src/scraper.js",
+        "src/home.js"
+      ],
+      "css": [
+        "lib/flatpickr.min.css",
+        "lib/mobile-select.css",
+        "src/styles/flatpickr-custom.css",
+        "src/styles/mobile-select-custom.css",
+        "src/styles/home.css"
+      ]
+    },
+    {
+      "matches": [
+        "https://kulms.kanagawa-u.ac.jp/webclass/course.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/do_contents.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_frame.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_chapter.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_text.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/qstn_frame.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_button.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_answer.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/loadit.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/file_down.php*"
+      ],
+      "js": [
+        "src/course.js"
+      ],
+      "css": [
+        "src/styles/download.css"
+      ],
+      "all_frames": true,
+      "run_at": "document_end"
+    }
+  ],
+  "options_page": "src/options.html",
+  "action": {
+    "default_title": "WebClass設定",
+    "default_popup": "src/options.html"
+  }
+}
