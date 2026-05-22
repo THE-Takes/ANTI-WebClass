@@ -3,10 +3,143 @@
  * コース一覧と課題を取得するロジック
  */
 
+// uxDebugModeState, uxDebugLog, uxDebugWarn, syncUxMasterStateToPage,
+// STORAGE_KEY_EXTENSION_VISUAL_ENABLED, PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED
+// are declared in shared.js (loaded before this file).
+// Fallbacks are provided to avoid hard failure if shared.js is not available.
+var uxDebugModeState = globalThis.uxDebugModeState || { enabled: false };
+globalThis.uxDebugModeState = uxDebugModeState;
+
+var uxDebugLog = typeof globalThis.uxDebugLog === 'function'
+    ? globalThis.uxDebugLog
+    : function (...args) {
+        if (!uxDebugModeState.enabled) return;
+        console.log(...args);
+    };
+if (typeof globalThis.uxDebugLog !== 'function') {
+    globalThis.uxDebugLog = uxDebugLog;
+}
+
+var uxDebugWarn = typeof globalThis.uxDebugWarn === 'function'
+    ? globalThis.uxDebugWarn
+    : function (...args) {
+        if (!uxDebugModeState.enabled) return;
+        console.warn(...args);
+    };
+if (typeof globalThis.uxDebugWarn !== 'function') {
+    globalThis.uxDebugWarn = uxDebugWarn;
+}
+
+var PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = typeof globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED === 'string'
+    ? globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED
+    : 'webclass_ux_master_enabled';
+if (typeof globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED !== 'string') {
+    globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED;
+}
+
+var syncUxMasterStateToPage = typeof globalThis.syncUxMasterStateToPage === 'function'
+    ? globalThis.syncUxMasterStateToPage
+    : function (enabled) {
+        const normalized = enabled ? '1' : '0';
+        try {
+            if (document && document.documentElement) {
+                document.documentElement.dataset.webclassUxMasterEnabled = normalized;
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            localStorage.setItem(PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED, normalized);
+        } catch {
+            // ignore
+        }
+    };
+if (typeof globalThis.syncUxMasterStateToPage !== 'function') {
+    globalThis.syncUxMasterStateToPage = syncUxMasterStateToPage;
+}
+
+(() => {
+    try {
+        chrome.storage.local.get({ debugModeEnabled: false, extensionVisualEnabled: true }, (items) => {
+            uxDebugModeState.enabled = !!items.debugModeEnabled;
+            syncUxMasterStateToPage(items.extensionVisualEnabled !== false);
+            if (document && document.documentElement) {
+                document.documentElement.dataset.webclassUxDebugMode = uxDebugModeState.enabled ? '1' : '0';
+            }
+        });
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName !== 'local') return;
+            if (changes.debugModeEnabled) {
+                uxDebugModeState.enabled = !!changes.debugModeEnabled.newValue;
+                if (document && document.documentElement) {
+                    document.documentElement.dataset.webclassUxDebugMode = uxDebugModeState.enabled ? '1' : '0';
+                }
+            }
+            if (changes.extensionVisualEnabled) {
+                syncUxMasterStateToPage(changes.extensionVisualEnabled.newValue !== false);
+            }
+        });
+    } catch {
+        uxDebugModeState.enabled = false;
+    }
+})();
+
+const STORAGE_KEY_CUSTOM_COURSE_NAMES = 'webclass_custom_course_names';
+
 const Scraper = {
 
     /**
-     * コース名から授業名のみを抽出
+     * カスタムコース名のキャッシュ（非同期読み込み用）
+     */
+    _customNamesCache: null,
+
+    /**
+     * カスタムコース名を読み込む
+     * @returns {Promise<Object>} コースID -> カスタム名のマップ
+     */
+    loadCustomCourseNames: async () => {
+        const data = await chrome.storage.local.get([STORAGE_KEY_CUSTOM_COURSE_NAMES]);
+        Scraper._customNamesCache = data[STORAGE_KEY_CUSTOM_COURSE_NAMES] || {};
+        return Scraper._customNamesCache;
+    },
+
+    /**
+     * カスタムコース名を保存
+     * @param {Object} customNames - コースID -> カスタム名のマップ
+     */
+    saveCustomCourseNames: async (customNames) => {
+        Scraper._customNamesCache = customNames;
+        await chrome.storage.local.set({ [STORAGE_KEY_CUSTOM_COURSE_NAMES]: customNames });
+        uxDebugLog('[Scraper] カスタムコース名を保存しました:', customNames);
+    },
+
+    /**
+     * 特定のコースのカスタム名を設定
+     * @param {string} courseId - コースID
+     * @param {string} customName - カスタム名（空文字で削除）
+     */
+    setCustomCourseName: async (courseId, customName) => {
+        const customNames = await Scraper.loadCustomCourseNames();
+        if (customName && customName.trim()) {
+            customNames[courseId] = customName.trim();
+        } else {
+            delete customNames[courseId];
+        }
+        await Scraper.saveCustomCourseNames(customNames);
+    },
+
+    /**
+     * コースIDからカスタム名を取得（キャッシュ使用）
+     * @param {string} courseId - コースID
+     * @returns {string|null} カスタム名（設定されていない場合はnull）
+     */
+    getCustomCourseName: (courseId) => {
+        if (!Scraper._customNamesCache) return null;
+        return Scraper._customNamesCache[courseId] || null;
+    },
+
+    /**
+     * コース名から授業名のみを抽出（自動短縮）
      */
     extractCourseName: (fullName) => {
         let name = fullName;
@@ -32,17 +165,39 @@ const Scraper = {
     },
 
     /**
+     * コース名を取得（カスタム名優先、なければ自動短縮）
+     * @param {string} courseId - コースID
+     * @param {string} fullName - 完全なコース名
+     * @returns {string} 表示用コース名
+     */
+    getDisplayCourseName: (courseId, fullName) => {
+        // カスタム名が設定されていれば優先
+        const customName = Scraper.getCustomCourseName(courseId);
+        if (customName) {
+            return customName;
+        }
+        // なければ自動短縮
+        return Scraper.extractCourseName(fullName);
+    },
+
+    /**
      * ホームページのDOMからコース一覧を取得する
      * @returns {Array<{id: string, name: string, url: string}>}
      */
-    getCourses: (logger = console.log) => {
+    getCourses: (logger = uxDebugLog) => {
+        const log = typeof logger === 'function'
+            ? (...args) => {
+                if (!uxDebugModeState.enabled) return;
+                logger(...args);
+            }
+            : uxDebugLog;
         const courses = [];
         // タイムテーブル内のリンクや、コース一覧のリンクを探す
         // 実際のHTMLでは、コースへのリンクは以下のような形式
         // <a href="https://kulms.kanagawa-u.ac.jp/webclass/course.php/25N1300000012AY592/login?acs_=..." ...>
         const courseLinks = document.querySelectorAll('a[href*="course.php"]');
 
-        logger(`[Scraper] コースリンクを検索中... 見つかった候補: ${courseLinks.length}個`);
+        log(`[Scraper] コースリンクを検索中... 見つかった候補: ${courseLinks.length}個`);
 
         courseLinks.forEach(link => {
             const href = link.getAttribute('href');
@@ -86,12 +241,12 @@ const Scraper = {
                 if (courseId && name) {
                     // 重複チェック (時間割表とリスト表示で同じコースが複数回出る可能性がある)
                     if (!courses.some(c => c.id === courseId)) {
-                        // コース名を短縮
-                        const shortName = Scraper.extractCourseName(name);
+                        // コース名を取得（カスタム名優先、なければ自動短縮）
+                        const shortName = Scraper.getDisplayCourseName(courseId, name);
 
                         courses.push({
                             id: courseId,
-                            name: shortName,  // 短縮名を使用
+                            name: shortName,  // 表示名を使用
                             fullName: name,   // 元の完全な名前も保持
                             url: url.href,
                             hasDeadline: hasDeadline
@@ -99,13 +254,13 @@ const Scraper = {
                     }
                 }
             } catch (e) {
-                logger(`[Scraper] リンクの解析に失敗: ${href}`);
+                log(`[Scraper] リンクの解析に失敗: ${href}`);
             }
         });
 
-        logger(`[Scraper] コース一覧の取得完了: ${courses.length}件`);
+        log(`[Scraper] コース一覧の取得完了: ${courses.length}件`);
         if (courses.length > 0) {
-            logger(`[Scraper] 取得したコース名:`, courses.map(c => c.name));
+            log(`[Scraper] 取得したコース名:`, courses.map(c => c.name));
         }
         return courses;
     },
@@ -118,8 +273,8 @@ const Scraper = {
      */
     fetchAssignments: async (courseUrl, courseName, courseFullName = null) => {
         try {
-            console.log(`[Scraper] 課題を取得中: ${courseName}`);
-            console.log(`[Scraper] URL: ${courseUrl}`);
+            uxDebugLog(`[Scraper] 課題を取得中: ${courseName}`);
+            uxDebugLog(`[Scraper] URL: ${courseUrl}`);
 
             const response = await fetch(courseUrl);
             if (!response.ok) {
@@ -128,16 +283,16 @@ const Scraper = {
             }
 
             let text = await response.text();
-            console.log(`[Scraper] HTMLを取得しました (サイズ: ${text.length} bytes)`);
-            console.log(`[Scraper] HTML冒頭サンプル:`, text.substring(0, 200));
+            uxDebugLog(`[Scraper] HTMLを取得しました (サイズ: ${text.length} bytes)`);
+            uxDebugLog(`[Scraper] HTML冒頭サンプル:`, text.substring(0, 200));
 
             // JavaScriptリダイレクトを検出
             const redirectMatch = text.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
             if (redirectMatch) {
                 const redirectPath = redirectMatch[1];
                 const redirectUrl = new URL(redirectPath, courseUrl).href;
-                console.log(`[Scraper] ⚠️ JavaScriptリダイレクトを検出`);
-                console.log(`[Scraper] リダイレクト先: ${redirectUrl}`);
+                uxDebugLog(`[Scraper] JavaScriptリダイレクトを検出`);
+                uxDebugLog(`[Scraper] リダイレクト先: ${redirectUrl}`);
 
                 // リダイレクト先に再度アクセス
                 const redirectResponse = await fetch(redirectUrl);
@@ -146,7 +301,7 @@ const Scraper = {
                     return [];
                 }
                 text = await redirectResponse.text();
-                console.log(`[Scraper] リダイレクト先HTMLを取得 (サイズ: ${text.length} bytes)`);
+                uxDebugLog(`[Scraper] リダイレクト先HTMLを取得 (サイズ: ${text.length} bytes)`);
             }
 
             const parser = new DOMParser();
@@ -155,14 +310,14 @@ const Scraper = {
             // Check for frameset and redirect to main frame
             const frameset = doc.querySelector('frameset');
             if (frameset) {
-                console.log(`[Scraper] Framesetを検出: ${courseName}`);
+                uxDebugLog(`[Scraper] Framesetを検出: ${courseName}`);
                 let frame = doc.querySelector('frame[name="main"]') || doc.querySelector('frame[src*="course_"]');
 
                 if (frame) {
                     const frameSrc = frame.getAttribute('src');
                     if (frameSrc) {
                         const frameUrl = new URL(frameSrc, courseUrl).href;
-                        console.log(`[Scraper] コンテンツフレームにリダイレクト: ${frameUrl}`);
+                        uxDebugLog(`[Scraper] コンテンツフレームにリダイレクト: ${frameUrl}`);
                         const frameResponse = await fetch(frameUrl);
                         if (!frameResponse.ok) {
                             console.error(`[Scraper] フレームHTTPエラー: ${frameResponse.status}`);
@@ -170,10 +325,10 @@ const Scraper = {
                         }
                         const frameText = await frameResponse.text();
                         doc = parser.parseFromString(frameText, 'text/html');
-                        console.log(`[Scraper] フレームHTMLを解析しました (サイズ: ${frameText.length} bytes)`);
+                        uxDebugLog(`[Scraper] フレームHTMLを解析しました (サイズ: ${frameText.length} bytes)`);
                     }
                 } else {
-                    console.warn(`[Scraper] フレームが見つかりませんでした`);
+                    uxDebugWarn(`[Scraper] フレームが見つかりませんでした`);
                 }
             }
 
@@ -183,11 +338,11 @@ const Scraper = {
             // .cl-contentsList_listGroupItem は "li" タグや "section" タグなどに付いている可能性がある
             // 提供されたHTMLでは <section class="list-group-item cl-contentsList_listGroupItem"> となっている
             const listItems = doc.querySelectorAll('.cl-contentsList_listGroupItem');
-            console.log(`[Scraper] リストアイテムの検索: .cl-contentsList_listGroupItem`);
-            console.log(`[Scraper] 見つかったアイテム数: ${listItems.length}`);
+            uxDebugLog(`[Scraper] リストアイテムの検索: .cl-contentsList_listGroupItem`);
+            uxDebugLog(`[Scraper] 見つかったアイテム数: ${listItems.length}`);
 
             if (listItems.length > 0) {
-                console.log(`[Scraper] 新しいレイアウトで ${listItems.length} 個のアイテムを処理中...`);
+                uxDebugLog(`[Scraper] 新しいレイアウトで ${listItems.length} 個のアイテムを処理中...`);
 
                 listItems.forEach(item => {
                     // カテゴリ取得 (試験, レポート, 資料, etc.)
@@ -293,32 +448,36 @@ const Scraper = {
                         course: courseName,              // 短縮コース名
                         courseFullName: courseFullName || courseName,  // 正式コース名
                         title: title,
+                        sourceTitle: title,
+                        titleEdited: false,
                         url: preferredUrl,
                         fallbackUrl: doContentsUrl,
                         deadline: deadline || "期限なし",
+                        originalDeadline: deadline || "期限なし",  // 初期設定期限（ユーザー変更しても保持）
                         category: category,
                         isCompleted: false,  // ユーザーのチェック状態（初期値はfalse）
                         isAutoCompleted: isAutoCompleted,  // システム判定
                         isExpired: isExpired,
-                        attemptCount: attemptCount
+                        attemptCount: attemptCount,
+                        localOnly: false
                     };
                     assignments.push(assignment);
-                    console.log(`[Scraper] 課題を追加: [${category}] ${title} (期限: ${assignment.deadline})`);
+                    uxDebugLog(`[Scraper] 課題を追加: [${category}] ${title} (期限: ${assignment.deadline})`);
                 });
 
             } else {
                 // --- 旧ロジック (フォールバック) ---
-                console.warn(`[Scraper] リストアイテムが見つかりませんでした。フォールバックロジックを試行...`);
-                console.log(`[Scraper] HTML構造の確認:`);
-                console.log(`[Scraper] - body要素: ${doc.body ? 'あり' : 'なし'}`);
-                console.log(`[Scraper] - container要素: ${doc.querySelector('.container') ? 'あり' : 'なし'}`);
-                console.log(`[Scraper] - list-group要素: ${doc.querySelectorAll('.list-group').length}個`);
+                uxDebugWarn(`[Scraper] リストアイテムが見つかりませんでした。フォールバックロジックを試行...`);
+                uxDebugLog(`[Scraper] HTML構造の確認:`);
+                uxDebugLog(`[Scraper] - body要素: ${doc.body ? 'あり' : 'なし'}`);
+                uxDebugLog(`[Scraper] - container要素: ${doc.querySelector('.container') ? 'あり' : 'なし'}`);
+                uxDebugLog(`[Scraper] - list-group要素: ${doc.querySelectorAll('.list-group').length}個`);
                 // ... (省略、必要なら以前のコードを維持)
             }
 
-            console.log(`[Scraper] ${courseName} から ${assignments.length} 件の課題を取得しました`);
+            uxDebugLog(`[Scraper] ${courseName} から ${assignments.length} 件の課題を取得しました`);
             if (assignments.length > 0) {
-                console.log(`[Scraper] 課題の詳細:`, assignments);
+                uxDebugLog(`[Scraper] 課題の詳細:`, assignments);
             }
             return assignments;
 
@@ -364,6 +523,9 @@ const Scraper = {
      * 全コースの課題を一括取得して保存する
      */
     updateAllAssignments: async () => {
+        // カスタムコース名を先に読み込む
+        await Scraper.loadCustomCourseNames();
+
         // 既存の課題とチェック状態を取得
         const existingData = await new Promise(resolve => {
             chrome.storage.local.get(['assignments'], (result) => {
@@ -371,20 +533,53 @@ const Scraper = {
             });
         });
 
-        // 既存のチェック状態をマップに保存（URLをキーとして使用）
-        const checkStateMap = {};
-        const rememberState = (key, value) => {
+        // 既存の状態をマップに保存（URLをキーとして使用）
+        const stateMap = {};
+        const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+        const getPrimaryAssignmentKey = (assignment) => {
+            if (!assignment || typeof assignment !== 'object') return '';
+            if (typeof assignment.url === 'string' && assignment.url) {
+                return `url:${assignment.url}`;
+            }
+            if (typeof assignment.fallbackUrl === 'string' && assignment.fallbackUrl) {
+                return `fallback:${assignment.fallbackUrl}`;
+            }
+            return '';
+        };
+        const normalizeCategory = (value) => typeof value === 'string' ? value.trim().toLowerCase() : '';
+        const isLocalOnlyAssignment = (assignment) => {
+            if (!assignment || typeof assignment !== 'object') return false;
+            if (assignment.localOnly === true) return true;
+
+            const category = normalizeCategory(assignment.category);
+            const url = typeof assignment.url === 'string' ? assignment.url : '';
+            const fallbackUrl = typeof assignment.fallbackUrl === 'string' ? assignment.fallbackUrl : '';
+
+            return category === 'devdev'
+                || url.startsWith('debug://')
+                || fallbackUrl.startsWith('debug://');
+        };
+        const rememberState = (key, assignment) => {
             if (key) {
-                checkStateMap[key] = value;
+                stateMap[key] = {
+                    isCompleted: assignment.isCompleted,
+                    isDeleted: assignment.isDeleted,
+                    deletedAt: assignment.deletedAt,
+                    deadline: assignment.deadline,
+                    originalDeadline: assignment.originalDeadline,
+                    title: assignment.title,
+                    sourceTitle: assignment.sourceTitle,
+                    titleEdited: assignment.titleEdited === true,
+                    ticktickTaskId: assignment.ticktickTaskId,
+                };
             }
         };
         existingData.forEach(assignment => {
-            rememberState(assignment.url, assignment.isCompleted);
+            rememberState(assignment.url, assignment);
             if (assignment.fallbackUrl) {
-                rememberState(assignment.fallbackUrl, assignment.isCompleted);
+                rememberState(assignment.fallbackUrl, assignment);
             }
         });
-
         const courses = Scraper.getCourses();
         let allAssignments = [];
 
@@ -395,25 +590,93 @@ const Scraper = {
             allAssignments = allAssignments.concat(assignments);
         }
 
-        // 既存のチェック状態をマージ
-        allAssignments = allAssignments.map(assignment => {
-            if (assignment.url && checkStateMap.hasOwnProperty(assignment.url)) {
-                assignment.isCompleted = checkStateMap[assignment.url];
-            } else if (assignment.fallbackUrl && checkStateMap.hasOwnProperty(assignment.fallbackUrl)) {
-                assignment.isCompleted = checkStateMap[assignment.fallbackUrl];
+        // 既存の状態をマージ
+        allAssignments = allAssignments.map((assignment) => {
+            let existingState = null;
+            if (assignment.url && hasOwn(stateMap, assignment.url)) {
+                existingState = stateMap[assignment.url];
+            } else if (assignment.fallbackUrl && hasOwn(stateMap, assignment.fallbackUrl)) {
+                existingState = stateMap[assignment.fallbackUrl];
             }
+
+            const fetchedTitle = typeof assignment.title === 'string' ? assignment.title : '';
+            assignment.sourceTitle = fetchedTitle;
+            assignment.titleEdited = false;
+            assignment.localOnly = false;
+
+            if (existingState) {
+                assignment.isCompleted = existingState.isCompleted;
+
+                const existingTickTickTaskId = typeof existingState.ticktickTaskId === 'string'
+                    ? existingState.ticktickTaskId.trim()
+                    : '';
+                if (existingTickTickTaskId) {
+                    assignment.ticktickTaskId = existingTickTickTaskId;
+                }
+
+                if (existingState.isDeleted) {
+                    assignment.isDeleted = existingState.isDeleted;
+                    assignment.deletedAt = existingState.deletedAt;
+                }
+
+                if (existingState.originalDeadline) {
+                    assignment.originalDeadline = existingState.originalDeadline;
+                }
+
+                if (existingState.deadline && existingState.deadline !== existingState.originalDeadline) {
+                    assignment.deadline = existingState.deadline;
+                }
+
+                const existingTitle = typeof existingState.title === 'string' ? existingState.title : '';
+                const existingSourceTitle = typeof existingState.sourceTitle === 'string' ? existingState.sourceTitle : '';
+                const hasSourceTitle = !!existingSourceTitle;
+                const titleWasEdited = existingState.titleEdited === true
+                    || (hasSourceTitle
+                        ? existingTitle !== existingSourceTitle
+                        : (existingTitle && existingTitle !== fetchedTitle));
+
+                if (titleWasEdited && typeof existingState.title === 'string') {
+                    assignment.title = existingState.title;
+                    assignment.titleEdited = true;
+                }
+            }
+
             return assignment;
         });
 
-        console.log('[Scraper] 全ての課題を取得しました:', allAssignments);
-        console.log(`[Scraper] 合計 ${allAssignments.length} 件の課題`);
+        const localOnlyAssignments = existingData.filter(isLocalOnlyAssignment);
+        if (localOnlyAssignments.length > 0) {
+            const mergedPrimaryKeys = new Set(
+                allAssignments
+                    .map(getPrimaryAssignmentKey)
+                    .filter(Boolean)
+            );
+
+            localOnlyAssignments.forEach((assignment) => {
+                const primaryKey = getPrimaryAssignmentKey(assignment);
+                if (primaryKey && mergedPrimaryKeys.has(primaryKey)) {
+                    return;
+                }
+
+                allAssignments.push({
+                    ...assignment,
+                    localOnly: true,
+                });
+
+                if (primaryKey) {
+                    mergedPrimaryKeys.add(primaryKey);
+                }
+            });
+        }
+        uxDebugLog('[Scraper] 全ての課題を取得しました:', allAssignments);
+        uxDebugLog(`[Scraper] 合計 ${allAssignments.length} 件の課題`);
 
         // 保存
         chrome.storage.local.set({
             'assignments': allAssignments,
             'lastUpdated': new Date().toISOString()
         }, () => {
-            console.log('[Scraper] 課題をストレージに保存しました。');
+            uxDebugLog('[Scraper] 課題をストレージに保存しました。');
         });
 
         return allAssignments;

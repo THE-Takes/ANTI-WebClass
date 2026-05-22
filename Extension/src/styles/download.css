@@ -94,6 +94,26 @@
 }
 
 /* ============================================================
+   Copy to Clipboard Button (Orange/Amber)
+   ============================================================ */
+
+.ux-download-copy {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: white;
+}
+
+.ux-download-copy:hover {
+    background: linear-gradient(135deg, #F57C00 0%, #E65100 100%);
+}
+
+.ux-download-copy:disabled {
+    background: linear-gradient(135deg, #FFCC80 0%, #FFB74D 100%);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ============================================================
    PDF Viewer Buttons
    ============================================================ */
 
@@ -171,6 +191,45 @@ body .ux-download-group .ux-download-btn {
     .ux-download-image {
         background: linear-gradient(135deg, #AB47BC 0%, #9C27B0 100%);
     }
+    
+    .ux-download-copy {
+        background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+    }
+}
+
+/* ============================================================
+   Inline Download Options (for attachment links)
+   ============================================================ */
+
+.ux-inline-download-options {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.ux-inline-download-options .ux-download-btn {
+    padding: 2px 8px;
+    font-size: 13px;
+    min-width: 28px;
+    justify-content: center;
+}
+
+.ux-inline-download-options .ux-download-rename {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.ux-inline-download-options .ux-download-original {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+.ux-inline-download-options .ux-download-image {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+}
+
+.ux-inline-download-options .ux-download-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 /* ============================================================
@@ -185,6 +244,18 @@ body .ux-download-group .ux-download-btn {
     .ux-download-btn {
         font-size: 11px;
         padding: 3px 6px;
+    }
+    
+    .ux-inline-download-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-left: 4px;
+    }
+    
+    .ux-inline-download-options .ux-download-btn {
+        padding: 2px 6px;
+        font-size: 11px;
     }
 }
 

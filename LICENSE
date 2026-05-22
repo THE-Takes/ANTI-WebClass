@@ -19,3 +19,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Third-Party Notices
+
+This repository also bundles third-party files under their own licenses.
+
+Included files in `Extension/lib/`:
+
+- `flatpickr.min.js`, `flatpickr.min.css`, `ja.js`
+  - Project: flatpickr
+  - License: MIT
+  - Upstream: https://github.com/flatpickr/flatpickr
+
+- `mobile-select.js`, `mobile-select.css`
+  - Project: mobile-select
+  - License: MIT
+  - Copyright: Copyright (c) 2017-present, LIHONG OU (onlyhom)
+  - Upstream: https://github.com/onlyhom/mobile-select

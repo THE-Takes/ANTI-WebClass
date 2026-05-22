@@ -3,211 +3,621 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebClass UX 改善設定</title>
-  <style>
-    body {
-      width: 400px;
-      font-family: "Helvetica Neue", Arial, sans-serif;
-      margin: 10px;
-    }
-
-    .section {
-      margin-bottom: 20px;
-      padding: 15px;
-      border: 1px solid #eee;
-      border-radius: 5px;
-    }
-
-    .section h2 {
-      font-size: 16px;
-      margin-top: 0;
-    }
-
-    .section-sync {
-      background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
-      border: 1px solid #90caf9;
-    }
-
-    .warning {
-      color: #d32f2f;
-      background-color: #ffebee;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      margin-bottom: 10px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 5px;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
-
-    button {
-      padding: 10px 20px;
-      background-color: #1976d2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #1565c0;
-    }
-
-    .btn-ms {
-      background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 12px;
-      font-size: 14px;
-    }
-
-    .btn-ms:hover {
-      background: linear-gradient(135deg, #106ebe 0%, #0050a0 100%);
-    }
-
-    .btn-ms svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .btn-reset {
-      background: #f5f5f5;
-      color: #666;
-      border: 1px solid #ddd;
-      width: 100%;
-      padding: 8px;
-      font-size: 13px;
-    }
-
-    .btn-reset:hover {
-      background: #ffebee;
-      color: #c62828;
-      border-color: #ef9a9a;
-    }
-
-    .sync-status {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      font-size: 13px;
-      color: #666;
-    }
-
-    .sync-status.connected {
-      color: #2e7d32;
-    }
-
-    .sync-status.disconnected {
-      color: #f57c00;
-    }
-
-    #status {
-      margin-top: 10px;
-      color: green;
-      font-weight: bold;
-    }
-  </style>
+  <link rel="stylesheet" href="styles/options-ios.css">
 </head>
 
 <body>
-  <h1>WebClass UX 改善設定</h1>
-
-  <!-- Microsoft To Do 連携セクション -->
-  <div class="section section-sync">
-    <h2>📋 Microsoft To Do 連携</h2>
-    <p style="font-size: 13px; color: #555; margin-bottom: 12px;">
-      WebClassの課題をMicrosoft To Doに自動同期します。<br>
-      iPhoneのTo Doアプリで課題を管理できます。
-    </p>
-    
-    <div id="msSyncStatus" class="sync-status disconnected">
-      ⚪ 未設定
-    </div>
-    
-    <!-- リマインダー設定 -->
-    <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 6px;">
-      <label style="font-weight: bold; font-size: 13px; margin-bottom: 8px; display: block;">
-        🔔 リマインダー通知タイミング
-      </label>
-      
-      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-        <select id="reminderDays" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
-          <option value="0">通知しない</option>
-          <option value="1" selected>1日前</option>
-          <option value="2">2日前</option>
-          <option value="3">3日前</option>
-          <option value="4">4日前</option>
-          <option value="5">5日前</option>
-          <option value="6">6日前</option>
-          <option value="7">7日前</option>
-        </select>
-        
-        <select id="reminderTime" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
-          <option value="exact">ちょうど（同時刻）</option>
-          <option value="9am" selected>朝9時</option>
-        </select>
+  <main class="settings-page">
+    <section id="settingsRoot" class="settings-root">
+      <div class="ios-list nav-list">
+        <button type="button" class="nav-item" data-open-section="home">
+          <span>ホーム表示</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="debug">
+          <span>Debug</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="llm">
+          <span>コース名短縮</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="todo">
+          <span>ToDo API 連携</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="material">
+          <span>資料ページ設定</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="exam">
+          <span>試験ページ設定</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="nav-item" data-open-section="advanced">
+          <span>高度な設定</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
       </div>
-      
-      <p style="font-size: 11px; color: #666; margin-top: 6px; margin-bottom: 0;">
-        MTodoに同期する際にリマインダーが設定されます。
-      </p>
-    </div>
-    
-    <button type="button" id="openMsSettings" class="btn-ms" style="margin-top: 12px;">
-      <svg viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-      </svg>
-      Microsoft To Do 設定を開く
-    </button>
-    
-    <button type="button" id="resetSyncData" class="btn-reset" style="margin-top: 8px;">
-      🗑️ 同期データをリセット
-    </button>
-    <p id="resetStatus" style="font-size: 12px; color: #666; margin-top: 5px;"></p>
-  </div>
+    </section>
 
-  <div class="section">
-    <h2>高度な設定 (Advanced Settings)</h2>
-    <div class="warning">
-      <strong>警告:</strong> 自動ログインを有効にすると、ユーザー名とパスワードがブラウザ内に保存されます。
-      暗号化は簡易的なものであり、完全に安全ではありません。
-      <strong>共用PCや公共の場所では絶対に使用しないでください。</strong>
-    </div>
+    <section class="settings-detail" data-section="home" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>ホーム表示</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">デフォルトビュー</p>
+          <div class="ios-list" role="radiogroup" aria-label="デフォルトビュー選択">
+            <label class="ios-check-item" for="defaultViewOriginal">
+              <input type="radio" name="defaultViewVersion" value="original" id="defaultViewOriginal">
+              <span class="ios-check-label">Plain（WebClass標準・完全に変更なし）</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+            <label class="ios-check-item" for="defaultView2">
+              <input type="radio" name="defaultViewVersion" value="2" id="defaultView2">
+              <span class="ios-check-label">Switch View 2（Dashboard View）</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">ホームページを開いたときに使用するビューを選択してください。</p>
+        </div>
 
-    <label>
-      <input type="checkbox" id="autoLoginEnabled">
-      自動ログインを有効にする
-    </label>
+        <div class="setting-group">
+          <p class="setting-title">ショートカット: 表示モード切替</p>
+          <div class="ios-list">
+            <div class="ios-item">
+              <input type="text" id="viewToggleShortcut" placeholder="Alt+Shift+M" autocomplete="off">
+            </div>
+          </div>
+          <p class="helper-text setting-helper">1つのショートカットで、画面改変OFF（Plain）と画面改変ON（Switch View 2）を切り替えます。空欄で無効化できます。</p>
+        </div>
+      </div>
+    </section>
 
-    <div id="credentialsArea" style="display: none; margin-top: 15px;">
-      <label for="username">ユーザーID:</label>
-      <input type="text" id="username" placeholder="ユーザーIDを入力">
+    <section class="settings-detail" data-section="debug" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>Debug</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="debugModeEnabled">
+              <span class="switch-label">
+                <span class="item-title">Debug modeを有効化する</span>
+              </span>
+              <input type="checkbox" id="debugModeEnabled" class="ios-switch" aria-label="Debug modeを有効化する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">ON時のみdevdev系・デバッグ系UIとデバッグログを表示します。</p>
+        </div>
+      </div>
+    </section>
 
-      <label for="password">パスワード:</label>
-      <input type="password" id="password" placeholder="パスワードを入力">
-    </div>
-  </div>
+    <section class="settings-detail" data-section="llm" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>コース名短縮</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="useCustomCourseNameEnabled">
+              <span class="switch-label">
+                <span class="item-title">手動リネーム</span>
+              </span>
+              <input type="checkbox" id="useCustomCourseNameEnabled" class="ios-switch" aria-label="手動リネーム">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
 
-  <button id="save">保存</button>
-  <div id="status"></div>
+        <div class="setting-group">
+          <p class="setting-title">短縮方式</p>
+          <div class="ios-list" role="radiogroup" aria-label="短縮方式の選択">
+            <label class="ios-check-item" for="useLlmCourseNameEnabled">
+              <input type="radio" id="useLlmCourseNameEnabled" name="courseNameShorteningMode" value="llm" aria-label="LLMによる短縮名を使用する">
+              <span class="ios-check-label">LLMによる短縮名を使用する</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+            <label class="ios-check-item" for="useRuleCourseNameEnabled">
+              <input type="radio" id="useRuleCourseNameEnabled" name="courseNameShorteningMode" value="rule" aria-label="短縮ルールを使用する">
+              <span class="ios-check-label">短縮ルールを使用する</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+          </div>
+        </div>
 
+        <div class="setting-group">
+          <div class="ios-list nav-list">
+            <button type="button" id="openLlmProviderSettings" class="nav-item" data-open-section="llm-provider">
+              <span>LLMプロバイダ</span>
+              <span class="chevron" aria-hidden="true">›</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="autoRunCourseNameConversionOnDashboardLoad">
+              <span class="switch-label">
+                <span class="item-title">読み込み時に短縮名変換を自動実行</span>
+              </span>
+              <input type="checkbox" id="autoRunCourseNameConversionOnDashboardLoad" class="ios-switch" aria-label="読み込み時に短縮名変換を自動実行">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="runCourseNameConversionNow" class="btn-primary btn-block">短縮名更新を実行（Switch View 2）</button>
+              <p id="courseNameConversionStatus" class="status-text"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="showLlmCourseStatusEnabled">
+              <span class="switch-label">
+                <span class="item-title">LLM実行中の表示を出す</span>
+              </span>
+              <input type="checkbox" id="showLlmCourseStatusEnabled" class="ios-switch" aria-label="LLM実行中の表示を出す">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">デバッグ向けの進行ステータスを表示します。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">短縮名キャッシュをクリア</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="clearOpenaiCourseNameCache" class="btn-reset btn-block">短縮名キャッシュをクリア</button>
+              <p id="openaiCacheStatus" class="status-text"></p>
+            </div>
+          </div>
+          <p class="helper-text setting-helper helper-text--danger">注意: APIキーはブラウザ内に保存されます。共有PCでは使用しないでください。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="llm-provider" data-parent-section="llm" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>LLMプロバイダ</h2>
+      </div>
+      <div class="settings-groups" id="llmProviderSettingsGroup">
+        <div class="setting-group">
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <p class="item-title">APIプロバイダ</p>
+              <select id="courseNameProvider">
+                <option value="openai">OpenAI</option>
+                <option value="groq">Groq</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="openaiCourseNameFields">
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <p class="item-title">OpenAI設定</p>
+              <div class="field-grid">
+                <label class="field-label" for="openaiApiKey">OpenAI APIキー</label>
+                <input type="password" id="openaiApiKey" placeholder="sk-..." autocomplete="off">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="openaiCourseNameModel">モデル</label>
+                <select id="openaiCourseNameModel">
+                  <option value="gpt-4o-mini">gpt-4o-mini</option>
+                  <option value="gpt-4o">gpt-4o</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="groqCourseNameFields" style="display: none;">
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <p class="item-title">Groq設定</p>
+              <div class="field-grid">
+                <label class="field-label" for="groqApiKey">Groq APIキー</label>
+                <input type="password" id="groqApiKey" placeholder="gsk_..." autocomplete="off">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="groqCourseNameModel">モデル</label>
+                <select id="groqCourseNameModel">
+                  <option value="llama-3.1-70b">llama-3.1-70b</option>
+                  <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+                  <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+                  <option value="gemma2-9b-it">gemma2-9b-it</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="todo" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>ToDo API 連携</h2>
+      </div>
+      <div class="settings-groups">
+        <p class="setting-description">Smart ToDo と外部ToDoを同期します。Microsoft To Do / Google Tasks / Todoist / TickTick に対応しています。</p>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="todoApiEnabled">
+              <span class="switch-label">
+                <span class="item-title">ToDoアプリと連携する</span>
+              </span>
+              <input type="checkbox" id="todoApiEnabled" class="ios-switch" aria-label="ToDoアプリと連携する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="todoApiSettingsBody" class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">連携先API</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <select id="todoApiProvider">
+                <option value="none">連携しない</option>
+                <option value="microsoft">Microsoft To Do</option>
+                <option value="google">Google Tasks</option>
+                <option value="todoist">Todoist</option>
+                <option value="ticktick">TickTick</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="microsoftTodoFields" style="display: none;">
+          <p class="setting-title">Microsoft To Do 設定</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="field-grid">
+                <label class="field-label" for="msTodoClientId">Microsoft Client ID</label>
+                <input type="text" id="msTodoClientId" placeholder="Microsoft OAuth Client ID" autocomplete="off">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="msTodoTenantPreset">Microsoft Tenant ID</label>
+                <select id="msTodoTenantPreset">
+                  <option value="common">common</option>
+                  <option value="organizations">organizations</option>
+                  <option value="consumers">consumers</option>
+                  <option value="custom">custom</option>
+                </select>
+              </div>
+
+              <div class="field-grid" id="msTodoTenantCustomField" style="display: none;">
+                <label class="field-label" for="msTodoTenantCustom">カスタム Tenant ID</label>
+                <input type="text" id="msTodoTenantCustom" placeholder="Tenant GUID またはドメイン" autocomplete="off" disabled>
+              </div>
+
+              <div class="helper-text">
+                通常は <code>common</code> を使用してください。特定テナントを使う場合のみ <code>custom</code> を選択します。
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="msTodoListName">専用リスト名</label>
+                <input type="text" id="msTodoListName" placeholder="SmartToDo Sync" autocomplete="off">
+              </div>
+
+              <div class="button-row">
+                <button type="button" id="msTodoConnectBtn" class="btn-primary">Microsoft To Do に接続</button>
+                <button type="button" id="msTodoDisconnectBtn" class="btn-reset">接続解除</button>
+              </div>
+              <p id="msTodoAuthStatus" class="status-text"></p>
+
+              <div id="msTodoReminderDefaults" class="subpanel">
+                <div class="field-grid">
+                  <label class="field-label" for="msTodoDefaultReminderDaysBefore">既定の通知日（期限の何日前）</label>
+                  <select id="msTodoDefaultReminderDaysBefore">
+                    <option value="0">当日</option>
+                    <option value="1">1日前</option>
+                    <option value="2">2日前</option>
+                    <option value="3">3日前</option>
+                    <option value="4">4日前</option>
+                    <option value="5">5日前</option>
+                    <option value="6">6日前</option>
+                    <option value="7">1週間前</option>
+                  </select>
+                </div>
+
+                <div class="field-grid">
+                  <label class="field-label" for="msTodoDefaultReminderTimeMode">既定の通知時刻</label>
+                  <select id="msTodoDefaultReminderTimeMode">
+                    <option value="at_9am">選択日の午前9:00に通知</option>
+                    <option value="exact_offset">期限日時から 24h × 選択日前 に通知</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="googleTodoFields" style="display: none;">
+          <p class="setting-title">Google Tasks 設定</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="field-grid">
+                <label class="field-label" for="googleTodoClientId">Google Client ID</label>
+                <input type="text" id="googleTodoClientId" placeholder="Google Cloud Console で発行した Client ID を入力" autocomplete="off">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="googleTodoClientSecret">Google Client Secret</label>
+                <input type="password" id="googleTodoClientSecret" placeholder="Google Cloud Console で発行した Client Secret を入力" autocomplete="off">
+                <p class="helper-text">Google Cloud Console で「ウェブ アプリケーション」タイプの OAuth クライアントを作成し、Client ID と Client Secret をここに入力してください。Client Secret はローカルに暗号化して保存されます。</p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="googleTodoRedirectUri">リダイレクト URI</label>
+                <input type="text" id="googleTodoRedirectUri" readonly>
+                <p class="helper-text">この URI を Google Cloud Console の「承認済みのリダイレクト URI」に追加してください。</p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="googleTodoListName">専用リスト名</label>
+                <input type="text" id="googleTodoListName" placeholder="SmartToDo Sync" autocomplete="off">
+              </div>
+
+              <div class="button-row">
+                <button type="button" id="googleTodoConnectBtn" class="btn-primary">Google Tasks に接続</button>
+                <button type="button" id="googleTodoDisconnectBtn" class="btn-reset">接続解除</button>
+              </div>
+              <p id="googleTodoAuthStatus" class="status-text"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="todoistTodoFields" style="display: none;">
+          <p class="setting-title">Todoist 設定</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="field-grid">
+                <label class="field-label" for="todoistTodoApiToken">Todoist Personal Token</label>
+                <input type="password" id="todoistTodoApiToken" placeholder="Todoist API Token" autocomplete="off">
+                <p class="helper-text">Todoist の設定画面で発行した Personal Token を入力してください。</p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="todoistTodoProjectName">専用プロジェクト名</label>
+                <input type="text" id="todoistTodoProjectName" placeholder="SmartToDo Sync" autocomplete="off">
+                <p class="helper-text">指定名のプロジェクトがなければ自動作成されます。</p>
+              </div>
+
+              <div class="button-row">
+                <button type="button" id="todoistTodoConnectBtn" class="btn-primary">Todoist に接続</button>
+                <button type="button" id="todoistTodoDisconnectBtn" class="btn-reset">接続解除</button>
+              </div>
+              <p id="todoistTodoAuthStatus" class="status-text"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="ticktickTodoFields" style="display: none;">
+          <p class="setting-title">TickTick 設定</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="field-grid">
+                <label class="field-label" for="ticktickTodoClientId">TickTick Client ID</label>
+                <input type="text" id="ticktickTodoClientId" placeholder="TickTick OAuth Client ID" autocomplete="off">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="ticktickTodoClientSecret">TickTick Client Secret</label>
+                <input type="password" id="ticktickTodoClientSecret" placeholder="TickTick OAuth Client Secret" autocomplete="off">
+                <p class="helper-text">Client Secret はローカルに暗号化して保存されます。</p>
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="ticktickTodoProjectName">専用プロジェクト名</label>
+                <input type="text" id="ticktickTodoProjectName" placeholder="SmartToDo Sync" autocomplete="off">
+              </div>
+
+              <div class="button-row">
+                <button type="button" id="ticktickTodoConnectBtn" class="btn-primary">TickTick に接続</button>
+                <button type="button" id="ticktickTodoDisconnectBtn" class="btn-reset">接続解除</button>
+              </div>
+              <p id="ticktickTodoAuthStatus" class="status-text"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group" id="todoApiCommonFields" style="display: none;">
+          <p class="setting-title">連携タスク名の形式</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <select id="todoApiTaskTitleFormat">
+                <option value="task_only">1. Smart ToDo のタスク名</option>
+                <option value="short_course_plus_task">2. 時間割の短縮コース名 + タスク名</option>
+                <option value="ultra_short_plus_task">3. API連携用コース超短縮名 + タスク名</option>
+              </select>
+
+              <div id="todoApiUltraShortConfig" class="subpanel" style="display: none;">
+                <p class="helper-text">形式3を選択した場合に使用する、コースごとの超短縮名です。</p>
+                <div id="todoApiUltraShortCourseMap" class="ultra-short-list"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p id="googleTodoDueWarningText" class="helper-text helper-text--warning setting-helper" style="display: none;">Google Tasks の仕様上、期限（due）には時刻が保存されません。時刻の変更はメモ欄の <code>Current Deadline</code> を編集してください（次回同期で Smart ToDo に反映されます）。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="material" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>資料ページ設定</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">初期表示時の目次設定</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="choice-list" role="radiogroup" aria-label="目次の初期状態">
+                <label class="choice-item" for="tocInitialOpen">
+                  <input type="radio" name="tocInitialState" value="open" id="tocInitialOpen">
+                  <span>最初から開く</span>
+                </label>
+                <label class="choice-item" for="tocInitialClosed">
+                  <input type="radio" name="tocInitialState" value="closed" id="tocInitialClosed">
+                  <span>最初は閉じる</span>
+                </label>
+              </div>
+
+              <div class="inline-field">
+                <label class="inline-label" for="tocInitialCloseDelay">「最初から開く」場合、</label>
+                <input type="number" id="tocInitialCloseDelay" min="0" max="60">
+                <span class="inline-suffix">秒後に自動で閉じる</span>
+              </div>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">0にすると自動で閉じません。</p>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="tocAutoHide">
+              <span class="switch-label">
+                <span class="item-title">目次の自動非表示（オートハイド）</span>
+              </span>
+              <input type="checkbox" id="tocAutoHide" class="ios-switch" aria-label="目次の自動非表示（オートハイド）">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">手動で開いた後も自動で閉じる</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">自動非表示までの待機時間</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="inline-field">
+                <label class="inline-label" for="tocAutoHideDelay">操作がない場合、</label>
+                <input type="number" id="tocAutoHideDelay" min="1" max="60">
+                <span class="inline-suffix">秒後に閉じる</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="tocShowSectionTitles">
+              <span class="switch-label">
+                <span class="item-title">目次に節タイトルを表示する</span>
+              </span>
+              <input type="checkbox" id="tocShowSectionTitles" class="ios-switch" aria-label="目次に節タイトルを表示する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="tocHoverReveal">
+              <span class="switch-label">
+                <span class="item-title">画面左端ホバーで目次を表示する</span>
+              </span>
+              <input type="checkbox" id="tocHoverReveal" class="ios-switch" aria-label="画面左端ホバーで目次を表示する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">目次が閉じているとき、左端にマウス移動で自動表示します。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="exam" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>試験ページ設定</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">セレクトの同時表示数</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="inline-field">
+                <input type="number" id="shikenSelectVisibleCount" min="0" max="50">
+                <span class="inline-suffix">0 = 無制限</span>
+              </div>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">表示数の初期値は現在の倍（12）です。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="advanced" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>高度な設定</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">警告</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="warning-card">
+                <strong>警告:</strong> 自動ログインを有効にすると、ユーザー名とパスワードがブラウザ内に保存されます。
+                暗号化は簡易的なものであり、完全に安全ではありません。
+                <strong>共用PCや公共の場所では絶対に使用しないでください。</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="autoLoginEnabled">
+              <span class="switch-label">
+                <span class="item-title">自動ログインを有効にする</span>
+              </span>
+              <input type="checkbox" id="autoLoginEnabled" class="ios-switch" aria-label="自動ログインを有効にする">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setting-group" id="credentialsArea" style="display: none;">
+          <p class="setting-title">ログイン情報</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <div class="field-grid">
+                <label class="field-label" for="username">ユーザーID</label>
+                <input type="text" id="username" placeholder="ユーザーIDを入力" autocomplete="username">
+              </div>
+
+              <div class="field-grid">
+                <label class="field-label" for="password">パスワード</label>
+                <input type="password" id="password" placeholder="パスワードを入力" autocomplete="current-password">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="status" aria-live="polite"></div>
+  </main>
+
+  <script src="secure-storage.js"></script>
   <script src="options.js"></script>
 </body>
 

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ANTI-WebClass",
+  "name": "ANTI-WebClass-dev",
   "version": "0.1.0",
   "description": "神奈川大学WebClassのUX/UIを改善します。",
   "permissions": [
@@ -8,14 +8,21 @@
     "downloads",
     "tabs",
     "scripting",
-    "identity"
+    "identity",
+    "alarms"
   ],
   "host_permissions": [
     "https://kulms.kanagawa-u.ac.jp/*",
-    "https://caldav.icloud.com/*",
-    "https://*.icloud.com/*",
+    "https://api.openai.com/*",
+    "https://api.groq.com/*",
     "https://graph.microsoft.com/*",
-    "https://login.microsoftonline.com/*"
+    "https://login.microsoftonline.com/*",
+    "https://accounts.google.com/*",
+    "https://oauth2.googleapis.com/*",
+    "https://tasks.googleapis.com/*",
+    "https://api.todoist.com/*",
+    "https://ticktick.com/*",
+    "https://api.ticktick.com/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -32,10 +39,22 @@
     },
     {
       "matches": [
+        "https://kulms.kanagawa-u.ac.jp/webclass/*"
+      ],
+      "js": [
+        "src/shared.js",
+        "src/shortcuts.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
         "https://kulms.kanagawa-u.ac.jp/webclass/index.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/*"
       ],
       "js": [
+        "src/shared.js",
         "lib/flatpickr.min.js",
         "lib/ja.js",
         "lib/mobile-select.js",
@@ -57,6 +76,7 @@
         "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_frame.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_chapter.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_text.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/title_simple.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/qstn_frame.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_button.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_answer.php*",
@@ -64,13 +84,39 @@
         "https://kulms.kanagawa-u.ac.jp/webclass/file_down.php*"
       ],
       "js": [
+        "src/shared.js",
         "src/course.js"
       ],
       "css": [
         "src/styles/download.css"
       ],
       "all_frames": true,
-      "run_at": "document_end"
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_frame.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_chapter.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_text.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/title_simple.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/loadit.php*"
+      ],
+      "js": [
+        "src/beforeunload-blocker.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/beforeunload-blocker.js"
+      ],
+      "matches": [
+        "https://kulms.kanagawa-u.ac.jp/*"
+      ]
     }
   ],
   "options_page": "src/options.html",
