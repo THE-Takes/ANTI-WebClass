@@ -1,18 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "ANTI-WebClass-dev",
-  "version": "0.1.0",
-  "description": "神奈川大学WebClassのUX/UIを改善します。",
+  "name": "ANTI-WebClass",
+  "version": "0.2.2",
+  "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
     "downloads",
     "tabs",
     "scripting",
     "identity",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://kulms.kanagawa-u.ac.jp/*",
+    "https://api.github.com/*",
     "https://api.openai.com/*",
     "https://api.groq.com/*",
     "https://graph.microsoft.com/*",
@@ -121,7 +123,7 @@
   ],
   "options_page": "src/options.html",
   "action": {
-    "default_title": "WebClass設定",
+    "default_title": "ANTI-WebClass settings",
     "default_popup": "src/options.html"
   }
 }

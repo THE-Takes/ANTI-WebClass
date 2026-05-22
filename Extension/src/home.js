@@ -218,9 +218,15 @@ function normalizeAcademicYearOptions(options, date = getWebClassNow()) {
 }
 
 // --- URL Check ---
-// Only run on the home page (index.php)
-const isHomePage = window.location.pathname.endsWith('/webclass/') ||
-    window.location.pathname.includes('index.php');
+// Only run on the WebClass home top page.
+function isWebClassHomePath(pathname) {
+    const normalizedPath = String(pathname || '').replace(/\/+$/, '');
+    if (!normalizedPath) return false;
+    if (normalizedPath === '/webclass') return true;
+    return normalizedPath === '/webclass/index.php';
+}
+
+const isHomePage = isWebClassHomePath(window.location.pathname);
 
 if (!isHomePage) {
     uxDebugLog("WebClass UX Improver: Not home page, skipping home.js");
@@ -303,13 +309,13 @@ if (!isHomePage) {
             gap: 6px;
             font-size: 1em;
             line-height: 1.2;
-            color: #8a6d3b;
+            color: var(--ux-home-warning-foreground);
         }
         .ux-llm-course-status .ux-llm-dot {
             width: 7px;
             height: 7px;
             border-radius: 50%;
-            background: #f4b400;
+            background: var(--ux-home-warning);
             animation: ux-pulse 1s ease-in-out infinite;
         }
         .ux-title-burst-overlay {
@@ -371,24 +377,24 @@ if (!isHomePage) {
     const uxTimetableHighlightStyle = document.createElement('style');
     uxTimetableHighlightStyle.textContent = `
         .ux-timetable-day-muted {
-            background-color: #ffffff !important;
+            background-color: var(--ux-home-surface) !important;
             color: inherit !important;
         }
         .ux-timetable-day-muted a {
             color: inherit !important;
         }
         .ux-timetable-day-today {
-            color: #2563eb !important;
+            color: var(--ux-home-accent-emphasis) !important;
         }
         .ux-timetable-day-today a {
-            color: #1a73e8 !important;
+            color: var(--ux-home-accent-emphasis) !important;
         }
         .ux-timetable-current-slot {
-            background-color: #ffe0b3 !important;
+            background-color: var(--ux-home-warning-soft) !important;
         }
         .ux-timetable-current-slot a {
             background-color: transparent !important;
-            color: #6b3600 !important;
+            color: var(--ux-home-warning-foreground) !important;
             font-weight: 600;
         }
     `;
@@ -493,6 +499,8 @@ if (!isHomePage) {
         'ux-timetable-day-today',
         'ux-timetable-current-slot',
     ];
+    const DASHBOARD_TIMETABLE_INLINE_EDIT_LONG_PRESS_MS = 520;
+    const DASHBOARD_TIMETABLE_INLINE_EDIT_MOVE_TOLERANCE_PX = 12;
 
     function parseDebugTimeInput(value) {
         if (value instanceof Date) {
@@ -1698,8 +1706,8 @@ if (!isHomePage) {
             const errDiv = document.createElement('div');
             errDiv.style.padding = '20px';
             errDiv.style.textAlign = 'center';
-            errDiv.style.color = '#856404';
-            errDiv.style.backgroundColor = '#fff3cd';
+            errDiv.style.color = 'var(--ux-home-warning-foreground)';
+            errDiv.style.backgroundColor = 'var(--ux-home-warning-soft)';
             errDiv.style.borderRadius = '4px';
             errDiv.innerHTML = 'セッション情報が取得できませんでした。<br><small>ページを再読み込みしてください。</small>';
             container.appendChild(errDiv);
@@ -1711,7 +1719,7 @@ if (!isHomePage) {
             empty.textContent = 'メッセージがありません';
             empty.style.padding = '20px';
             empty.style.textAlign = 'center';
-            empty.style.color = '#666';
+            empty.style.color = 'var(--ux-home-secondary-label)';
             container.appendChild(empty);
             return;
         }
@@ -1724,7 +1732,7 @@ if (!isHomePage) {
             allRead.textContent = '✓ 未読メッセージはありません';
             allRead.style.padding = '20px';
             allRead.style.textAlign = 'center';
-            allRead.style.color = '#28a745';
+            allRead.style.color = 'var(--ux-home-success-foreground)';
             container.appendChild(allRead);
             return;
         }
@@ -1738,25 +1746,25 @@ if (!isHomePage) {
         displayMessages.forEach(msg => {
             const li = document.createElement('li');
             li.style.padding = '10px 15px';
-            li.style.borderBottom = '1px solid #eee';
+            li.style.borderBottom = '1px solid var(--ux-home-separator)';
             li.style.cursor = 'pointer';
             li.style.transition = 'background-color 0.2s';
 
-            // 背景色: 未読=黄色、今既読にした=緑
+            // 背景色: 未読=warning, 今既読にした=success
             if (msg.justRead) {
-                li.style.backgroundColor = '#d4edda'; // 緑背景（既読にした）
-                li.onmouseenter = () => { li.style.backgroundColor = '#c3e6cb'; };
-                li.onmouseleave = () => { li.style.backgroundColor = '#d4edda'; };
+                li.style.backgroundColor = 'var(--ux-home-success-soft)';
+                li.onmouseenter = () => { li.style.backgroundColor = 'rgba(52, 199, 89, 0.2)'; };
+                li.onmouseleave = () => { li.style.backgroundColor = 'var(--ux-home-success-soft)'; };
             } else {
-                li.style.backgroundColor = '#fff8e1'; // 黄色背景（未読）
-                li.onmouseenter = () => { li.style.backgroundColor = '#fff3cd'; };
-                li.onmouseleave = () => { li.style.backgroundColor = '#fff8e1'; };
+                li.style.backgroundColor = 'var(--ux-home-warning-soft)';
+                li.onmouseenter = () => { li.style.backgroundColor = 'rgba(255, 159, 10, 0.22)'; };
+                li.onmouseleave = () => { li.style.backgroundColor = 'var(--ux-home-warning-soft)'; };
             }
 
             // 差出人
             const senderLine = document.createElement('div');
             senderLine.style.fontSize = '0.8em';
-            senderLine.style.color = '#666';
+            senderLine.style.color = 'var(--ux-home-secondary-label)';
             senderLine.style.marginBottom = '4px';
             senderLine.textContent = msg.sender;
             li.appendChild(senderLine);
@@ -1764,7 +1772,7 @@ if (!isHomePage) {
             // 件名
             const subjectLine = document.createElement('div');
             subjectLine.style.fontWeight = msg.justRead ? 'normal' : 'bold'; // 既読は通常フォント
-            subjectLine.style.color = '#212529';
+            subjectLine.style.color = 'var(--ux-home-label)';
             subjectLine.style.overflow = 'hidden';
             subjectLine.style.textOverflow = 'ellipsis';
             subjectLine.style.whiteSpace = 'nowrap';
@@ -1774,7 +1782,7 @@ if (!isHomePage) {
             // 日付
             const dateLine = document.createElement('div');
             dateLine.style.fontSize = '0.75em';
-            dateLine.style.color = '#999';
+            dateLine.style.color = 'var(--ux-home-tertiary-label)';
             dateLine.style.marginTop = '4px';
             dateLine.textContent = msg.date;
             li.appendChild(dateLine);
@@ -2998,7 +3006,7 @@ if (!isHomePage) {
             li.style.display = 'flex';
             li.style.alignItems = 'center';
             li.style.gap = '12px';
-            li.style.backgroundColor = '#fff';
+            li.style.backgroundColor = 'var(--ux-home-surface)';
 
             const refreshDashboardList = async () => {
                 if (renderOptions.onStatusChange) {
@@ -3016,8 +3024,8 @@ if (!isHomePage) {
             checkbox.style.width = '20px';
             checkbox.style.height = '20px';
             checkbox.style.borderRadius = '50%';
-            checkbox.style.border = '2px solid ' + (todo.isCompleted ? '#4caf50' : '#ddd');
-            checkbox.style.backgroundColor = todo.isCompleted ? '#4caf50' : 'transparent';
+            checkbox.style.border = '2px solid ' + (todo.isCompleted ? 'var(--ux-home-success)' : 'var(--ux-home-separator)');
+            checkbox.style.backgroundColor = todo.isCompleted ? 'var(--ux-home-success)' : 'transparent';
             checkbox.style.cursor = 'pointer';
             checkbox.style.display = 'flex';
             checkbox.style.alignItems = 'center';
@@ -3064,15 +3072,15 @@ if (!isHomePage) {
             titleInput.style.padding = '2px 0';
             titleInput.style.fontSize = '0.95em';
             titleInput.style.fontWeight = '500';
-            titleInput.style.color = todo.isCompleted ? '#aaa' : '#333';
+            titleInput.style.color = todo.isCompleted ? 'var(--ux-home-quaternary-label)' : 'var(--ux-home-label)';
             titleInput.style.backgroundColor = 'transparent';
             titleInput.style.overflow = 'hidden';
             titleInput.style.textDecoration = todo.isCompleted ? 'line-through' : 'none';
             titleInput.style.transition = 'border-color 0.2s, background-color 0.2s';
 
             titleInput.onfocus = () => {
-                titleInput.style.borderColor = '#80bdff';
-                titleInput.style.backgroundColor = '#fff';
+                titleInput.style.borderColor = 'var(--ux-home-accent)';
+                titleInput.style.backgroundColor = 'var(--ux-home-surface)';
                 titleInput.style.outline = 'none';
             };
             titleInput.onblur = () => {
@@ -3099,7 +3107,7 @@ if (!isHomePage) {
             if (dashboardCourseLabel) {
                 const courseLine = document.createElement('div');
                 courseLine.style.fontSize = '0.72em';
-                courseLine.style.color = '#6c757d';
+                courseLine.style.color = 'var(--ux-home-secondary-label)';
                 courseLine.style.overflow = 'hidden';
                 courseLine.style.textOverflow = 'ellipsis';
                 courseLine.style.whiteSpace = 'nowrap';
@@ -3110,7 +3118,7 @@ if (!isHomePage) {
             const deadlineLine = document.createElement('div');
             deadlineLine.className = 'ux-todo-deadline-line';
             deadlineLine.style.fontSize = '0.8em';
-            deadlineLine.style.color = '#666';
+            deadlineLine.style.color = 'var(--ux-home-secondary-label)';
             deadlineLine.style.display = 'flex';
             deadlineLine.style.alignItems = 'center';
             deadlineLine.style.gap = '0.4em';
@@ -3124,7 +3132,7 @@ if (!isHomePage) {
             dateOnlyInput.style.border = '1px solid transparent';
             dateOnlyInput.style.borderRadius = '0';
             dateOnlyInput.style.padding = '0';
-            dateOnlyInput.style.color = '#555';
+            dateOnlyInput.style.color = 'var(--ux-home-secondary-label)';
             dateOnlyInput.style.backgroundColor = 'transparent';
             dateOnlyInput.style.width = '10ch';
             dateOnlyInput.style.minWidth = '0';
@@ -3143,7 +3151,7 @@ if (!isHomePage) {
             timeOnlyInput.style.border = '1px solid transparent';
             timeOnlyInput.style.borderRadius = '0';
             timeOnlyInput.style.padding = '0';
-            timeOnlyInput.style.color = '#555';
+            timeOnlyInput.style.color = 'var(--ux-home-secondary-label)';
             timeOnlyInput.style.backgroundColor = 'transparent';
             timeOnlyInput.style.width = '8ch';
             timeOnlyInput.style.minWidth = '0';
@@ -3277,17 +3285,17 @@ if (!isHomePage) {
             priorityBadge.style.fontSize = '0.75em';
             priorityBadge.style.fontWeight = 'bold';
 
-            let pColor = '#aaa';
+            let pColor = 'var(--ux-home-quaternary-label)';
             let pText = priority;
             const isDashboardExpired = viewMode === 'dashboard' && expiredTodoKeys.has(getTodoIdentity(todo));
             if (isDashboardExpired) {
-                pColor = '#9c27b0';
+                pColor = 'var(--ux-home-purple-foreground)';
                 pText = 'end';
             } else {
-                if (priority === 'High') pColor = '#ff5252';
-                if (priority === 'Medium') pColor = '#ffb74d';
-                if (priority === 'Low') pColor = '#66bb6a';
-                if (priority === 'Done') pColor = '#aaa';
+                if (priority === 'High') pColor = 'var(--ux-home-danger)';
+                if (priority === 'Medium') pColor = 'var(--ux-home-warning)';
+                if (priority === 'Low') pColor = 'var(--ux-home-success)';
+                if (priority === 'Done') pColor = 'var(--ux-home-quaternary-label)';
             }
 
             priorityBadge.style.color = pColor;
@@ -3339,7 +3347,7 @@ if (!isHomePage) {
             deleteBtn.innerHTML = '&times;';
             deleteBtn.style.background = 'none';
             deleteBtn.style.border = 'none';
-            deleteBtn.style.color = '#ccc';
+            deleteBtn.style.color = 'var(--ux-home-quaternary-label)';
             deleteBtn.style.fontSize = '18px';
             deleteBtn.style.cursor = 'pointer';
             deleteBtn.style.padding = '0 5px';
@@ -3416,7 +3424,7 @@ if (!isHomePage) {
             empty.textContent = '課題データがありません。「更新」ボタンを押してください。';
             empty.style.padding = '20px';
             empty.style.textAlign = 'center';
-            empty.style.color = '#666';
+            empty.style.color = 'var(--ux-home-secondary-label)';
             container.appendChild(empty);
             return;
         }
@@ -3436,15 +3444,15 @@ if (!isHomePage) {
             li.style.display = 'flex';
             li.style.alignItems = 'center';
             li.style.gap = '10px';
-            li.style.backgroundColor = '#fff'; // デフォルト背景
+            li.style.backgroundColor = 'var(--ux-home-surface)'; // デフォルト背景
 
             // 期限切れの場合はグレー背景
             if (isExpired) {
-                li.style.backgroundColor = '#f5f5f5';
+                li.style.backgroundColor = 'var(--ux-home-surface-muted)';
             }
             // 任意期限が過ぎているが初期設定期限はまだの場合は紫背景
             if (todo._isReminderExpired) {
-                li.style.backgroundColor = '#f3e5f5'; // 薄い紫
+                li.style.backgroundColor = 'var(--ux-home-purple-soft)';
             }
             // 期限に基づいて背景色を設定 (通常リストのみ、または全リストで適用？ -> 全リストで適用しても良いが、期限なしは白)
             else if (!todo.isCompleted && todo.deadline && todo.deadline !== '期限なし') {
@@ -3452,9 +3460,9 @@ if (!isHomePage) {
                 const hoursRemaining = (deadlineDate - getWebClassNow()) / (1000 * 60 * 60);
 
                 if (hoursRemaining <= 48) {
-                    li.style.backgroundColor = '#ffebee'; // 赤
+                    li.style.backgroundColor = 'var(--ux-home-danger-soft)';
                 } else if (hoursRemaining <= 168) {
-                    li.style.backgroundColor = '#fff9c4'; // 黄
+                    li.style.backgroundColor = 'var(--ux-home-warning-soft)';
                 }
             }
 
@@ -3498,7 +3506,7 @@ if (!isHomePage) {
             // コース名
             const titleLine = document.createElement('div');
             titleLine.style.fontSize = '0.75em';
-            titleLine.style.color = '#666';
+            titleLine.style.color = 'var(--ux-home-secondary-label)';
 
             if (todo.category && todo.category !== 'Unknown') {
                 const badge = document.createElement('span');
@@ -3506,8 +3514,8 @@ if (!isHomePage) {
                 badge.style.fontSize = '0.75em';
                 badge.style.padding = '2px 6px';
                 badge.style.borderRadius = '4px';
-                badge.style.backgroundColor = '#e9ecef';
-                badge.style.color = '#495057';
+                badge.style.backgroundColor = 'var(--ux-home-fill)';
+                badge.style.color = 'var(--ux-home-secondary-label)';
                 badge.style.marginRight = '8px';
                 titleLine.appendChild(badge);
             }
@@ -3531,14 +3539,14 @@ if (!isHomePage) {
             titleInput.style.padding = '2px 0';
             titleInput.style.fontSize = '1.02em';
             titleInput.style.fontWeight = 'bold';
-            titleInput.style.color = '#212529';
+            titleInput.style.color = 'var(--ux-home-label)';
             titleInput.style.backgroundColor = 'transparent';
             titleInput.style.overflow = 'hidden';
             titleInput.style.transition = 'border-color 0.2s, background-color 0.2s';
 
             titleInput.onfocus = () => {
-                titleInput.style.borderColor = '#80bdff';
-                titleInput.style.backgroundColor = '#fff';
+                titleInput.style.borderColor = 'var(--ux-home-accent)';
+                titleInput.style.backgroundColor = 'var(--ux-home-surface)';
                 titleInput.style.outline = 'none';
             };
             titleInput.onblur = () => {
@@ -3567,7 +3575,7 @@ if (!isHomePage) {
             if (todoCourseLabel) {
                 const courseLine = document.createElement('div');
                 courseLine.style.fontSize = '0.75em';
-                courseLine.style.color = '#666';
+                courseLine.style.color = 'var(--ux-home-secondary-label)';
                 courseLine.style.marginTop = '0px';
                 courseLine.style.overflow = 'hidden';
                 courseLine.style.textOverflow = 'ellipsis';
@@ -3578,7 +3586,7 @@ if (!isHomePage) {
 
             const deadlineLine = document.createElement('div');
             deadlineLine.style.fontSize = '0.85em';
-            deadlineLine.style.color = '#666';
+            deadlineLine.style.color = 'var(--ux-home-secondary-label)';
             deadlineLine.style.marginTop = '0px';
             deadlineLine.style.display = 'flex';
             deadlineLine.style.alignItems = 'center';
@@ -3592,10 +3600,10 @@ if (!isHomePage) {
             dateOnlyInput.type = 'text';
             dateOnlyInput.className = 'ux-todo-input-date';
             dateOnlyInput.style.fontSize = '0.9em';
-            dateOnlyInput.style.border = '1px solid #ddd';
+            dateOnlyInput.style.border = '1px solid var(--ux-home-separator)';
             dateOnlyInput.style.borderRadius = '3px';
             dateOnlyInput.style.padding = '1px 3px';
-            dateOnlyInput.style.color = '#555';
+            dateOnlyInput.style.color = 'var(--ux-home-secondary-label)';
             dateOnlyInput.style.width = '90px';
             dateOnlyInput.style.textAlign = 'center';
             dateOnlyInput.placeholder = '日付';
@@ -3605,10 +3613,10 @@ if (!isHomePage) {
             timeOnlyInput.type = 'text';
             timeOnlyInput.className = 'ux-todo-input-time';
             timeOnlyInput.style.fontSize = '0.9em';
-            timeOnlyInput.style.border = '1px solid #ddd';
+            timeOnlyInput.style.border = '1px solid var(--ux-home-separator)';
             timeOnlyInput.style.borderRadius = '3px';
             timeOnlyInput.style.padding = '1px 3px';
-            timeOnlyInput.style.color = '#555';
+            timeOnlyInput.style.color = 'var(--ux-home-secondary-label)';
             timeOnlyInput.style.width = '80px';
             timeOnlyInput.style.textAlign = 'center';
             timeOnlyInput.placeholder = '時間';
@@ -3644,7 +3652,7 @@ if (!isHomePage) {
                 timeOnlyInput.style.display = 'none';
             }
 
-                                    const saveCombinedDeadline = async () => {
+            const saveCombinedDeadline = async () => {
                 const dateStr = dateOnlyInput.value; // YYYY/MM/DD
                 const timeStr = timeOnlyInput.value; // AM 8:00
 
@@ -3696,7 +3704,7 @@ if (!isHomePage) {
                     applyTimetableColorsFromTodo(updatedAssignments);
                 }
             };
-// Flatpickr (Date)
+            // Flatpickr (Date)
             try {
                 if (typeof flatpickr !== 'undefined') {
                     flatpickr(dateOnlyInput, {
@@ -3785,7 +3793,7 @@ if (!isHomePage) {
                 deleteBtn.type = 'button';
                 deleteBtn.textContent = '削除';
                 deleteBtn.title = 'このリマインダーを削除';
-                deleteBtn.style.cssText = 'background: none; border: 1px solid #ccc; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 14px; opacity: 0.7; transition: opacity 0.2s;';
+                deleteBtn.style.cssText = 'background: transparent; border: 1px solid var(--ux-home-separator); border-radius: 8px; padding: 4px 8px; cursor: pointer; font-size: 14px; opacity: 0.8; color: var(--ux-home-secondary-label); transition: opacity 0.2s, background-color 0.2s, border-color 0.2s, color 0.2s;';
                 deleteBtn.onmouseenter = () => { deleteBtn.style.opacity = '1'; };
                 deleteBtn.onmouseleave = () => { deleteBtn.style.opacity = '0.7'; };
 
@@ -3837,13 +3845,13 @@ if (!isHomePage) {
 
             const wrapper = document.createElement('div');
             wrapper.style.marginTop = '15px';
-            wrapper.style.border = '1px solid #ddd';
+            wrapper.style.border = '1px solid var(--ux-home-separator)';
             wrapper.style.borderRadius = '4px';
             // wrapper.style.overflow = 'hidden'; // Removed to allow sticky positioning
 
             const header = document.createElement('div');
             header.style.padding = '10px 15px';
-            header.style.backgroundColor = '#f8f9fa';
+            header.style.backgroundColor = 'var(--ux-home-surface-muted)';
             header.style.cursor = 'pointer';
             header.style.display = 'flex';
             header.style.justifyContent = 'space-between';
@@ -3853,26 +3861,26 @@ if (!isHomePage) {
             header.style.position = 'sticky';
             header.style.top = '0';
             header.style.zIndex = '10';
-            header.style.borderBottom = '1px solid #ddd';
+            header.style.borderBottom = '1px solid var(--ux-home-separator)';
             header.style.borderTopLeftRadius = '4px';
             header.style.borderTopRightRadius = '4px';
 
             const titleSpan = document.createElement('span');
             titleSpan.style.fontSize = '0.9em';
             titleSpan.style.fontWeight = 'bold';
-            titleSpan.style.color = '#555';
+            titleSpan.style.color = 'var(--ux-home-secondary-label)';
             titleSpan.textContent = `${title} (${todos.length})`;
             header.appendChild(titleSpan);
 
             const icon = document.createElement('span');
             icon.textContent = isOpen ? '▼' : '▶';
             icon.style.fontSize = '0.8em';
-            icon.style.color = '#777';
+            icon.style.color = 'var(--ux-home-tertiary-label)';
             header.appendChild(icon);
 
             const content = document.createElement('div');
             content.style.display = isOpen ? 'block' : 'none';
-            content.style.borderTop = '1px solid #eee';
+            content.style.borderTop = '1px solid var(--ux-home-separator)';
             content.appendChild(createList(todos));
 
             header.onclick = () => {
@@ -3923,10 +3931,10 @@ if (!isHomePage) {
             toggle.textContent = isCompletedOpen ? '完了済みの課題を隠す' : `完了済みの課題を表示 (${completedAssignments.length})`;
             toggle.style.padding = '10px 15px';
             toggle.style.fontSize = '0.85em';
-            toggle.style.color = '#0056b3';
+            toggle.style.color = 'var(--ux-home-accent-emphasis)';
             toggle.style.cursor = 'pointer';
             toggle.style.textAlign = 'center';
-            toggle.style.backgroundColor = '#f8f9fa';
+            toggle.style.backgroundColor = 'var(--ux-home-surface-muted)';
             toggle.style.marginTop = '15px';
             toggle.style.borderRadius = '4px';
 
@@ -3951,7 +3959,7 @@ if (!isHomePage) {
         if (viewMode !== 'dashboard' && sortedExpired.length > 0) {
             const expiredWrapper = document.createElement('div');
             expiredWrapper.style.marginTop = '15px';
-            expiredWrapper.style.border = '1px solid #ffcccc';
+            expiredWrapper.style.border = '1px solid rgba(255, 69, 58, 0.18)';
             expiredWrapper.style.borderRadius = '4px';
 
             // 保存された状態を使用（デフォルトは閉じている）
@@ -3959,7 +3967,7 @@ if (!isHomePage) {
 
             const expiredHeader = document.createElement('div');
             expiredHeader.style.padding = '10px 15px';
-            expiredHeader.style.backgroundColor = '#ffe6e6';
+            expiredHeader.style.backgroundColor = 'var(--ux-home-danger-soft)';
             expiredHeader.style.cursor = 'pointer';
             expiredHeader.style.display = 'flex';
             expiredHeader.style.justifyContent = 'space-between';
@@ -3968,26 +3976,26 @@ if (!isHomePage) {
             expiredHeader.style.position = 'sticky';
             expiredHeader.style.top = '0';
             expiredHeader.style.zIndex = '10';
-            expiredHeader.style.borderBottom = '1px solid #ffcccc';
+            expiredHeader.style.borderBottom = '1px solid rgba(255, 69, 58, 0.18)';
             expiredHeader.style.borderTopLeftRadius = '4px';
             expiredHeader.style.borderTopRightRadius = '4px';
 
             const expiredTitleSpan = document.createElement('span');
             expiredTitleSpan.style.fontSize = '0.9em';
             expiredTitleSpan.style.fontWeight = 'bold';
-            expiredTitleSpan.style.color = '#d32f2f';
+            expiredTitleSpan.style.color = 'var(--ux-home-danger-foreground)';
             expiredTitleSpan.textContent = `期限切れの課題 (${sortedExpired.length})`;
             expiredHeader.appendChild(expiredTitleSpan);
 
             const expiredIcon = document.createElement('span');
             expiredIcon.textContent = isExpiredOpen ? '▼' : '▶';
             expiredIcon.style.fontSize = '0.8em';
-            expiredIcon.style.color = '#d32f2f';
+            expiredIcon.style.color = 'var(--ux-home-danger-foreground)';
             expiredHeader.appendChild(expiredIcon);
 
             const expiredContent = document.createElement('div');
             expiredContent.style.display = isExpiredOpen ? 'block' : 'none';
-            expiredContent.style.borderTop = '1px solid #ffcccc';
+            expiredContent.style.borderTop = '1px solid rgba(255, 69, 58, 0.18)';
             expiredContent.appendChild(createList(sortedExpired, { isExpired: true, showDeleteButton: true }));
 
             expiredHeader.onclick = () => {
@@ -4062,7 +4070,7 @@ if (!isHomePage) {
             left: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
-            background: rgba(0, 0, 0, 0.5) !important;
+            background: var(--ux-home-overlay) !important;
             z-index: 2147483647 !important;
             display: flex !important;
             justify-content: center !important;
@@ -4071,29 +4079,30 @@ if (!isHomePage) {
 
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: white;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid var(--ux-home-separator);
+            border-radius: 14px;
             max-width: 700px;
             width: 90%;
             max-height: 80vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: var(--ux-home-shadow-lg);
         `;
 
         // ヘッダー
         const header = document.createElement('div');
         header.style.cssText = `
             padding: 15px 20px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--ux-home-separator);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #f8f9fa;
+            background: var(--ux-home-surface-muted);
         `;
         header.innerHTML = `
-            <h3 style="margin: 0; font-size: 1.1em; color: #333;">
+            <h3 style="margin: 0; font-size: 1.1em; color: var(--ux-home-label);">
                 授業名の編集
             </h3>
         `;
@@ -4105,7 +4114,7 @@ if (!isHomePage) {
             border: none;
             font-size: 1.2em;
             cursor: pointer;
-            color: #666;
+            color: var(--ux-home-secondary-label);
             padding: 5px;
         `;
         closeBtn.onclick = () => modal.remove();
@@ -4121,14 +4130,14 @@ if (!isHomePage) {
 
         if (courseMap.size === 0) {
             content.innerHTML = `
-                <p style="color: #666; text-align: center;">
+                <p style="color: var(--ux-home-secondary-label); text-align: center;">
                     時間割表からコースが見つかりませんでした。<br>
                     ホームページの時間割表が表示されていることを確認してください。
                 </p>
             `;
         } else {
             const description = document.createElement('p');
-            description.style.cssText = 'margin-bottom: 15px; color: #666; font-size: 0.9em;';
+            description.style.cssText = 'margin-bottom: 15px; color: var(--ux-home-secondary-label); font-size: 0.9em;';
             description.innerHTML = `
                 授業の表示名をカスタマイズできます。<br>
                 好きな短縮名に編集してください。
@@ -4143,9 +4152,9 @@ if (!isHomePage) {
 
             const thead = document.createElement('thead');
             thead.innerHTML = `
-                <tr style="background: #e9ecef;">
-                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6; width: 50%;">元の授業名</th>
-                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6; width: 50%;">表示名</th>
+                <tr style="background: var(--ux-home-surface-muted);">
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--ux-home-separator); width: 50%; color: var(--ux-home-secondary-label);">元の授業名</th>
+                    <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--ux-home-separator); width: 50%; color: var(--ux-home-secondary-label);">表示名</th>
                 </tr>
             `;
             table.appendChild(thead);
@@ -4153,11 +4162,11 @@ if (!isHomePage) {
             const tbody = document.createElement('tbody');
             courseMap.forEach((info, courseId) => {
                 const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid #dee2e6';
+                tr.style.borderBottom = '1px solid var(--ux-home-separator)';
 
                 // 元の授業名
                 const tdFull = document.createElement('td');
-                tdFull.style.cssText = 'padding: 10px; font-size: 0.85em; color: #555; word-break: break-word;';
+                tdFull.style.cssText = 'padding: 10px; font-size: 0.85em; color: var(--ux-home-secondary-label); word-break: break-word;';
                 tdFull.textContent = info.fullName;
                 tr.appendChild(tdFull);
 
@@ -4173,18 +4182,20 @@ if (!isHomePage) {
                 input.style.cssText = `
                     width: 100%;
                     padding: 6px 10px;
-                    border: 1px solid #ced4da;
-                    border-radius: 4px;
+                    border: 1px solid var(--ux-home-separator);
+                    border-radius: 8px;
                     font-size: 0.9em;
+                    color: var(--ux-home-label);
+                    background: var(--ux-home-surface);
                     box-sizing: border-box;
                 `;
                 input.onfocus = () => {
-                    input.style.borderColor = '#80bdff';
+                    input.style.borderColor = 'var(--ux-home-accent)';
                     input.style.outline = 'none';
-                    input.style.boxShadow = '0 0 0 2px rgba(0,123,255,0.25)';
+                    input.style.boxShadow = 'var(--ux-home-focus-ring)';
                 };
                 input.onblur = () => {
-                    input.style.borderColor = '#ced4da';
+                    input.style.borderColor = 'var(--ux-home-separator)';
                     input.style.boxShadow = 'none';
                 };
                 tdCustom.appendChild(input);
@@ -4200,21 +4211,21 @@ if (!isHomePage) {
         const footer = document.createElement('div');
         footer.style.cssText = `
             padding: 15px 20px;
-            border-top: 1px solid #dee2e6;
+            border-top: 1px solid var(--ux-home-separator);
             display: flex;
             justify-content: flex-end;
             gap: 10px;
-            background: #f8f9fa;
+            background: var(--ux-home-surface-muted);
         `;
 
         const cancelBtn = document.createElement('button');
         cancelBtn.textContent = 'キャンセル';
         cancelBtn.style.cssText = `
             padding: 8px 16px;
-            border: 1px solid #6c757d;
-            background: white;
-            color: #6c757d;
-            border-radius: 4px;
+            border: 1px solid var(--ux-home-separator);
+            background: var(--ux-home-surface);
+            color: var(--ux-home-secondary-label);
+            border-radius: 8px;
             cursor: pointer;
             font-size: 0.9em;
         `;
@@ -4224,10 +4235,10 @@ if (!isHomePage) {
         clearBtn.textContent = 'コース名クリア';
         clearBtn.style.cssText = `
             padding: 8px 16px;
-            border: 1px solid #dc3545;
-            background: #fff5f5;
-            color: #c82333;
-            border-radius: 4px;
+            border: 1px solid rgba(255, 69, 58, 0.18);
+            background: var(--ux-home-danger-soft);
+            color: var(--ux-home-danger-foreground);
+            border-radius: 8px;
             cursor: pointer;
             font-size: 0.9em;
             margin-right: auto;
@@ -4269,9 +4280,9 @@ if (!isHomePage) {
         saveBtn.style.cssText = `
             padding: 8px 16px;
             border: none;
-            background: #007bff;
+            background: var(--ux-home-accent);
             color: white;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 0.9em;
         `;
@@ -4740,16 +4751,16 @@ if (!isHomePage) {
             // 任意期限が過ぎているが初期設定期限はまだ → 紫（最優先）
             if (d < now) {
                 priority = 3;
-                color = '#f3e5f5'; // 紫
+                color = 'var(--ux-home-purple-soft)';
             } else {
                 const hoursRemaining = (d - now) / (1000 * 60 * 60);
 
                 if (hoursRemaining <= 48) {
                     priority = 2;
-                    color = '#ffebee'; // 赤
+                    color = 'var(--ux-home-danger-soft)';
                 } else if (hoursRemaining <= 168) { // 7日 = 168時間
                     priority = 1;
-                    color = '#fff9c4'; // 黄
+                    color = 'var(--ux-home-warning-soft)';
                 }
             }
 
@@ -4925,6 +4936,8 @@ if (!isHomePage) {
         const pageLinks = {
             home: acs ? `${baseUrl}?acs_=${acs}` : baseUrl,
             courseList: findLinkByText(['コース一覧', 'Course List']) || (acs ? `${baseUrl}?acs_=${acs}` : baseUrl),
+            availableCourses: findLinkByText(['参加可能なコース', 'コースの追加', 'Available Courses'])
+                || (acs ? `${baseUrl}index.php/courses/?acs_=${acs}` : `${baseUrl}index.php/courses/`),
             grades: findLinkByText(['成績', 'Grade', '成績表']) || findLinkByText(['レポート']) || '#',
             learningRecord: findLinkByText(['学習記録', 'Learning Record', 'ビューア']) || '#',
             timetable: findLinkByText(['時間割', 'Timetable', 'Schedule']) || (acs ? `${baseUrl}?acs_=${acs}` : baseUrl),
@@ -5020,6 +5033,328 @@ if (!isHomePage) {
                 : dashboardViewSettings.useRuleCourseNameEnabled;
         // 3つの短縮名設定のいずれかが有効なら、キャッシュからの表示を行う
         const anyCourseNameSettingEnabled = customNameEnabled || llmNameEnabled || ruleNameEnabled;
+        let dashboardTimetableSectionElement = null;
+        let dashboardTimetableBodyElement = null;
+        let dashboardOutOfScheduleSectionElement = null;
+        let dashboardTimetableEditMetaElement = null;
+        let dashboardTimetableEditToolbarElement = null;
+        let dashboardTimetableEditDoneButton = null;
+        let dashboardTimetableEditCancelButton = null;
+        let dashboardTimetableEditClearButton = null;
+        let dashboardTimetableEditStatusElement = null;
+        let dashboardTimetableInlineEditActive = false;
+        let dashboardTimetableInlineEditDirty = false;
+        let dashboardTimetableInlineEditSaving = false;
+        let dashboardTimetableLongPressTimer = 0;
+        let dashboardTimetableLongPressOrigin = null;
+        let dashboardTimetableSuppressClickUntil = 0;
+
+        const getDashboardTimetableEditableCells = () => {
+            if (!dashboardTimetableElement) return [];
+            return Array.from(dashboardTimetableElement.querySelectorAll('tbody td')).filter((cell) => {
+                if (!cell || cell.classList.contains('schedule-table-class_order')) return false;
+                return !!cell.querySelector('a[href*="course.php"]');
+            });
+        };
+
+        const getDashboardTimetableInlineInputs = () => {
+            if (!dashboardTimetableElement) return [];
+            return Array.from(dashboardTimetableElement.querySelectorAll('.ux-timetable-inline-input'));
+        };
+
+        const clearDashboardTimetableLongPress = () => {
+            if (dashboardTimetableLongPressTimer) {
+                clearTimeout(dashboardTimetableLongPressTimer);
+                dashboardTimetableLongPressTimer = 0;
+            }
+            dashboardTimetableLongPressOrigin = null;
+        };
+
+        const updateDashboardTimetableInlineEditControls = () => {
+            if (dashboardTimetableSectionElement) {
+                dashboardTimetableSectionElement.classList.toggle('ux-timetable-inline-edit-active', dashboardTimetableInlineEditActive);
+            }
+            if (dashboardTimetableElement) {
+                dashboardTimetableElement.classList.toggle('ux-inline-edit-mode', dashboardTimetableInlineEditActive);
+            }
+            if (dashboardTimetableEditMetaElement) {
+                dashboardTimetableEditMetaElement.classList.toggle('is-active', dashboardTimetableInlineEditActive);
+            }
+            if (dashboardTimetableEditToolbarElement) {
+                dashboardTimetableEditToolbarElement.hidden = !dashboardTimetableInlineEditActive;
+                dashboardTimetableEditToolbarElement.classList.toggle('is-dirty', dashboardTimetableInlineEditDirty);
+                dashboardTimetableEditToolbarElement.classList.toggle('is-saving', dashboardTimetableInlineEditSaving);
+            }
+            if (dashboardTimetableEditStatusElement) {
+                dashboardTimetableEditStatusElement.textContent = dashboardTimetableInlineEditSaving
+                    ? '保存中...'
+                    : (dashboardTimetableInlineEditDirty ? '編集中' : '編集モード');
+            }
+            if (dashboardTimetableEditDoneButton) {
+                dashboardTimetableEditDoneButton.disabled = dashboardTimetableInlineEditSaving;
+                dashboardTimetableEditDoneButton.textContent = dashboardTimetableInlineEditSaving
+                    ? '保存中...'
+                    : (dashboardTimetableInlineEditDirty ? '保存' : '完了');
+            }
+            if (dashboardTimetableEditCancelButton) {
+                dashboardTimetableEditCancelButton.disabled = dashboardTimetableInlineEditSaving;
+            }
+            if (dashboardTimetableEditClearButton) {
+                dashboardTimetableEditClearButton.disabled = dashboardTimetableInlineEditSaving;
+            }
+        };
+
+        const refreshDashboardTimetableInlineDirtyState = () => {
+            const hasDirtyInput = getDashboardTimetableInlineInputs().some((input) => input.dataset.dirty === 'true');
+            dashboardTimetableInlineEditDirty = hasDirtyInput;
+            updateDashboardTimetableInlineEditControls();
+        };
+
+        const teardownDashboardTimetableInlineEdit = () => {
+            getDashboardTimetableInlineInputs().forEach((input) => input.remove());
+            if (!dashboardTimetableElement) return;
+
+            dashboardTimetableElement.querySelectorAll('.ux-timetable-inline-link-hidden').forEach((link) => {
+                link.classList.remove('ux-timetable-inline-link-hidden');
+                link.removeAttribute('aria-hidden');
+                link.removeAttribute('tabindex');
+            });
+            dashboardTimetableElement.querySelectorAll('.ux-inline-editable-cell').forEach((cell) => {
+                cell.classList.remove('ux-inline-editable-cell', 'ux-inline-edit-dirty');
+                cell.removeAttribute('data-editable-course');
+                cell.style.removeProperty('--ux-inline-edit-delay');
+            });
+            dashboardTimetableInlineEditDirty = false;
+        };
+
+        const exitDashboardTimetableInlineEditMode = ({ keepDirtyState = false } = {}) => {
+            if (!dashboardTimetableInlineEditActive && !getDashboardTimetableInlineInputs().length) return;
+            clearDashboardTimetableLongPress();
+            teardownDashboardTimetableInlineEdit();
+            dashboardTimetableInlineEditActive = false;
+            if (!keepDirtyState) {
+                dashboardTimetableInlineEditDirty = false;
+            }
+            updateDashboardTimetableInlineEditControls();
+            requestCourseLayoutSync();
+        };
+
+        const focusNextDashboardTimetableInlineInput = (currentInput) => {
+            const inputs = getDashboardTimetableInlineInputs();
+            const currentIndex = inputs.indexOf(currentInput);
+            const nextInput = currentIndex >= 0 ? inputs[currentIndex + 1] : null;
+            if (nextInput) {
+                nextInput.focus();
+                nextInput.select();
+            } else if (currentInput) {
+                currentInput.blur();
+            }
+        };
+
+        const saveDashboardTimetableInlineCourseNames = async ({ clearAll = false } = {}) => {
+            if (!customNameEnabled || dashboardTimetableInlineEditSaving) return;
+
+            dashboardTimetableInlineEditSaving = true;
+            updateDashboardTimetableInlineEditControls();
+
+            try {
+                const existingCustomNames = await window.WebClassScraper.loadCustomCourseNames().catch(() => ({}));
+                const nextCustomNames = clearAll ? {} : { ...existingCustomNames };
+
+                if (!clearAll) {
+                    getDashboardTimetableInlineInputs().forEach((input) => {
+                        const courseId = (input.dataset.courseId || '').trim();
+                        const originalName = input.dataset.originalName || '';
+                        const hadCustom = input.dataset.hadCustom === 'true';
+                        const isDirty = input.dataset.dirty === 'true';
+                        if (!courseId || (!hadCustom && !isDirty)) {
+                            return;
+                        }
+
+                        const nextCustomName = resolveEditedCustomCourseName(input.value, originalName);
+                        if (nextCustomName) {
+                            nextCustomNames[courseId] = nextCustomName;
+                        } else {
+                            delete nextCustomNames[courseId];
+                        }
+                    });
+                }
+
+                await window.WebClassScraper.saveCustomCourseNames(nextCustomNames);
+                await updateAssignmentCourseNames(nextCustomNames);
+
+                exitDashboardTimetableInlineEditMode();
+
+                const assignments = await loadAssignments();
+                await applyCustomCourseNamesToTimetable();
+
+                dashboardTimetableLlmApplyPromise = applyLlmCourseNamesToDashboardTimetable(dashboardTimetableElement).catch((error) => {
+                    uxDebugWarn('[WebClass UX] Dashboard timetable custom-name apply failed', error);
+                });
+                await dashboardTimetableLlmApplyPromise;
+                await rerenderDashboardTodosAfterCourseNameApply();
+                applyTimetableColorsFromTodo(assignments);
+                requestCourseLayoutSync();
+            } catch (error) {
+                console.error('[WebClass UX] インライン授業名編集の保存に失敗:', error);
+                alert('授業名の保存に失敗しました: ' + error.message);
+            } finally {
+                dashboardTimetableInlineEditSaving = false;
+                updateDashboardTimetableInlineEditControls();
+            }
+        };
+
+        const requestDashboardTimetableInlineEditCancel = () => {
+            if (dashboardTimetableInlineEditSaving) return;
+            if (dashboardTimetableInlineEditDirty && !confirm('未保存の変更を破棄しますか？')) {
+                return;
+            }
+            exitDashboardTimetableInlineEditMode();
+        };
+
+        const enterDashboardTimetableInlineEditMode = async () => {
+            if (!customNameEnabled || dashboardTimetableInlineEditActive || dashboardTimetableInlineEditSaving || !dashboardTimetableElement) {
+                return;
+            }
+
+            const editableCells = getDashboardTimetableEditableCells();
+            if (!editableCells.length) return;
+
+            clearDashboardTimetableLongPress();
+            dashboardTimetableInlineEditActive = true;
+            dashboardTimetableInlineEditDirty = false;
+
+            const customNames = await window.WebClassScraper.loadCustomCourseNames().catch(() => ({}));
+
+            editableCells.forEach((cell, index) => {
+                const link = cell.querySelector('a[href*="course.php"]');
+                if (!link) return;
+
+                const href = link.getAttribute('href') || '';
+                const courseId = extractCourseIdFromUrl(href);
+                if (!courseId) return;
+
+                if (!link.dataset.originalText) {
+                    link.dataset.originalText = link.textContent || '';
+                }
+                const originalName = normalizeDevdevCourseText(link.dataset.originalText || link.textContent || '');
+                const currentDisplayName = normalizeDevdevCourseText(link.textContent || '') || originalName;
+                const existingCustomName = resolveEditedCustomCourseName(customNames[courseId], originalName);
+
+                cell.classList.add('ux-inline-editable-cell');
+                cell.setAttribute('data-editable-course', 'true');
+                cell.style.setProperty('--ux-inline-edit-delay', `${(index % 6) * 45}ms`);
+
+                link.classList.add('ux-timetable-inline-link-hidden');
+                link.setAttribute('aria-hidden', 'true');
+                link.setAttribute('tabindex', '-1');
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'ux-timetable-inline-input';
+                input.value = currentDisplayName;
+                input.placeholder = originalName;
+                input.spellcheck = false;
+                input.autocomplete = 'off';
+                input.dataset.courseId = courseId;
+                input.dataset.originalName = originalName;
+                input.dataset.initialValue = currentDisplayName;
+                input.dataset.hadCustom = existingCustomName ? 'true' : 'false';
+                input.dataset.dirty = 'false';
+
+                const syncInputDirtyState = () => {
+                    const currentValue = normalizeDevdevCourseText(input.value || '');
+                    const initialValue = normalizeDevdevCourseText(input.dataset.initialValue || '');
+                    const isDirty = currentValue !== initialValue;
+                    input.dataset.dirty = isDirty ? 'true' : 'false';
+                    cell.classList.toggle('ux-inline-edit-dirty', isDirty);
+                    refreshDashboardTimetableInlineDirtyState();
+                };
+
+                input.addEventListener('input', syncInputDirtyState);
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        focusNextDashboardTimetableInlineInput(input);
+                    }
+                });
+                input.addEventListener('focus', () => {
+                    cell.classList.add('ux-inline-edit-focus');
+                });
+                input.addEventListener('blur', () => {
+                    cell.classList.remove('ux-inline-edit-focus');
+                });
+
+                cell.appendChild(input);
+            });
+
+            dashboardTimetableSuppressClickUntil = Date.now() + 800;
+            updateDashboardTimetableInlineEditControls();
+            requestCourseLayoutSync();
+        };
+
+        const handleDashboardTimetablePointerDown = (event) => {
+            if (!customNameEnabled || dashboardTimetableInlineEditActive || dashboardTimetableInlineEditSaving || !dashboardTimetableBodyElement) {
+                return;
+            }
+            if (!(event.target instanceof Element) || !dashboardTimetableBodyElement.contains(event.target)) {
+                return;
+            }
+            if (dashboardTimetableEditMetaElement && dashboardTimetableEditMetaElement.contains(event.target)) {
+                return;
+            }
+            if (event.pointerType === 'mouse' && event.button !== 0) {
+                return;
+            }
+
+            clearDashboardTimetableLongPress();
+            dashboardTimetableLongPressOrigin = {
+                x: Number.isFinite(event.clientX) ? event.clientX : 0,
+                y: Number.isFinite(event.clientY) ? event.clientY : 0
+            };
+            dashboardTimetableLongPressTimer = window.setTimeout(() => {
+                dashboardTimetableLongPressTimer = 0;
+                enterDashboardTimetableInlineEditMode();
+            }, DASHBOARD_TIMETABLE_INLINE_EDIT_LONG_PRESS_MS);
+        };
+
+        const handleDashboardTimetablePointerMove = (event) => {
+            if (!dashboardTimetableLongPressOrigin) return;
+            const dx = (Number.isFinite(event.clientX) ? event.clientX : 0) - dashboardTimetableLongPressOrigin.x;
+            const dy = (Number.isFinite(event.clientY) ? event.clientY : 0) - dashboardTimetableLongPressOrigin.y;
+            if (Math.hypot(dx, dy) > DASHBOARD_TIMETABLE_INLINE_EDIT_MOVE_TOLERANCE_PX) {
+                clearDashboardTimetableLongPress();
+            }
+        };
+
+        const handleDashboardTimetableClickCapture = (event) => {
+            if (Date.now() < dashboardTimetableSuppressClickUntil) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        };
+
+        const handleDashboardTimetableInlineEditClick = (event) => {
+            if (!dashboardTimetableInlineEditActive) return;
+            if (!(event.target instanceof Element) || !dashboardTimetableBodyElement) return;
+            if (dashboardTimetableEditMetaElement && dashboardTimetableEditMetaElement.contains(event.target)) return;
+            if (event.target.closest('.ux-timetable-inline-input')) return;
+
+            const cell = event.target.closest('td');
+            if (!cell || !dashboardTimetableBodyElement.contains(cell)) return;
+            if (cell.classList.contains('schedule-table-class_order')) return;
+            if (cell.querySelector('a[href*="course.php"]')) return;
+
+            requestDashboardTimetableInlineEditCancel();
+        };
+
+        const handleDashboardTimetableInlineEditKeydown = (event) => {
+            if (!dashboardTimetableInlineEditActive) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                requestDashboardTimetableInlineEditCancel();
+            }
+        };
 
         const runDashboardCourseNameConversion = async () => {
             if (!dashboardTimetableElement) return;
@@ -5170,6 +5505,7 @@ if (!isHomePage) {
         };
 
         let requestCourseLayoutSync = () => { };
+        let applyDashboardCourseNamesToOutOfSchedulePanel = async () => { };
 
         const setActiveDashboardMainTab = (tabId) => {
             headerCenter.querySelectorAll('.ux-dashboard-v2-tab[data-dashboard-main-tab="1"]').forEach((tabEl) => {
@@ -5187,12 +5523,14 @@ if (!isHomePage) {
             const debugSectionEl = document.getElementById('ux-debug-section');
             const rightCol = document.querySelector('.ux-dashboard-v2-right');
             const centerCol = document.querySelector('.ux-dashboard-v2-center');
+            const outsideCourseSectionEl = document.getElementById('ux-outside-courses-section');
 
             const showCourse = tabId === 'tab-course';
             const showStats = tabId === 'tab-stats';
             const showDebug = tabId === 'tab-debug' && !!debugSectionEl && !debugSectionEl.hidden;
 
             if (timetableSectionEl) timetableSectionEl.style.display = showCourse ? 'flex' : 'none';
+            if (outsideCourseSectionEl) outsideCourseSectionEl.style.display = showCourse ? 'flex' : 'none';
             if (statsSectionEl) statsSectionEl.style.display = showStats ? 'block' : 'none';
             if (debugSectionEl) debugSectionEl.style.display = showDebug ? 'block' : 'none';
 
@@ -5258,8 +5596,14 @@ if (!isHomePage) {
         // Right: User info
         const headerRight = document.createElement('div');
         headerRight.className = 'ux-dashboard-v2-header-right';
+        const inboxButton = document.createElement('a');
+        inboxButton.className = 'ux-dashboard-v2-header-link ux-dashboard-v2-inbox';
+        inboxButton.href = pageLinks.messages;
+        inboxButton.textContent = '受信箱';
+        inboxButton.title = 'WebClass標準の受信箱を開く';
+        headerRight.appendChild(inboxButton);
         const logoutButton = document.createElement('a');
-        logoutButton.className = 'ux-dashboard-v2-logout';
+        logoutButton.className = 'ux-dashboard-v2-header-link ux-dashboard-v2-logout';
         logoutButton.href = pageLinks.logout;
         logoutButton.textContent = 'ログアウト';
         logoutButton.title = 'ログアウト';
@@ -5389,9 +5733,10 @@ if (!isHomePage) {
         const timetableSection = document.createElement('section');
         timetableSection.id = 'ux-timetable-section';
         timetableSection.className = 'ux-dashboard-v2-section ux-dashboard-v2-timetable';
-        timetableSection.style.position = 'relative'; // FAB配置用
-        timetableSection.style.flex = '1';
+        timetableSection.style.flex = '0 0 auto';
         timetableSection.style.minHeight = '0';
+        timetableSection.style.boxSizing = 'border-box';
+        dashboardTimetableSectionElement = timetableSection;
 
         // タイトル行
         const timetableHeaderRow = document.createElement('div');
@@ -5400,13 +5745,23 @@ if (!isHomePage) {
         timetableHeaderRow.style.alignItems = 'baseline';
         timetableHeaderRow.style.justifyContent = 'flex-start';
         timetableHeaderRow.style.flexWrap = 'wrap';
-        timetableHeaderRow.style.gap = '8px';
+        timetableHeaderRow.style.gap = '6px';
 
         const timetableTitle = document.createElement('h2');
         timetableTitle.textContent = '週間時間割';
         timetableTitle.style.margin = '0';
         timetableTitle.style.lineHeight = '1.2';
         timetableHeaderRow.appendChild(timetableTitle);
+
+        const timetableHeaderActions = document.createElement('div');
+        timetableHeaderActions.className = 'ux-timetable-header-actions';
+
+        const addCourseButton = document.createElement('a');
+        addCourseButton.className = 'ux-timetable-add-course-btn';
+        addCourseButton.href = pageLinks.availableCourses;
+        addCourseButton.textContent = 'コースを追加';
+        addCourseButton.title = '参加可能なコースを開く';
+        timetableHeaderActions.appendChild(addCourseButton);
 
         if (termFilterConfig && termFilterConfig.yearOptions.length && termFilterConfig.semesterOptions.length) {
             const submitTermFilter = (yearValue, semesterValue) => {
@@ -5555,39 +5910,88 @@ if (!isHomePage) {
             });
         }
 
+        if (customNameEnabled) {
+            const editMeta = document.createElement('div');
+            editMeta.className = 'ux-timetable-inline-edit-meta';
+
+            const editToolbar = document.createElement('div');
+            editToolbar.className = 'ux-timetable-inline-edit-toolbar';
+            editToolbar.hidden = true;
+
+            const editStatus = document.createElement('span');
+            editStatus.className = 'ux-timetable-inline-edit-status';
+            editStatus.textContent = '編集モード';
+            editToolbar.appendChild(editStatus);
+            dashboardTimetableEditStatusElement = editStatus;
+
+            const clearButton = document.createElement('button');
+            clearButton.type = 'button';
+            clearButton.className = 'ux-timetable-inline-edit-clear';
+            clearButton.textContent = 'クリア';
+            clearButton.addEventListener('click', async () => {
+                if (!confirm('カスタム授業名をすべて削除して元の表示に戻しますか？')) {
+                    return;
+                }
+                await saveDashboardTimetableInlineCourseNames({ clearAll: true });
+            });
+            editToolbar.appendChild(clearButton);
+            dashboardTimetableEditClearButton = clearButton;
+
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'ux-timetable-inline-edit-cancel';
+            cancelButton.textContent = 'キャンセル';
+            cancelButton.addEventListener('click', () => {
+                requestDashboardTimetableInlineEditCancel();
+            });
+            editToolbar.appendChild(cancelButton);
+            dashboardTimetableEditCancelButton = cancelButton;
+
+            const doneButton = document.createElement('button');
+            doneButton.type = 'button';
+            doneButton.className = 'ux-timetable-inline-edit-done';
+            doneButton.textContent = '完了';
+            doneButton.addEventListener('click', async () => {
+                if (dashboardTimetableInlineEditDirty) {
+                    await saveDashboardTimetableInlineCourseNames();
+                    return;
+                }
+                exitDashboardTimetableInlineEditMode();
+            });
+            editToolbar.appendChild(doneButton);
+            dashboardTimetableEditDoneButton = doneButton;
+
+            editMeta.appendChild(editToolbar);
+            dashboardTimetableEditToolbarElement = editToolbar;
+            dashboardTimetableEditMetaElement = editMeta;
+            timetableHeaderActions.appendChild(editMeta);
+
+            document.addEventListener('keydown', handleDashboardTimetableInlineEditKeydown, true);
+        }
+
+        timetableHeaderRow.appendChild(timetableHeaderActions);
+
         timetableSection.appendChild(timetableHeaderRow);
 
         const timetableBody = document.createElement('div');
         timetableBody.className = 'ux-dashboard-v2-timetable-body';
+        dashboardTimetableBodyElement = timetableBody;
         timetableSection.appendChild(timetableBody);
 
-        // 授業名編集フローティングボタン（タイムテーブル右上）
-        // 「手動リネーム」がONのときのみ表示
         if (customNameEnabled) {
-            const editCourseNamesFab = document.createElement('button');
-            editCourseNamesFab.textContent = '✏️';
-            editCourseNamesFab.title = '授業名を編集';
-            editCourseNamesFab.setAttribute('aria-label', '授業名を編集');
-            editCourseNamesFab.style.position = 'absolute';
-            editCourseNamesFab.style.top = '10px';
-            editCourseNamesFab.style.right = '12px';
-            editCourseNamesFab.style.width = '38px';
-            editCourseNamesFab.style.height = '38px';
-            editCourseNamesFab.style.borderRadius = '12px';
-            editCourseNamesFab.style.border = '1px solid #fecdd3';
-            editCourseNamesFab.style.background = '#fee2e2';
-            editCourseNamesFab.style.cursor = 'pointer';
-            editCourseNamesFab.style.display = 'inline-flex';
-            editCourseNamesFab.style.alignItems = 'center';
-            editCourseNamesFab.style.justifyContent = 'center';
-            editCourseNamesFab.style.fontSize = '18px';
-            editCourseNamesFab.style.boxShadow = '0 4px 10px rgba(0,0,0,0.08)';
-            editCourseNamesFab.style.zIndex = '5';
-            // 既存DOM互換の書き方を維持
-            editCourseNamesFab.onclick = () => {
-                openCourseNameEditor();
-            };
-            timetableSection.appendChild(editCourseNamesFab);
+            timetableBody.addEventListener('pointerdown', handleDashboardTimetablePointerDown);
+            timetableBody.addEventListener('pointermove', handleDashboardTimetablePointerMove);
+            timetableBody.addEventListener('pointerup', clearDashboardTimetableLongPress);
+            timetableBody.addEventListener('pointercancel', clearDashboardTimetableLongPress);
+            timetableBody.addEventListener('pointerleave', clearDashboardTimetableLongPress);
+            timetableBody.addEventListener('contextmenu', (event) => {
+                if (!dashboardTimetableInlineEditActive) {
+                    event.preventDefault();
+                }
+            });
+            timetableBody.addEventListener('click', handleDashboardTimetableClickCapture, true);
+            timetableBody.addEventListener('click', handleDashboardTimetableInlineEditClick);
+            updateDashboardTimetableInlineEditControls();
         }
 
         // Clone the original timetable if exists
@@ -5890,7 +6294,7 @@ if (!isHomePage) {
         refreshBtn.style.padding = '6px';
         refreshBtn.style.border = 'none';
         refreshBtn.style.background = 'transparent';
-        refreshBtn.style.color = '#666';
+        refreshBtn.style.color = 'var(--ux-home-secondary-label)';
         refreshBtn.style.cursor = 'pointer';
         refreshBtn.title = '更新';
         todoHeader.appendChild(refreshBtn);
@@ -5913,18 +6317,18 @@ if (!isHomePage) {
             card.style.padding = '15px';
             card.style.borderRadius = '12px';
             card.style.textAlign = 'center';
-            card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
+            card.style.boxShadow = 'var(--ux-home-shadow-sm)';
             card.style.display = 'flex';
             card.style.flexDirection = 'column';
             card.style.alignItems = 'center';
             card.style.justifyContent = 'center';
 
             // Colors
-            let bg = '#fff';
-            let text = '#333';
-            if (colorClass === 'blue') { bg = '#e3f2fd'; text = '#1976d2'; }
-            if (colorClass === 'green') { bg = '#e8f5e9'; text = '#388e3c'; }
-            if (colorClass === 'red') { bg = '#ffebee'; text = '#d32f2f'; }
+            let bg = 'var(--ux-home-surface)';
+            let text = 'var(--ux-home-label)';
+            if (colorClass === 'blue') { bg = 'var(--ux-home-accent-soft)'; text = 'var(--ux-home-accent-emphasis)'; }
+            if (colorClass === 'green') { bg = 'var(--ux-home-success-soft)'; text = 'var(--ux-home-success-foreground)'; }
+            if (colorClass === 'red') { bg = 'var(--ux-home-danger-soft)'; text = 'var(--ux-home-danger-foreground)'; }
 
             card.style.backgroundColor = bg;
             card.style.color = text;
@@ -5967,7 +6371,7 @@ if (!isHomePage) {
         toggleLabel.textContent = 'View Completed';
         toggleLabel.style.fontWeight = '500';
         toggleLabel.style.fontSize = '0.95em';
-        toggleLabel.style.color = '#555';
+        toggleLabel.style.color = 'var(--ux-home-secondary-label)';
 
         const toggleSwitch = document.createElement('label');
         toggleSwitch.style.position = 'relative';
@@ -5989,7 +6393,7 @@ if (!isHomePage) {
         toggleSlider.style.left = '0';
         toggleSlider.style.right = '0';
         toggleSlider.style.bottom = '0';
-        toggleSlider.style.backgroundColor = '#ccc';
+        toggleSlider.style.backgroundColor = 'var(--ux-home-quaternary-label)';
         toggleSlider.style.transition = '.4s';
         toggleSlider.style.borderRadius = '24px';
 
@@ -6011,10 +6415,10 @@ if (!isHomePage) {
         toggleInput.addEventListener('change', async () => {
             viewCompleted = toggleInput.checked;
             if (viewCompleted) {
-                toggleSlider.style.backgroundColor = '#2196F3';
+                toggleSlider.style.backgroundColor = 'var(--ux-home-accent)';
                 toggleKnob.style.transform = 'translateX(16px)';
             } else {
-                toggleSlider.style.backgroundColor = '#ccc';
+                toggleSlider.style.backgroundColor = 'var(--ux-home-quaternary-label)';
                 toggleKnob.style.transform = 'translateX(0)';
             }
             await renderDashboardTodos(dashboardAssignments);
@@ -6026,22 +6430,135 @@ if (!isHomePage) {
         todoSection.appendChild(toggleContainer);
 
         const todoStatus = document.createElement('div'); // Dummy for compatibility
-
         const todoListContainer = document.createElement('div');
         todoListContainer.className = 'ux-dashboard-v2-todo-list';
         todoListContainer.style.flex = '1';
         todoListContainer.style.minHeight = '0';
         todoListContainer.style.maxHeight = 'none';
         todoListContainer.style.overflowY = 'auto';
+        const DASHBOARD_TIMETABLE_BOTTOM_LIFT_PX = 300; // 時間割表の底辺を調整したい場合はこの数値を変更する。
 
         const clearDashboardInlineLayoutSizing = () => {
             timetableSection.style.height = '';
             todoSection.style.height = '';
+            if (dashboardOutOfScheduleSectionElement) {
+                dashboardOutOfScheduleSectionElement.style.height = '';
+            }
             if (!dashboardTimetableElement) return;
             dashboardTimetableElement.style.height = '';
             dashboardTimetableElement.querySelectorAll('tbody tr > *').forEach((cell) => {
                 cell.style.height = '';
             });
+        };
+
+        const getDashboardOutOfScheduleMinimumHeight = () => {
+            if (!dashboardOutOfScheduleSectionElement) return 0;
+
+            const headerEl = dashboardOutOfScheduleSectionElement.querySelector('.ux-dashboard-v2-section-header');
+            const bodyEl = dashboardOutOfScheduleSectionElement.querySelector('.ux-dashboard-v2-outside-courses-body');
+            if (!headerEl || !bodyEl) return 0;
+
+            const sectionStyle = window.getComputedStyle(dashboardOutOfScheduleSectionElement);
+            const headerStyle = window.getComputedStyle(headerEl);
+            const sectionVerticalChrome =
+                (parseFloat(sectionStyle.paddingTop) || 0) +
+                (parseFloat(sectionStyle.paddingBottom) || 0) +
+                (parseFloat(sectionStyle.borderTopWidth) || 0) +
+                (parseFloat(sectionStyle.borderBottomWidth) || 0);
+            const headerHeight =
+                Math.ceil(headerEl.getBoundingClientRect().height) +
+                (parseFloat(headerStyle.marginBottom) || 0);
+
+            const listEl = bodyEl.querySelector('.ux-dashboard-v2-outside-courses-list');
+            const emptyEl = bodyEl.querySelector('.ux-dashboard-v2-outside-courses-empty');
+            let bodyContentHeight = 0;
+
+            if (listEl) {
+                const visibleItems = Array.from(listEl.children).slice(0, 2);
+                const listStyle = window.getComputedStyle(listEl);
+                const gap = parseFloat(listStyle.rowGap || listStyle.gap || '0') || 0;
+                bodyContentHeight = visibleItems.reduce((sum, item) => {
+                    return sum + Math.ceil(item.getBoundingClientRect().height);
+                }, 0);
+                bodyContentHeight += gap * Math.max(0, visibleItems.length - 1);
+            } else if (emptyEl) {
+                bodyContentHeight = Math.ceil(emptyEl.getBoundingClientRect().height);
+            }
+
+            if (!bodyContentHeight) {
+                bodyContentHeight = Math.ceil(bodyEl.getBoundingClientRect().height);
+            }
+
+            return Math.ceil(sectionVerticalChrome + headerHeight + bodyContentHeight + 1);
+        };
+
+        const getDashboardOutOfScheduleTargetHeight = () => {
+            const minimumHeight = getDashboardOutOfScheduleMinimumHeight();
+            if (!minimumHeight) return 0;
+            return minimumHeight;
+        };
+
+        const getDashboardCenterColumnSectionGap = () => {
+            const centerColumnStyle = window.getComputedStyle(centerColumn);
+            return parseFloat(centerColumnStyle.rowGap || centerColumnStyle.gap || '0') || 0;
+        };
+
+        const isDashboardStackedLayout = () => {
+            const centerRect = centerColumn.getBoundingClientRect();
+            const rightRect = rightColumn.getBoundingClientRect();
+            if (!centerRect.width || !rightRect.width) {
+                return window.matchMedia('(max-width: 1200px)').matches;
+            }
+            return (rightRect.top - centerRect.top) > 8;
+        };
+
+        const syncDashboardTimetableSectionHeight = () => {
+            if (window.getComputedStyle(timetableSection).display === 'none') return;
+
+            const timetableSectionRect = timetableSection.getBoundingClientRect();
+            const todoSectionRect = todoSection.getBoundingClientRect();
+            const totalAvailableHeight = Math.floor(todoSectionRect.bottom - timetableSectionRect.top);
+            const outOfScheduleTargetHeight = getDashboardOutOfScheduleTargetHeight();
+            const sectionGap = getDashboardCenterColumnSectionGap();
+            const targetHeight = outOfScheduleTargetHeight > 0
+                ? Math.floor(totalAvailableHeight - outOfScheduleTargetHeight - sectionGap)
+                : Math.floor(totalAvailableHeight - DASHBOARD_TIMETABLE_BOTTOM_LIFT_PX);
+            if (!Number.isFinite(targetHeight) || targetHeight <= 0) return;
+
+            const nextHeight = `${targetHeight}px`;
+            if (timetableSection.style.height !== nextHeight) {
+                timetableSection.style.height = nextHeight;
+            }
+        };
+
+        const getDashboardTimetableNaturalSectionHeight = () => {
+            if (!timetableBody) return 0;
+
+            const sectionStyle = window.getComputedStyle(timetableSection);
+            const sectionVerticalChrome =
+                (parseFloat(sectionStyle.paddingTop) || 0) +
+                (parseFloat(sectionStyle.paddingBottom) || 0) +
+                (parseFloat(sectionStyle.borderTopWidth) || 0) +
+                (parseFloat(sectionStyle.borderBottomWidth) || 0);
+            const headerHeight = timetableHeaderRow
+                ? Math.ceil(timetableHeaderRow.getBoundingClientRect().height)
+                : 0;
+            const bodyContentHeight = Math.ceil(timetableBody.scrollHeight);
+
+            return Math.ceil(sectionVerticalChrome + headerHeight + bodyContentHeight);
+        };
+
+        const syncDashboardOutOfScheduleSectionHeight = () => {
+            if (!dashboardOutOfScheduleSectionElement) return;
+            if (window.getComputedStyle(dashboardOutOfScheduleSectionElement).display === 'none') return;
+
+            const targetHeight = getDashboardOutOfScheduleTargetHeight();
+            if (!Number.isFinite(targetHeight) || targetHeight <= 0) return;
+
+            const nextHeight = `${targetHeight}px`;
+            if (dashboardOutOfScheduleSectionElement.style.height !== nextHeight) {
+                dashboardOutOfScheduleSectionElement.style.height = nextHeight;
+            }
         };
 
         const stretchDashboardTimetableToBody = () => {
@@ -6064,12 +6581,43 @@ if (!isHomePage) {
             const computedRowHeight = Math.floor((availableHeight - theadHeight - spacingAllowance) / bodyRows.length);
             if (!Number.isFinite(computedRowHeight) || computedRowHeight <= 0) return;
 
-            dashboardTimetableElement.style.height = `${availableHeight}px`;
+            const nextTableHeight = `${availableHeight}px`;
+            if (dashboardTimetableElement.style.height !== nextTableHeight) {
+                dashboardTimetableElement.style.height = nextTableHeight;
+            }
+            const nextCellHeight = `${computedRowHeight}px`;
             bodyRows.forEach((row) => {
                 Array.from(row.children).forEach((cell) => {
-                    cell.style.height = `${computedRowHeight}px`;
+                    if (cell.style.height !== nextCellHeight) {
+                        cell.style.height = nextCellHeight;
+                    }
                 });
             });
+        };
+
+        const getDashboardTimetableFitMetrics = () => {
+            if (!dashboardTimetableElement || !timetableBody) return null;
+
+            const availableHeight = Math.floor(timetableBody.clientHeight);
+            if (!Number.isFinite(availableHeight) || availableHeight <= 0) return null;
+
+            const bodyRows = Array.from(dashboardTimetableElement.querySelectorAll('tbody tr'));
+            if (bodyRows.length === 0) return null;
+
+            const tableStyle = window.getComputedStyle(dashboardTimetableElement);
+            const spacingTokens = (tableStyle.borderSpacing || '0').trim().split(/\s+/);
+            const spacingY = parseFloat(spacingTokens[1] || spacingTokens[0] || '0') || 0;
+            const theadHeight = dashboardTimetableElement.tHead
+                ? Math.ceil(dashboardTimetableElement.tHead.getBoundingClientRect().height)
+                : 0;
+            const spacingAllowance = spacingY * (bodyRows.length + 2);
+            const computedRowHeight = Math.floor((availableHeight - theadHeight - spacingAllowance) / bodyRows.length);
+
+            return {
+                availableHeight,
+                bodyRowCount: bodyRows.length,
+                computedRowHeight
+            };
         };
 
         let courseLayoutSyncRafId = 0;
@@ -6082,7 +6630,40 @@ if (!isHomePage) {
             const runSync = () => {
                 courseLayoutSyncRafId = 0;
                 clearDashboardInlineLayoutSizing();
+                if (timetableBody) {
+                    timetableBody.classList.remove('ux-scroll-managed-fit', 'ux-scroll-managed-natural');
+                }
+                if (dashboardTimetableElement) {
+                    dashboardTimetableElement.classList.remove('ux-compact-density');
+                }
+                if (isDashboardStackedLayout()) {
+                    return;
+                }
+                syncDashboardOutOfScheduleSectionHeight();
+
+                syncDashboardTimetableSectionHeight();
+                const targetHeight = parseFloat(timetableSection.style.height || '0') || 0;
+                const naturalHeight = getDashboardTimetableNaturalSectionHeight();
+                const fitMetrics = getDashboardTimetableFitMetrics();
+                const fitRowHeight = fitMetrics?.computedRowHeight || 0;
+                const canUseCompactFit = fitRowHeight >= 68;
+
+                if (!targetHeight || !naturalHeight || (!canUseCompactFit && naturalHeight > targetHeight)) {
+                    timetableSection.style.height = '';
+                    if (timetableBody) {
+                        timetableBody.classList.add('ux-scroll-managed-natural');
+                    }
+                    return;
+                }
+
+                if (dashboardTimetableElement && (naturalHeight > targetHeight || fitRowHeight < 90)) {
+                    dashboardTimetableElement.classList.add('ux-compact-density');
+                }
+                if (timetableBody) {
+                    timetableBody.classList.add('ux-scroll-managed-fit');
+                }
                 stretchDashboardTimetableToBody();
+                syncDashboardOutOfScheduleSectionHeight();
             };
 
             if (typeof window.requestAnimationFrame === 'function') {
@@ -6168,7 +6749,9 @@ if (!isHomePage) {
         };
 
         rerenderDashboardTodosAfterCourseNameApply = async () => {
+            await applyDashboardCourseNamesToOutOfSchedulePanel();
             await renderDashboardTodos(dashboardAssignments);
+            requestCourseLayoutSync();
         };
 
         const updateAssignments = async ({ forceRemote = false, fallbackRemoteWhenEmpty = false } = {}) => {
@@ -6278,6 +6861,205 @@ if (!isHomePage) {
 
         rightColumn.appendChild(todoSection);
 
+        const normalizeDashboardCourseMetaText = (text) => String(text || '').replace(/\s+/g, ' ').trim();
+        const collectDashboardOutOfScheduleCourses = () => {
+            const scheduledCourseIds = new Set(
+                Array.from(document.querySelectorAll('table.schedule-table a[href*="course.php"], table.ux-dashboard-v2-schedule-table a[href*="course.php"]'))
+                    .map((link) => extractCourseIdFromUrl(link.getAttribute('href') || ''))
+                    .filter(Boolean)
+            );
+            const courseMap = new Map();
+            const candidateLinks = document.querySelectorAll('#courses_list_left a[href*="course.php"], .courseTree .course-title a[href*="course.php"]');
+
+            candidateLinks.forEach((link) => {
+                const href = link.getAttribute('href') || '';
+                if (!href) return;
+
+                const courseId = extractCourseIdFromUrl(href);
+                const courseBox = link.closest('.course-data-box-normal') || link.closest('li') || link.parentElement;
+                const fullName = normalizeDevdevCourseText(link.textContent || '');
+                const detailText = normalizeDashboardCourseMetaText(courseBox?.querySelector('.course-info')?.textContent || '');
+                const noticeText = normalizeDashboardCourseMetaText(courseBox?.querySelector('.course-contents-info')?.textContent || '');
+                const shouldTreatAsOutOfSchedule =
+                    !scheduledCourseIds.has(courseId) ||
+                    /時間外/.test(fullName) ||
+                    /時間外/.test(detailText);
+                if (!fullName || !shouldTreatAsOutOfSchedule) return;
+
+                const key = courseId || href || fullName;
+                if (courseMap.has(key)) return;
+
+                let absoluteHref = href;
+                try {
+                    absoluteHref = new URL(href, window.location.href).href;
+                } catch {
+                    // keep raw href
+                }
+
+                courseMap.set(key, {
+                    courseId,
+                    href: absoluteHref,
+                    fullName,
+                    detailText,
+                    noticeText
+                });
+            });
+
+            return Array.from(courseMap.values()).sort((a, b) => {
+                const aName = fallbackCourseName(a.fullName || '');
+                const bName = fallbackCourseName(b.fullName || '');
+                return aName.localeCompare(bName, 'ja');
+            });
+        };
+
+        const outOfScheduleCourses = collectDashboardOutOfScheduleCourses();
+        const outOfScheduleSection = document.createElement('section');
+        outOfScheduleSection.id = 'ux-outside-courses-section';
+        outOfScheduleSection.className = 'ux-dashboard-v2-section ux-dashboard-v2-outside-courses';
+        outOfScheduleSection.style.display = 'flex';
+        outOfScheduleSection.style.flexDirection = 'column';
+        outOfScheduleSection.style.flex = '0 0 auto';
+        outOfScheduleSection.style.minHeight = '0';
+        outOfScheduleSection.style.overflow = 'hidden';
+
+        const outOfScheduleHeader = document.createElement('div');
+        outOfScheduleHeader.className = 'ux-dashboard-v2-section-header';
+
+        const outOfScheduleTitle = document.createElement('h2');
+        outOfScheduleTitle.textContent = '時間外科目';
+        outOfScheduleHeader.appendChild(outOfScheduleTitle);
+
+        const outOfScheduleCount = document.createElement('span');
+        outOfScheduleCount.className = 'ux-dashboard-v2-outside-courses-count';
+        outOfScheduleCount.textContent = `${outOfScheduleCourses.length}件`;
+        outOfScheduleHeader.appendChild(outOfScheduleCount);
+        outOfScheduleSection.appendChild(outOfScheduleHeader);
+
+        const outOfScheduleBody = document.createElement('div');
+        outOfScheduleBody.className = 'ux-dashboard-v2-outside-courses-body';
+        dashboardOutOfScheduleSectionElement = outOfScheduleSection;
+
+        if (outOfScheduleCourses.length > 0) {
+            const outOfScheduleList = document.createElement('div');
+            outOfScheduleList.className = 'ux-dashboard-v2-outside-courses-list';
+
+            outOfScheduleCourses.forEach((course) => {
+                const item = document.createElement('a');
+                item.className = 'ux-dashboard-v2-outside-course-item';
+                item.href = course.href || '#';
+                item.dataset.courseId = course.courseId || '';
+                item.dataset.originalName = course.fullName || '';
+
+                const title = document.createElement('span');
+                title.className = 'ux-dashboard-v2-outside-course-title';
+                title.textContent = course.fullName || '';
+                item.appendChild(title);
+
+                if (course.noticeText) {
+                    const note = document.createElement('span');
+                    note.className = 'ux-dashboard-v2-outside-course-note';
+                    note.textContent = course.noticeText;
+                    item.appendChild(note);
+                }
+
+                outOfScheduleList.appendChild(item);
+            });
+
+            outOfScheduleBody.appendChild(outOfScheduleList);
+        } else {
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'ux-dashboard-v2-outside-courses-empty';
+            emptyMessage.textContent = '時間外科目はありません';
+            outOfScheduleBody.appendChild(emptyMessage);
+        }
+
+        outOfScheduleSection.appendChild(outOfScheduleBody);
+        centerColumn.insertBefore(outOfScheduleSection, statsSection);
+
+        applyDashboardCourseNamesToOutOfSchedulePanel = async () => {
+            if (!dashboardOutOfScheduleSectionElement) return;
+
+            const items = Array.from(dashboardOutOfScheduleSectionElement.querySelectorAll('.ux-dashboard-v2-outside-course-item'));
+            if (!items.length) return;
+
+            const storageData = await new Promise(resolve => {
+                chrome.storage.local.get({
+                    [STORAGE_KEY_OPENAI_COURSE_CACHE]: {},
+                    [STORAGE_KEY_SHORT_COURSE_CACHE]: {}
+                }, resolve);
+            });
+            const anyNameSettingForCustom = customNameEnabled || llmNameEnabled || ruleNameEnabled;
+            const customNames = anyNameSettingForCustom && window.WebClassScraper?.loadCustomCourseNames
+                ? await window.WebClassScraper.loadCustomCourseNames().catch(() => ({}))
+                : {};
+            const shortCourseCache = ruleNameEnabled ? (storageData[STORAGE_KEY_SHORT_COURSE_CACHE] || {}) : {};
+            const openaiCache = llmNameEnabled ? (storageData[STORAGE_KEY_OPENAI_COURSE_CACHE] || {}) : {};
+
+            items.forEach((item) => {
+                const titleEl = item.querySelector('.ux-dashboard-v2-outside-course-title');
+                if (!titleEl) return;
+
+                const rawFullName = (item.dataset.originalName || '').trim();
+                const courseId = (item.dataset.courseId || '').trim();
+                if (!rawFullName) return;
+
+                const customName = resolveEditedCustomCourseName(
+                    courseId ? customNames[courseId] : '',
+                    rawFullName
+                );
+                if (customNameEnabled && customName) {
+                    titleEl.textContent = customName;
+                    return;
+                }
+
+                const cacheKeys = [];
+                if (courseId) {
+                    cacheKeys.push(`${courseId}::${rawFullName}`);
+                    const normalizedFullName = normalizeDevdevCourseText(rawFullName);
+                    if (normalizedFullName && normalizedFullName !== rawFullName) {
+                        cacheKeys.push(`${courseId}::${normalizedFullName}`);
+                    }
+                }
+                cacheKeys.push(rawFullName);
+                const normalizedName = normalizeDevdevCourseText(rawFullName);
+                if (normalizedName && normalizedName !== rawFullName) {
+                    cacheKeys.push(normalizedName);
+                }
+                const cachedOpenAiKey = cacheKeys.find((key) => typeof openaiCache[key] === 'string' && openaiCache[key].trim());
+                if (llmNameEnabled && cachedOpenAiKey) {
+                    titleEl.textContent = openaiCache[cachedOpenAiKey];
+                    return;
+                }
+
+                if (ruleNameEnabled) {
+                    const cachedShort = getShortCourseFromCache(shortCourseCache, courseId, [normalizedName, rawFullName]);
+                    if (cachedShort) {
+                        titleEl.textContent = cachedShort;
+                        return;
+                    }
+                }
+
+                if (llmNameEnabled) {
+                    titleEl.textContent = rawFullName;
+                    return;
+                }
+
+                if (ruleNameEnabled) {
+                    titleEl.textContent = fallbackCourseName(rawFullName);
+                    return;
+                }
+
+                titleEl.textContent = rawFullName;
+            });
+        };
+        void applyDashboardCourseNamesToOutOfSchedulePanel().finally(() => {
+            requestCourseLayoutSync();
+        });
+        dashboardTimetableLlmApplyPromise = dashboardTimetableLlmApplyPromise.finally(async () => {
+            await applyDashboardCourseNamesToOutOfSchedulePanel();
+            requestCourseLayoutSync();
+        });
+
         // Messages Section (Switch View 2 ではお知らせの代わりにメッセージを表示)
         const messageSection = document.createElement('section');
         messageSection.id = 'ux-messages-section';
@@ -6296,7 +7078,7 @@ if (!isHomePage) {
         messageHeader.appendChild(messageTitle);
 
         const unreadBadge = document.createElement('span');
-        unreadBadge.style.backgroundColor = '#dc3545';
+        unreadBadge.style.backgroundColor = 'var(--ux-home-danger)';
         unreadBadge.style.color = '#fff';
         unreadBadge.style.padding = '4px 10px';
         unreadBadge.style.borderRadius = '12px';
@@ -6328,7 +7110,7 @@ if (!isHomePage) {
         refreshMsgBtn.style.padding = '6px';
         refreshMsgBtn.style.border = 'none';
         refreshMsgBtn.style.background = 'transparent';
-        refreshMsgBtn.style.color = '#666';
+        refreshMsgBtn.style.color = 'var(--ux-home-secondary-label)';
         refreshMsgBtn.style.cursor = 'pointer';
 
         const markAllReadBtn = document.createElement('button');
@@ -6337,12 +7119,12 @@ if (!isHomePage) {
         markAllReadBtn.style.padding = '6px';
         markAllReadBtn.style.border = 'none';
         markAllReadBtn.style.background = 'transparent';
-        markAllReadBtn.style.color = '#28a745';
+        markAllReadBtn.style.color = 'var(--ux-home-success-foreground)';
         markAllReadBtn.style.cursor = 'pointer';
 
         const messageStatus = document.createElement('div');
         messageStatus.style.fontSize = '0.85em';
-        messageStatus.style.color = '#666';
+        messageStatus.style.color = 'var(--ux-home-secondary-label)';
 
         messageActions.appendChild(refreshMsgBtn);
         messageActions.appendChild(markAllReadBtn);
@@ -6667,7 +7449,7 @@ if (!isHomePage) {
                 uxDebugWarn('[WebClass UX] Message fetch error', err);
                 messageStatus.textContent = 'メッセージ取得に失敗しました';
                 if (!silent) {
-                    messageContent.innerHTML = '<p class="error" style="padding:12px;color:#c00;">取得に失敗しました</p>';
+                    messageContent.innerHTML = '<p class="error" style="padding:12px;color:var(--ux-home-danger-foreground);">取得に失敗しました</p>';
                 }
             } finally {
                 if (!silent) {

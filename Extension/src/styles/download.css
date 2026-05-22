@@ -1,5 +1,30 @@
 /* download.css - Download button styles for WebClass UX Improver */
 
+:root {
+    color-scheme: light;
+    --ux-home-page-bg: #f5f5f7;
+    --ux-home-surface: #ffffff;
+    --ux-home-surface-muted: #f2f2f7;
+    --ux-home-surface-soft: #fbfbfd;
+    --ux-home-fill: rgba(120, 120, 128, 0.12);
+    --ux-home-fill-strong: rgba(120, 120, 128, 0.2);
+    --ux-home-label: #1d1d1f;
+    --ux-home-secondary-label: #6e6e73;
+    --ux-home-tertiary-label: #8e8e93;
+    --ux-home-separator: rgba(60, 60, 67, 0.18);
+    --ux-home-accent: #0a84ff;
+    --ux-home-accent-emphasis: #0077ed;
+    --ux-home-accent-soft: rgba(10, 132, 255, 0.12);
+    --ux-home-accent-softer: rgba(10, 132, 255, 0.08);
+    --ux-home-warning: #ff9f0a;
+    --ux-home-warning-soft: rgba(255, 159, 10, 0.16);
+    --ux-home-warning-foreground: #9a5b00;
+    --ux-home-purple: #bf5af2;
+    --ux-home-purple-soft: rgba(191, 90, 242, 0.14);
+    --ux-home-purple-foreground: #7a2fc7;
+    --ux-home-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
 /* ============================================================
    Download Button Group
    ============================================================ */
@@ -23,22 +48,33 @@
    ============================================================ */
 
 .ux-download-btn {
+    --ux-download-btn-bg: var(--ux-home-surface);
+    --ux-download-btn-color: var(--ux-home-label);
+    --ux-download-btn-border: transparent;
+    --ux-download-btn-hover-bg: var(--ux-download-btn-bg);
+    --ux-download-btn-hover-color: var(--ux-download-btn-color);
+    --ux-download-btn-hover-border: var(--ux-download-btn-border);
     padding: 4px 10px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    border: none;
-    border-radius: 4px;
+    border: 1px solid var(--ux-download-btn-border);
+    border-radius: 8px;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    background: var(--ux-download-btn-bg);
+    color: var(--ux-download-btn-color);
 }
 
 .ux-download-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--ux-home-shadow-sm);
+    background: var(--ux-download-btn-hover-bg);
+    color: var(--ux-download-btn-hover-color);
+    border-color: var(--ux-download-btn-hover-border);
 }
 
 .ux-download-btn:active {
@@ -46,71 +82,54 @@
     box-shadow: none;
 }
 
+.ux-download-btn:disabled {
+    background: var(--ux-home-fill);
+    color: var(--ux-home-tertiary-label);
+    border-color: var(--ux-home-separator);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* ============================================================
-   Rename Download Button (Green)
+   Semantic Variants
    ============================================================ */
 
 .ux-download-rename {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-    color: white;
+    --ux-download-btn-bg: var(--ux-home-accent);
+    --ux-download-btn-color: var(--ux-home-surface);
+    --ux-download-btn-border: var(--ux-home-accent);
+    --ux-download-btn-hover-bg: var(--ux-home-accent-emphasis);
+    --ux-download-btn-hover-color: var(--ux-home-surface);
+    --ux-download-btn-hover-border: var(--ux-home-accent-emphasis);
 }
-
-.ux-download-rename:hover {
-    background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%);
-}
-
-/* ============================================================
-   Original Filename Download Button (Blue)
-   ============================================================ */
 
 .ux-download-original {
-    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-    color: white;
+    --ux-download-btn-bg: var(--ux-home-surface-soft);
+    --ux-download-btn-color: var(--ux-home-accent-emphasis);
+    --ux-download-btn-border: var(--ux-home-separator);
+    --ux-download-btn-hover-bg: var(--ux-home-accent-softer);
+    --ux-download-btn-hover-color: var(--ux-home-accent-emphasis);
+    --ux-download-btn-hover-border: rgba(10, 132, 255, 0.22);
     padding: 4px 8px;
 }
 
-.ux-download-original:hover {
-    background: linear-gradient(135deg, #1976D2 0%, #1565C0 100%);
-}
-
-/* ============================================================
-   Save as Image Button (Purple)
-   ============================================================ */
-
 .ux-download-image {
-    background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
-    color: white;
+    --ux-download-btn-bg: var(--ux-home-purple-soft);
+    --ux-download-btn-color: var(--ux-home-purple-foreground);
+    --ux-download-btn-border: rgba(191, 90, 242, 0.24);
+    --ux-download-btn-hover-bg: rgba(191, 90, 242, 0.22);
+    --ux-download-btn-hover-color: var(--ux-home-purple-foreground);
+    --ux-download-btn-hover-border: rgba(191, 90, 242, 0.3);
 }
-
-.ux-download-image:hover {
-    background: linear-gradient(135deg, #7B1FA2 0%, #6A1B9A 100%);
-}
-
-.ux-download-image:disabled {
-    background: linear-gradient(135deg, #CE93D8 0%, #BA68C8 100%);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* ============================================================
-   Copy to Clipboard Button (Orange/Amber)
-   ============================================================ */
 
 .ux-download-copy {
-    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-    color: white;
-}
-
-.ux-download-copy:hover {
-    background: linear-gradient(135deg, #F57C00 0%, #E65100 100%);
-}
-
-.ux-download-copy:disabled {
-    background: linear-gradient(135deg, #FFCC80 0%, #FFB74D 100%);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+    --ux-download-btn-bg: var(--ux-home-warning-soft);
+    --ux-download-btn-color: var(--ux-home-warning-foreground);
+    --ux-download-btn-border: rgba(255, 159, 10, 0.24);
+    --ux-download-btn-hover-bg: rgba(255, 159, 10, 0.22);
+    --ux-download-btn-hover-color: var(--ux-home-warning-foreground);
+    --ux-download-btn-hover-border: rgba(255, 159, 10, 0.3);
 }
 
 /* ============================================================
@@ -127,7 +146,6 @@
    Download Window Styles
    ============================================================ */
 
-/* file_down.php ページ用 */
 body .ux-download-group {
     display: flex;
     flex-direction: column;
@@ -157,10 +175,10 @@ body .ux-download-group .ux-download-btn {
     left: 50%;
     transform: translateX(-50%);
     padding: 4px 8px;
-    background: #333;
-    color: white;
+    background: var(--ux-home-label);
+    color: var(--ux-home-surface);
     font-size: 11px;
-    border-radius: 4px;
+    border-radius: 6px;
     white-space: nowrap;
     margin-bottom: 4px;
     z-index: 1000;
@@ -176,29 +194,7 @@ body .ux-download-group .ux-download-btn {
 }
 
 /* ============================================================
-   Dark Mode Support (if applicable)
-   ============================================================ */
-
-@media (prefers-color-scheme: dark) {
-    .ux-download-rename {
-        background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
-    }
-    
-    .ux-download-original {
-        background: linear-gradient(135deg, #42A5F5 0%, #2196F3 100%);
-    }
-    
-    .ux-download-image {
-        background: linear-gradient(135deg, #AB47BC 0%, #9C27B0 100%);
-    }
-    
-    .ux-download-copy {
-        background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
-    }
-}
-
-/* ============================================================
-   Inline Download Options (for attachment links)
+   Inline Download Options
    ============================================================ */
 
 .ux-inline-download-options {
@@ -215,18 +211,6 @@ body .ux-download-group .ux-download-btn {
     justify-content: center;
 }
 
-.ux-inline-download-options .ux-download-rename {
-    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-}
-
-.ux-inline-download-options .ux-download-original {
-    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
-}
-
-.ux-inline-download-options .ux-download-image {
-    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-}
-
 .ux-inline-download-options .ux-download-btn:disabled {
     opacity: 0.7;
     cursor: wait;
@@ -240,22 +224,21 @@ body .ux-download-group .ux-download-btn {
     .ux-download-group {
         flex-wrap: wrap;
     }
-    
+
     .ux-download-btn {
         font-size: 11px;
         padding: 3px 6px;
     }
-    
+
     .ux-inline-download-options {
         display: flex;
         flex-wrap: wrap;
         gap: 3px;
         margin-left: 4px;
     }
-    
+
     .ux-inline-download-options .ux-download-btn {
         padding: 2px 6px;
         font-size: 11px;
     }
 }
-

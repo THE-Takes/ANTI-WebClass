@@ -80,80 +80,119 @@ if (typeof globalThis.syncUxMasterStateToPage !== 'function') {
 
 uxDebugLog("WebClass UX Improver: Login script loaded");
 
-const AUTO_LOGIN_SESSION_DEFAULTS = {
-  username: '',
-  password: ''
-};
+function sendRuntimeMessage(message) {
+  if (!chrome?.runtime?.sendMessage) {
+    return Promise.resolve(null);
+  }
 
-function hasSessionStorageAccess() {
-  return !!(chrome?.storage?.session?.get && chrome?.storage?.session?.set);
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime?.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(response ?? null);
+      });
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
-function storageSessionGet(defaults) {
-  if (!hasSessionStorageAccess()) {
-    return Promise.resolve({ ...defaults });
-  }
-  try {
-    const result = chrome.storage.session.get(defaults);
-    if (result && typeof result.then === 'function') {
-      return result.catch(() => ({ ...defaults }));
-    }
-    return Promise.resolve(result || { ...defaults });
-  } catch {
-    return Promise.resolve({ ...defaults });
-  }
+function normalizeAutoLoginSettings(rawSettings) {
+  const settings = rawSettings && typeof rawSettings === 'object' ? rawSettings : {};
+  return {
+    autoLoginEnabled: settings.autoLoginEnabled === true,
+    username: typeof settings.username === 'string' ? settings.username.trim() : '',
+    password: typeof settings.password === 'string' ? settings.password.trim() : ''
+  };
 }
 
-function storageSessionSet(values) {
-  if (!hasSessionStorageAccess()) {
-    return Promise.resolve();
+async function getAutoLoginSettingsFromBackground() {
+  const response = await sendRuntimeMessage({ type: 'GET_AUTO_LOGIN_SETTINGS' });
+  if (!response || response.success !== true || !response.settings) {
+    return null;
   }
-  try {
-    const result = chrome.storage.session.set(values);
-    if (result && typeof result.then === 'function') {
-      return result.catch(() => undefined);
-    }
-    return Promise.resolve();
-  } catch {
-    return Promise.resolve();
-  }
+  return normalizeAutoLoginSettings(response.settings);
 }
 
 async function getAutoLoginSettings() {
-  const [localSettings, sessionSecrets] = await Promise.all([
-    chrome.storage.local.get({
-      autoLoginEnabled: false,
-      username: '',
-      password: ''
-    }),
-    storageSessionGet(AUTO_LOGIN_SESSION_DEFAULTS)
-  ]);
-
-  const localUsername = typeof localSettings.username === 'string' ? localSettings.username : '';
-  const localPassword = typeof localSettings.password === 'string' ? localSettings.password : '';
-  const sessionUsername = typeof sessionSecrets.username === 'string' ? sessionSecrets.username : '';
-  const sessionPassword = typeof sessionSecrets.password === 'string' ? sessionSecrets.password : '';
-  const username = sessionUsername || localUsername;
-  const password = sessionPassword || localPassword;
-
-  if (hasSessionStorageAccess() && ((!sessionUsername && localUsername) || (!sessionPassword && localPassword))) {
-    await Promise.all([
-      storageSessionSet({
-        username,
-        password
-      }),
-      chrome.storage.local.set({
-        username: '',
-        password: ''
-      })
-    ]);
+  const backgroundSettings = await getAutoLoginSettingsFromBackground();
+  if (backgroundSettings) {
+    return backgroundSettings;
   }
 
   return {
-    autoLoginEnabled: localSettings.autoLoginEnabled === true,
-    username,
-    password
+    autoLoginEnabled: false,
+    username: '',
+    password: ''
   };
+}
+
+function findLoginElements() {
+  const usernameField = document.querySelector('input[name="username"], input[id="username"]');
+  const passwordField = document.querySelector('input[name="password"], input[name="val"], input[id="password"]');
+  const loginButton = document.querySelector('#LoginBtn, button[type="submit"], input[type="submit"], button.btn-login')
+    || document.querySelector('input[value="Login"]');
+  const loginForm = usernameField?.form
+    || passwordField?.form
+    || loginButton?.form
+    || document.forms?.login
+    || document.querySelector('form[name="login"], form');
+
+  return {
+    usernameField,
+    passwordField,
+    loginButton,
+    loginForm
+  };
+}
+
+async function waitForLoginElements(timeoutMs = 5000, intervalMs = 200) {
+  const deadline = Date.now() + timeoutMs;
+  let elements = findLoginElements();
+
+  while ((!elements.usernameField || !elements.passwordField) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    elements = findLoginElements();
+  }
+
+  return elements;
+}
+
+function setInputValue(element, value) {
+  if (!element) return;
+
+  const prototype = element instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : HTMLInputElement.prototype;
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+
+  if (descriptor?.set) {
+    descriptor.set.call(element, value);
+  } else {
+    element.value = value;
+  }
+
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function submitLoginForm(loginButton, loginForm) {
+  if (loginButton) {
+    loginButton.click();
+    return;
+  }
+
+  if (loginForm?.requestSubmit) {
+    loginForm.requestSubmit();
+    return;
+  }
+
+  if (typeof loginForm?.submit === 'function') {
+    loginForm.submit();
+  }
 }
 
 // Function to retrieve credentials and login
@@ -171,33 +210,19 @@ async function attemptAutoLogin() {
     return;
   }
 
-  const usernameField = document.querySelector('input[name="username"], input[id="username"]');
-  const passwordField = document.querySelector('input[name="password"], input[name="val"], input[id="password"]');
-  const loginButton = document.querySelector('#LoginBtn, button[type="submit"], input[type="submit"]');
+  const elements = await waitForLoginElements();
+  const targetUser = elements.usernameField;
+  const targetPass = elements.passwordField;
+  const targetBtn = elements.loginButton;
+  const targetForm = elements.loginForm;
 
-  // Specific selectors for Kanagawa U WebClass if generic ones fail
-  // Based on standard WebClass login forms
-  const specificUser = document.getElementById('username');
-  const specificPass = document.getElementById('password');
-  // Sometimes login button has specific ID or class
-  const specificBtn = document.querySelector('#LoginBtn, button.btn-login')
-    || document.querySelector('input[value="Login"]');
-
-  const targetUser = usernameField || specificUser;
-  const targetPass = passwordField || specificPass;
-  const targetBtn = loginButton || specificBtn;
-
-  if (targetUser && targetPass && targetBtn) {
+  if (targetUser && targetPass && (targetBtn || targetForm)) {
     uxDebugLog("Filling credentials...");
-    targetUser.value = settings.username;
-    targetPass.value = settings.password;
-
-    // Dispatch events to ensure frameworks detect changes
-    targetUser.dispatchEvent(new Event('input', { bubbles: true }));
-    targetPass.dispatchEvent(new Event('input', { bubbles: true }));
+    setInputValue(targetUser, settings.username);
+    setInputValue(targetPass, settings.password);
 
     uxDebugLog("Submitting form...");
-    targetBtn.click();
+    submitLoginForm(targetBtn, targetForm);
   } else {
     uxDebugLog("Login fields not found. This might not be a login page.");
   }

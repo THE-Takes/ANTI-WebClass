@@ -51,10 +51,13 @@ const MS_TODO_DEFAULT_TENANT = 'common';
 const MS_TODO_DEFAULT_CLIENT_ID = '';
 const GOOGLE_TODO_DEFAULT_CLIENT_ID = '';
 const TODO_DEFAULT_LIST_NAME = 'SmartToDo Sync';
+const TODO_API_VISIBLE_PROVIDER = 'ticktick';
 const TODO_MOJIBAKE_PATTERN = /[繝鬯郢驛隴隱蜈蜷霑ｽ]/;
 const EXTENSION_VISUAL_ENABLED_KEY = 'extensionVisualEnabled';
+const EXTENSION_UPDATE_CHECK_ENABLED_KEY = 'extensionUpdateCheckEnabled';
 const AUTO_SAVE_DEBOUNCE_MS = 220;
 const WEBCLASS_TAB_URL_PATTERNS = ['https://kulms.kanagawa-u.ac.jp/webclass/*'];
+const WEBCLASS_HOME_URL = 'https://kulms.kanagawa-u.ac.jp/webclass/index.php';
 const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
     'debugModeEnabled',
     'useCustomCourseNameEnabled',
@@ -99,6 +102,141 @@ const showInvalidShortcutStatus = () => {
     showStatusMessage('ショートカットは Alt+Shift+M 形式で入力してください。', '#c62828', 2500);
 };
 
+const formatUpdateTimestamp = (rawValue) => {
+    if (!rawValue) return '';
+    const timestamp = Date.parse(rawValue);
+    if (!Number.isFinite(timestamp)) return '';
+    return new Date(timestamp).toLocaleString('ja-JP');
+};
+
+const renderExtensionUpdateStatus = (status) => {
+    const statusEl = document.getElementById('extensionUpdateStatus');
+    const buttonEl = document.getElementById('checkExtensionUpdateNow');
+    if (!statusEl) return;
+
+    if (buttonEl) {
+        buttonEl.disabled = status?.enabled === false;
+    }
+
+    if (!status || status.enabled === false) {
+        statusEl.style.color = '#666';
+        statusEl.textContent = '自動確認はOFFです。';
+        return;
+    }
+
+    const currentVersion = status.currentVersion ? `現在 v${status.currentVersion}` : '';
+    const latestVersion = status.latestVersion ? `最新 v${status.latestVersion}` : '';
+    const checkedAt = formatUpdateTimestamp(status.lastCheckedAt);
+    const checkedPart = checkedAt ? ` / 最終確認 ${checkedAt}` : '';
+
+    if (status.updateAvailable && status.latestVersion) {
+        statusEl.style.color = '#0a84ff';
+        statusEl.textContent = `新しい版があります: v${status.latestVersion}${currentVersion ? `（${currentVersion}）` : ''}${checkedPart}`;
+        return;
+    }
+
+    if (status.error) {
+        statusEl.style.color = '#c62828';
+        statusEl.textContent = `更新確認に失敗しました: ${status.error}${checkedPart}`;
+        return;
+    }
+
+    statusEl.style.color = '#666';
+    if (latestVersion || currentVersion) {
+        statusEl.textContent = `${[currentVersion, latestVersion].filter(Boolean).join(' / ')}${checkedPart}`;
+        return;
+    }
+    statusEl.textContent = checkedAt ? `最終確認 ${checkedAt}` : '未確認';
+};
+
+const refreshExtensionUpdateStatus = () => {
+    chrome.runtime.sendMessage({ type: 'GET_EXTENSION_UPDATE_STATUS' }, (response) => {
+        if (chrome.runtime?.lastError) {
+            renderExtensionUpdateStatus({
+                enabled: true,
+                error: chrome.runtime.lastError.message
+            });
+            return;
+        }
+        if (!response?.success) {
+            renderExtensionUpdateStatus({
+                enabled: true,
+                error: response?.error || '更新状態を取得できませんでした。'
+            });
+            return;
+        }
+        renderExtensionUpdateStatus(response.status);
+    });
+};
+
+const runExtensionUpdateCheck = () => {
+    const buttonEl = document.getElementById('checkExtensionUpdateNow');
+    const statusEl = document.getElementById('extensionUpdateStatus');
+    if (buttonEl) {
+        buttonEl.disabled = true;
+    }
+    if (statusEl) {
+        statusEl.style.color = '#666';
+        statusEl.textContent = 'GitHub Releases を確認中...';
+    }
+
+    chrome.runtime.sendMessage({ type: 'CHECK_EXTENSION_UPDATE_NOW' }, (response) => {
+        const enabled = document.getElementById('extensionUpdateCheckEnabled')?.checked !== false;
+        if (buttonEl) {
+            buttonEl.disabled = !enabled;
+        }
+
+        if (chrome.runtime?.lastError) {
+            renderExtensionUpdateStatus({
+                enabled,
+                error: chrome.runtime.lastError.message
+            });
+            return;
+        }
+        if (!response?.success) {
+            renderExtensionUpdateStatus({
+                enabled,
+                error: response?.error || '更新確認に失敗しました。'
+            });
+            return;
+        }
+        renderExtensionUpdateStatus(response.status);
+    });
+};
+
+const showExtensionUpdateNotificationPreview = () => {
+    const statusEl = document.getElementById('extensionUpdateNotificationPreviewStatus');
+    const buttonEl = document.getElementById('showExtensionUpdateNotificationPreview');
+    if (buttonEl) {
+        buttonEl.disabled = true;
+    }
+    if (statusEl) {
+        statusEl.style.color = '#666';
+        statusEl.textContent = '更新通知を表示中...';
+    }
+
+    chrome.runtime.sendMessage({ type: 'SHOW_EXTENSION_UPDATE_NOTIFICATION_PREVIEW' }, (response) => {
+        if (buttonEl) {
+            buttonEl.disabled = false;
+        }
+        if (!statusEl) return;
+
+        if (chrome.runtime?.lastError) {
+            statusEl.style.color = '#c62828';
+            statusEl.textContent = `通知表示に失敗しました: ${chrome.runtime.lastError.message}`;
+            return;
+        }
+        if (!response?.success) {
+            statusEl.style.color = '#c62828';
+            statusEl.textContent = response?.error || '通知表示に失敗しました。';
+            return;
+        }
+
+        statusEl.style.color = '#2e7d32';
+        statusEl.textContent = '更新通知を表示しました。';
+    });
+};
+
 const shouldReloadWebClassTabsAfterControlChange = (target) => {
     if (!(target instanceof HTMLElement)) return false;
     return WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS.has(target.id);
@@ -115,14 +253,21 @@ const reloadOpenWebClassTabs = () => {
             });
         });
     });
+    /*
+        statusEl.textContent = `謗･邯壹お繝ｩ繝ｼ: ${error instanceof Error ? error.message : String(error)}`;
+    }
+    */
 };
 
 const SENSITIVE_SESSION_DEFAULTS = {
-    username: '',
-    password: '',
     openaiApiKey: '',
     groqApiKey: '',
+    // Legacy-only: Todoist token is now persisted in encrypted local storage.
     [TODOIST_TODO_API_TOKEN_KEY]: '',
+};
+const LEGACY_AUTO_LOGIN_SESSION_DEFAULTS = {
+    username: '',
+    password: '',
 };
 
 const hasSessionStorage = () => !!(chrome?.storage?.session?.get && chrome?.storage?.session?.set);
@@ -143,6 +288,14 @@ const storageSessionSetAsync = (values = {}) => new Promise((resolve) => {
     chrome.storage.session.set(values, resolve);
 });
 
+const storageSessionRemoveAsync = (keys = []) => new Promise((resolve) => {
+    if (!hasSessionStorage() || !Array.isArray(keys) || keys.length === 0) {
+        resolve();
+        return;
+    }
+    chrome.storage.session.remove(keys, resolve);
+});
+
 const storageLocalSetAsync = (values = {}) => new Promise((resolve, reject) => {
     try {
         chrome.storage.local.set(values, () => {
@@ -159,6 +312,9 @@ const storageLocalSetAsync = (values = {}) => new Promise((resolve, reject) => {
 });
 
 const secureStorageApi = globalThis.WebClassSecureStorage || null;
+let autoLoginPasswordStored = false;
+let autoLoginPasswordInputDirty = false;
+let autoLoginPasswordPendingDeletion = false;
 
 const isEncryptedSecureStorageValue = (value) => !!secureStorageApi?.isEncryptedPayload?.(value);
 
@@ -196,6 +352,59 @@ const readSecureLocalString = async (localItems, key, migratedValues) => {
         }
     }
     return plainValue;
+};
+
+const readSecureLocalStringPresence = async (localItems, key, migratedValues) => {
+    const rawValue = localItems[key];
+    if (isEncryptedSecureStorageValue(rawValue)) {
+        return true;
+    }
+
+    const plainValue = typeof rawValue === 'string' ? rawValue.trim() : '';
+    if (plainValue && migratedValues) {
+        try {
+            migratedValues[key] = await encryptSecureLocalString(plainValue);
+        } catch (error) {
+            console.warn('[WebClass UX] Failed to migrate secure local value', key, error);
+        }
+    }
+    return !!plainValue;
+};
+
+const updateAutoLoginPasswordUi = () => {
+    const passwordInput = document.getElementById('password');
+    const statusEl = document.getElementById('autoLoginPasswordStatus');
+    const clearButton = document.getElementById('clearStoredPasswordButton');
+    if (!passwordInput || !statusEl || !clearButton) return;
+
+    const hasPendingReplacement = autoLoginPasswordInputDirty && !!passwordInput.value.trim();
+
+    if (autoLoginPasswordPendingDeletion) {
+        passwordInput.placeholder = '削除予定です';
+        statusEl.textContent = '保存済みパスワードは削除予定です。';
+    } else if (hasPendingReplacement) {
+        passwordInput.placeholder = '新しいパスワードを入力中';
+        statusEl.textContent = '入力中のパスワードを次回保存時に反映します。';
+    } else if (autoLoginPasswordStored) {
+        passwordInput.placeholder = '変更する場合のみ入力';
+        statusEl.textContent = 'パスワードは保存済みです。変更する場合のみ入力してください。';
+    } else {
+        passwordInput.placeholder = 'パスワードを入力';
+        statusEl.textContent = '保存済みパスワードはありません。';
+    }
+
+    clearButton.disabled = !autoLoginPasswordStored || autoLoginPasswordPendingDeletion;
+};
+
+const resetAutoLoginPasswordState = ({ stored }) => {
+    const passwordInput = document.getElementById('password');
+    autoLoginPasswordStored = !!stored;
+    autoLoginPasswordInputDirty = false;
+    autoLoginPasswordPendingDeletion = false;
+    if (passwordInput) {
+        passwordInput.value = '';
+    }
+    updateAutoLoginPasswordUi();
 };
 
 const normalizeMsTodoReminderDaysBefore = (value, fallback = MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE) => {
@@ -337,11 +546,15 @@ const saveOptions = async ({
 
     const autoLoginEnabled = document.getElementById('autoLoginEnabled').checked;
     const debugModeEnabled = document.getElementById('debugModeEnabled').checked;
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
+    const username = (document.getElementById('username').value || '').trim();
+    const passwordInput = document.getElementById('password');
+    const password = (passwordInput?.value || '').trim();
+    const shouldReplaceAutoLoginPassword = !!password;
+    const shouldDeleteAutoLoginPassword = autoLoginPasswordPendingDeletion;
     const defaultViewVersion = document.querySelector('input[name="defaultViewVersion"]:checked')?.value || '2';
     const currentView = defaultViewVersion === 'original' ? 'plain' : 'dashboard';
     const extensionVisualEnabled = defaultViewVersion !== 'original';
+    const extensionUpdateCheckEnabled = !!document.getElementById('extensionUpdateCheckEnabled')?.checked;
     const rawViewToggleShortcut = document.getElementById('viewToggleShortcut').value.trim();
     const normalizedViewToggleShortcut = rawViewToggleShortcut
         ? normalizeShortcut(rawViewToggleShortcut)
@@ -395,11 +608,12 @@ const saveOptions = async ({
         shikenSelectVisibleCount = String(parsedSelectCount);
     }
     const todoApiEnabled = !!document.getElementById('todoApiEnabled')?.checked;
-    const selectedTodoApiProvider = document.getElementById('todoApiProvider')?.value || 'none';
+    const selectedTodoApiProvider = normalizeTodoApiProviderForSurface(
+        document.getElementById('todoApiProvider')?.value || 'none'
+    );
     const todoApiProvider = todoApiEnabled ? selectedTodoApiProvider : 'none';
     const msTodoClientId = (document.getElementById('msTodoClientId')?.value || '').trim();
-    let msTodoTenantId = (document.getElementById('msTodoTenantId')?.value || '').trim();
-    if (!msTodoTenantId) msTodoTenantId = MS_TODO_DEFAULT_TENANT;
+    const msTodoTenantId = getMicrosoftTenantValue();
     let msTodoListName = sanitizeTodoName(document.getElementById('msTodoListName')?.value, TODO_DEFAULT_LIST_NAME);
     const googleTodoClientId = (document.getElementById('googleTodoClientId')?.value || '').trim();
     const googleTodoClientSecret = (document.getElementById('googleTodoClientSecret')?.value || '').trim();
@@ -418,8 +632,17 @@ const saveOptions = async ({
     const encryptedGoogleTodoClientSecret = googleTodoClientSecret
         ? await encryptSecureLocalString(googleTodoClientSecret)
         : '';
+    const encryptedTodoistTodoApiToken = todoistTodoApiToken
+        ? await encryptSecureLocalString(todoistTodoApiToken)
+        : '';
     const encryptedTickTickTodoClientSecret = ticktickTodoClientSecret
         ? await encryptSecureLocalString(ticktickTodoClientSecret)
+        : '';
+    const encryptedAutoLoginUsername = username
+        ? await encryptSecureLocalString(username)
+        : '';
+    const encryptedAutoLoginPassword = shouldReplaceAutoLoginPassword
+        ? await encryptSecureLocalString(password)
         : '';
     const todoApiTaskTitleFormat = document.getElementById('todoApiTaskTitleFormat')?.value || 'task_only';
     const msTodoDefaultReminderDaysBefore = normalizeMsTodoReminderDaysBefore(
@@ -446,64 +669,76 @@ const saveOptions = async ({
     const tocShowSectionTitles = document.getElementById('tocShowSectionTitles').checked;
     const tocHoverReveal = document.getElementById('tocHoverReveal').checked;
 
-        await storageLocalSetAsync(
-            {
-                autoLoginEnabled,
-                debugModeEnabled,
-                username: '',
-                password: '',
-                defaultViewVersion,
-                currentView,
-                [EXTENSION_VISUAL_ENABLED_KEY]: extensionVisualEnabled,
-                viewToggleShortcut: shortcutToPersist,
-                viewToggleShortcutMigratedToCtrlShiftM: false,
-                useCustomCourseNameEnabled,
-                useLlmCourseNameEnabled,
-                useRuleCourseNameEnabled,
-                autoRunCourseNameConversionOnDashboardLoad,
-                courseNameProvider,
-                showLlmCourseStatusEnabled,
-                openaiApiKey: '',
-                openaiCourseNameModel,
-                groqApiKey: '',
-                groqCourseNameModel,
-                // backward-compat for older keys
-                openaiCourseNameEnabled: useLlmCourseNameEnabled,
-                useShortCourseNameEnabled: null,
-                shikenSelectVisibleCount,
-                [TODO_API_ENABLED_KEY]: todoApiEnabled,
-                [TODO_API_PROVIDER_KEY]: todoApiProvider,
-                [MS_TODO_CLIENT_ID_KEY]: msTodoClientId,
-                [MS_TODO_TENANT_ID_KEY]: msTodoTenantId,
-                [MS_TODO_LIST_NAME_KEY]: msTodoListName,
-                [GOOGLE_TODO_CLIENT_ID_KEY]: googleTodoClientId,
-                [GOOGLE_TODO_CLIENT_SECRET_KEY]: encryptedGoogleTodoClientSecret,
-                [GOOGLE_TODO_LIST_NAME_KEY]: googleTodoListName,
-                [TODOIST_TODO_API_TOKEN_KEY]: '',
-                [TODOIST_TODO_PROJECT_NAME_KEY]: todoistTodoProjectName,
-                [TICKTICK_TODO_PROJECT_NAME_KEY]: ticktickTodoProjectName,
-                [TICKTICK_TODO_CLIENT_ID_KEY]: ticktickTodoClientId,
-                [TICKTICK_TODO_CLIENT_SECRET_KEY]: encryptedTickTickTodoClientSecret,
-                [TODO_API_TASK_TITLE_FORMAT_KEY]: todoApiTaskTitleFormat,
-                [MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE_KEY]: msTodoDefaultReminderDaysBefore,
-                [MS_TODO_DEFAULT_REMINDER_TIME_MODE_KEY]: msTodoDefaultReminderTimeMode,
-                [TODO_API_ULTRA_SHORT_MAP_KEY]: todoApiUltraShortCourseMap,
-                tocInitialState,
-                tocInitialCloseDelay,
-                tocAutoHide,
-                tocAutoHideDelay,
-                tocShowSectionTitles,
-                tocHoverReveal
-            }
-        );
-        await storageSessionSetAsync({
-            username,
-            password,
-            openaiApiKey,
-            groqApiKey,
-            [TODOIST_TODO_API_TOKEN_KEY]: todoistTodoApiToken,
-        });
+        const localWritePayload = {
+            autoLoginEnabled,
+            debugModeEnabled,
+            username: encryptedAutoLoginUsername,
+            defaultViewVersion,
+            currentView,
+            [EXTENSION_VISUAL_ENABLED_KEY]: extensionVisualEnabled,
+            [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: extensionUpdateCheckEnabled,
+            viewToggleShortcut: shortcutToPersist,
+            viewToggleShortcutMigratedToCtrlShiftM: false,
+            useCustomCourseNameEnabled,
+            useLlmCourseNameEnabled,
+            useRuleCourseNameEnabled,
+            autoRunCourseNameConversionOnDashboardLoad,
+            courseNameProvider,
+            showLlmCourseStatusEnabled,
+            openaiApiKey: '',
+            openaiCourseNameModel,
+            groqApiKey: '',
+            groqCourseNameModel,
+            // backward-compat for older keys
+            openaiCourseNameEnabled: useLlmCourseNameEnabled,
+            useShortCourseNameEnabled: null,
+            shikenSelectVisibleCount,
+            [TODO_API_ENABLED_KEY]: todoApiEnabled,
+            [TODO_API_PROVIDER_KEY]: todoApiProvider,
+            [MS_TODO_CLIENT_ID_KEY]: msTodoClientId,
+            [MS_TODO_TENANT_ID_KEY]: msTodoTenantId,
+            [MS_TODO_LIST_NAME_KEY]: msTodoListName,
+            [GOOGLE_TODO_CLIENT_ID_KEY]: googleTodoClientId,
+            [GOOGLE_TODO_CLIENT_SECRET_KEY]: encryptedGoogleTodoClientSecret,
+            [GOOGLE_TODO_LIST_NAME_KEY]: googleTodoListName,
+            [TODOIST_TODO_API_TOKEN_KEY]: encryptedTodoistTodoApiToken,
+            [TODOIST_TODO_PROJECT_NAME_KEY]: todoistTodoProjectName,
+            [TICKTICK_TODO_PROJECT_NAME_KEY]: ticktickTodoProjectName,
+            [TICKTICK_TODO_CLIENT_ID_KEY]: ticktickTodoClientId,
+            [TICKTICK_TODO_CLIENT_SECRET_KEY]: encryptedTickTickTodoClientSecret,
+            [TODO_API_TASK_TITLE_FORMAT_KEY]: todoApiTaskTitleFormat,
+            [MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE_KEY]: msTodoDefaultReminderDaysBefore,
+            [MS_TODO_DEFAULT_REMINDER_TIME_MODE_KEY]: msTodoDefaultReminderTimeMode,
+            [TODO_API_ULTRA_SHORT_MAP_KEY]: todoApiUltraShortCourseMap,
+            tocInitialState,
+            tocInitialCloseDelay,
+            tocAutoHide,
+            tocAutoHideDelay,
+            tocShowSectionTitles,
+            tocHoverReveal
+        };
+        if (shouldDeleteAutoLoginPassword) {
+            localWritePayload.password = '';
+        } else if (shouldReplaceAutoLoginPassword) {
+            localWritePayload.password = encryptedAutoLoginPassword;
+        }
+
+        await storageLocalSetAsync(localWritePayload);
+        await Promise.all([
+            storageSessionSetAsync({
+                openaiApiKey,
+                groqApiKey
+            }),
+            storageSessionRemoveAsync(Object.keys(LEGACY_AUTO_LOGIN_SESSION_DEFAULTS))
+        ]);
         lastSavedViewToggleShortcut = shortcutToPersist;
+        if (shouldDeleteAutoLoginPassword) {
+            resetAutoLoginPasswordState({ stored: false });
+        } else if (shouldReplaceAutoLoginPassword) {
+            resetAutoLoginPasswordState({ stored: true });
+        } else {
+            updateAutoLoginPasswordUi();
+        }
         if (showSuccess) {
             showStatusMessage('設定を保存しました。', '#2e7d32', 2000);
         }
@@ -530,6 +765,7 @@ const restoreOptions = () => {
             defaultViewVersion: '2',
             currentView: 'dashboard',
             [EXTENSION_VISUAL_ENABLED_KEY]: true,
+            [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: true,
             viewToggleShortcut: DEFAULT_VIEW_TOGGLE_SHORTCUT,
             viewToggleShortcutMigratedToCtrlShiftM: false,
             useCustomCourseNameEnabled: null,
@@ -571,61 +807,113 @@ const restoreOptions = () => {
         },
         async (localItems) => {
             try {
-                const sessionItems = await storageSessionGetAsync(SENSITIVE_SESSION_DEFAULTS);
-            const migratedSessionValues = {};
-            const migratedLocalClearValues = {};
-            const migratedSecureLocalValues = {};
+                const sessionItems = await storageSessionGetAsync({
+                    ...SENSITIVE_SESSION_DEFAULTS,
+                    ...LEGACY_AUTO_LOGIN_SESSION_DEFAULTS
+                });
+                const migratedSessionValues = {};
+                const migratedLocalClearValues = {};
+                const migratedSecureLocalValues = {};
+                const legacySessionKeysToRemove = [];
 
-            const migrateIfNeeded = (key) => {
-                const sessionValue = typeof sessionItems[key] === 'string' ? sessionItems[key].trim() : '';
-                const localValue = typeof localItems[key] === 'string' ? localItems[key].trim() : '';
-                if (!sessionValue && localValue) {
-                    migratedSessionValues[key] = localValue;
-                    migratedLocalClearValues[key] = '';
+                const migrateIfNeeded = (key) => {
+                    const sessionValue = typeof sessionItems[key] === 'string' ? sessionItems[key].trim() : '';
+                    const localValue = typeof localItems[key] === 'string' ? localItems[key].trim() : '';
+                    if (!sessionValue && localValue) {
+                        migratedSessionValues[key] = localValue;
+                        migratedLocalClearValues[key] = '';
+                    }
+                };
+
+                migrateIfNeeded('openaiApiKey');
+                migrateIfNeeded('groqApiKey');
+
+                let autoLoginUsername = '';
+                const legacySessionUsername = typeof sessionItems.username === 'string'
+                    ? sessionItems.username.trim()
+                    : '';
+                if (legacySessionUsername) {
+                    migratedSecureLocalValues.username = await encryptSecureLocalString(legacySessionUsername);
+                    autoLoginUsername = legacySessionUsername;
+                    legacySessionKeysToRemove.push('username');
+                } else {
+                    autoLoginUsername = await readSecureLocalString(localItems, 'username', migratedSecureLocalValues);
                 }
-            };
 
-            migrateIfNeeded('username');
-            migrateIfNeeded('password');
-            migrateIfNeeded('openaiApiKey');
-            migrateIfNeeded('groqApiKey');
-            migrateIfNeeded(TODOIST_TODO_API_TOKEN_KEY);
+                let autoLoginPasswordStoredNext = false;
+                const legacySessionPassword = typeof sessionItems.password === 'string'
+                    ? sessionItems.password.trim()
+                    : '';
+                if (legacySessionPassword) {
+                    migratedSecureLocalValues.password = await encryptSecureLocalString(legacySessionPassword);
+                    autoLoginPasswordStoredNext = true;
+                    legacySessionKeysToRemove.push('password');
+                } else {
+                    autoLoginPasswordStoredNext = await readSecureLocalStringPresence(
+                        localItems,
+                        'password',
+                        migratedSecureLocalValues
+                    );
+                }
 
-            if (Object.keys(migratedSessionValues).length > 0) {
-                await storageSessionSetAsync(migratedSessionValues);
-            }
-            const googleTodoClientSecret = await readSecureLocalString(
-                localItems,
-                GOOGLE_TODO_CLIENT_SECRET_KEY,
-                migratedSecureLocalValues
-            );
-            const ticktickTodoClientSecret = await readSecureLocalString(
-                localItems,
-                TICKTICK_TODO_CLIENT_SECRET_KEY,
-                migratedSecureLocalValues
-            );
-            if (Object.keys(migratedSecureLocalValues).length > 0) {
-                await storageLocalSetAsync(migratedSecureLocalValues);
-            }
-            if (Object.keys(migratedLocalClearValues).length > 0) {
-                await storageLocalSetAsync(migratedLocalClearValues);
-            }
+                let todoistTodoApiToken = '';
+                const legacyTodoistSessionToken = typeof sessionItems[TODOIST_TODO_API_TOKEN_KEY] === 'string'
+                    ? sessionItems[TODOIST_TODO_API_TOKEN_KEY].trim()
+                    : '';
+                if (legacyTodoistSessionToken) {
+                    migratedSecureLocalValues[TODOIST_TODO_API_TOKEN_KEY] =
+                        await encryptSecureLocalString(legacyTodoistSessionToken);
+                    todoistTodoApiToken = legacyTodoistSessionToken;
+                    legacySessionKeysToRemove.push(TODOIST_TODO_API_TOKEN_KEY);
+                } else {
+                    todoistTodoApiToken = await readSecureLocalString(
+                        localItems,
+                        TODOIST_TODO_API_TOKEN_KEY,
+                        migratedSecureLocalValues
+                    );
+                }
 
-            const items = {
-                ...localItems,
-                ...sessionItems,
-                ...migratedSessionValues,
-                [GOOGLE_TODO_CLIENT_SECRET_KEY]: googleTodoClientSecret,
-                [TICKTICK_TODO_CLIENT_SECRET_KEY]: ticktickTodoClientSecret
-            };
+                if (Object.keys(migratedSessionValues).length > 0) {
+                    await storageSessionSetAsync(migratedSessionValues);
+                }
+                const googleTodoClientSecret = await readSecureLocalString(
+                    localItems,
+                    GOOGLE_TODO_CLIENT_SECRET_KEY,
+                    migratedSecureLocalValues
+                );
+                const ticktickTodoClientSecret = await readSecureLocalString(
+                    localItems,
+                    TICKTICK_TODO_CLIENT_SECRET_KEY,
+                    migratedSecureLocalValues
+                );
+                if (Object.keys(migratedSecureLocalValues).length > 0) {
+                    await storageLocalSetAsync(migratedSecureLocalValues);
+                }
+                if (Object.keys(migratedLocalClearValues).length > 0) {
+                    await storageLocalSetAsync(migratedLocalClearValues);
+                }
+                if (legacySessionKeysToRemove.length > 0) {
+                    await storageSessionRemoveAsync(legacySessionKeysToRemove);
+                }
 
-            const autoLoginEnabled = items.autoLoginEnabled === true;
-            document.getElementById('autoLoginEnabled').checked = autoLoginEnabled;
-            const debugModeEnabled = !!items.debugModeEnabled;
-            document.getElementById('debugModeEnabled').checked = debugModeEnabled;
-            updateDebugOnlySettingsVisibility(debugModeEnabled);
-            document.getElementById('username').value = items.username;
-            document.getElementById('password').value = items.password;
+                const items = {
+                    ...localItems,
+                    ...sessionItems,
+                    ...migratedSessionValues,
+                    username: autoLoginUsername,
+                    password: '',
+                    [TODOIST_TODO_API_TOKEN_KEY]: todoistTodoApiToken,
+                    [GOOGLE_TODO_CLIENT_SECRET_KEY]: googleTodoClientSecret,
+                    [TICKTICK_TODO_CLIENT_SECRET_KEY]: ticktickTodoClientSecret
+                };
+
+                const autoLoginEnabled = items.autoLoginEnabled === true;
+                document.getElementById('autoLoginEnabled').checked = autoLoginEnabled;
+                const debugModeEnabled = !!items.debugModeEnabled;
+                document.getElementById('debugModeEnabled').checked = debugModeEnabled;
+                updateDebugOnlySettingsVisibility(debugModeEnabled);
+                document.getElementById('username').value = items.username;
+                resetAutoLoginPasswordState({ stored: autoLoginPasswordStoredNext });
             const legacyShort = items.useShortCourseNameEnabled;
             const hasNewToggles =
                 items.useCustomCourseNameEnabled !== null && items.useCustomCourseNameEnabled !== undefined ||
@@ -683,20 +971,23 @@ const restoreOptions = () => {
             document.getElementById('shikenSelectVisibleCount').value = items.shikenSelectVisibleCount;
             const storedTodoApiProvider = items[TODO_API_PROVIDER_KEY] || 'none';
             const storedTodoApiEnabledRaw = items[TODO_API_ENABLED_KEY];
-            const todoApiEnabled = storedTodoApiEnabledRaw === null || storedTodoApiEnabledRaw === undefined
-                ? storedTodoApiProvider !== 'none'
-                : !!storedTodoApiEnabledRaw;
-            const effectiveTodoApiProvider = todoApiEnabled ? storedTodoApiProvider : 'none';
+            const supportedTodoApiProvider = normalizeTodoApiProviderForSurface(storedTodoApiProvider);
+            const todoApiEnabled = (storedTodoApiEnabledRaw === null || storedTodoApiEnabledRaw === undefined
+                ? supportedTodoApiProvider !== 'none'
+                : !!storedTodoApiEnabledRaw)
+                && supportedTodoApiProvider !== 'none';
+            const effectiveTodoApiProvider = todoApiEnabled ? supportedTodoApiProvider : 'none';
             document.getElementById('todoApiEnabled').checked = todoApiEnabled;
             document.getElementById('todoApiProvider').value = effectiveTodoApiProvider;
             const msClientId = (items[MS_TODO_CLIENT_ID_KEY] || '').trim();
             const msTenantId = (items[MS_TODO_TENANT_ID_KEY] || MS_TODO_DEFAULT_TENANT).trim() || MS_TODO_DEFAULT_TENANT;
             const msClientInput = document.getElementById('msTodoClientId');
             if (msClientInput) msClientInput.value = msClientId;
-            const msTenantInput = document.getElementById('msTodoTenantId');
-            if (msTenantInput) msTenantInput.value = msTenantId;
+            setMicrosoftTenantValue(msTenantId);
+            updateMicrosoftTenantUi();
             const msListName = sanitizeTodoName(items[MS_TODO_LIST_NAME_KEY], TODO_DEFAULT_LIST_NAME);
-            document.getElementById('msTodoListName').value = msListName;
+            const msListInput = document.getElementById('msTodoListName');
+            if (msListInput) msListInput.value = msListName;
             const googleClientId = (items[GOOGLE_TODO_CLIENT_ID_KEY] || '').trim();
             const googleClientInput = document.getElementById('googleTodoClientId');
             if (googleClientInput) googleClientInput.value = googleClientId;
@@ -711,26 +1002,35 @@ const restoreOptions = () => {
             const googleListName = sanitizeTodoName(items[GOOGLE_TODO_LIST_NAME_KEY], TODO_DEFAULT_LIST_NAME);
             const googleListInput = document.getElementById('googleTodoListName');
             if (googleListInput) googleListInput.value = googleListName;
-            document.getElementById('todoistTodoApiToken').value = items[TODOIST_TODO_API_TOKEN_KEY] || '';
+            const todoistTokenInput = document.getElementById('todoistTodoApiToken');
+            if (todoistTokenInput) todoistTokenInput.value = todoistTodoApiToken;
             const todoistProjectName = sanitizeTodoName(items[TODOIST_TODO_PROJECT_NAME_KEY], TODO_DEFAULT_LIST_NAME);
-            document.getElementById('todoistTodoProjectName').value = todoistProjectName;
+            const todoistProjectInput = document.getElementById('todoistTodoProjectName');
+            if (todoistProjectInput) todoistProjectInput.value = todoistProjectName;
             const ticktickClientIdInput = document.getElementById('ticktickTodoClientId');
             if (ticktickClientIdInput) ticktickClientIdInput.value = items[TICKTICK_TODO_CLIENT_ID_KEY] || '';
             const ticktickClientSecretInput = document.getElementById('ticktickTodoClientSecret');
             if (ticktickClientSecretInput) ticktickClientSecretInput.value = items[TICKTICK_TODO_CLIENT_SECRET_KEY] || '';
             const ticktickProjectName = sanitizeTodoName(items[TICKTICK_TODO_PROJECT_NAME_KEY], TODO_DEFAULT_LIST_NAME);
-            document.getElementById('ticktickTodoProjectName').value = ticktickProjectName;
+            const ticktickProjectInput = document.getElementById('ticktickTodoProjectName');
+            if (ticktickProjectInput) ticktickProjectInput.value = ticktickProjectName;
             document.getElementById('todoApiTaskTitleFormat').value = items[TODO_API_TASK_TITLE_FORMAT_KEY] || 'task_only';
-            document.getElementById('msTodoDefaultReminderDaysBefore').value = String(
-                normalizeMsTodoReminderDaysBefore(
-                    items[MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE_KEY],
-                    MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE
-                )
-            );
-            document.getElementById('msTodoDefaultReminderTimeMode').value = normalizeMsTodoReminderTimeMode(
-                items[MS_TODO_DEFAULT_REMINDER_TIME_MODE_KEY],
-                MS_TODO_REMINDER_TIME_MODE_AT_9AM
-            );
+            const msReminderDaysBeforeInput = document.getElementById('msTodoDefaultReminderDaysBefore');
+            if (msReminderDaysBeforeInput) {
+                msReminderDaysBeforeInput.value = String(
+                    normalizeMsTodoReminderDaysBefore(
+                        items[MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE_KEY],
+                        MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE
+                    )
+                );
+            }
+            const msReminderTimeModeInput = document.getElementById('msTodoDefaultReminderTimeMode');
+            if (msReminderTimeModeInput) {
+                msReminderTimeModeInput.value = normalizeMsTodoReminderTimeMode(
+                    items[MS_TODO_DEFAULT_REMINDER_TIME_MODE_KEY],
+                    MS_TODO_REMINDER_TIME_MODE_AT_9AM
+                );
+            }
             updateTodoApiProviderUI(effectiveTodoApiProvider);
             updateTodoApiSettingsAvailability(todoApiEnabled);
             updateTodoApiTaskTitleFormatUI(items[TODO_API_TASK_TITLE_FORMAT_KEY] || 'task_only');
@@ -831,6 +1131,11 @@ const restoreOptions = () => {
                 });
             }
             document.getElementById('viewToggleShortcut').value = resolvedViewToggleShortcut;
+            const extensionUpdateCheckToggle = document.getElementById('extensionUpdateCheckEnabled');
+            if (extensionUpdateCheckToggle) {
+                extensionUpdateCheckToggle.checked = items[EXTENSION_UPDATE_CHECK_ENABLED_KEY] !== false;
+            }
+            refreshExtensionUpdateStatus();
             lastSavedViewToggleShortcut = resolvedViewToggleShortcut;
             toggleCredentialsArea(autoLoginEnabled);
             const todoProvider = document.getElementById('todoApiEnabled').checked
@@ -910,6 +1215,10 @@ const updateCourseNameProviderUI = (provider) => {
     groqFields.style.display = useGroq ? 'block' : 'none';
 };
 
+const normalizeTodoApiProviderForSurface = (provider) => (
+    provider === TODO_API_VISIBLE_PROVIDER ? TODO_API_VISIBLE_PROVIDER : 'none'
+);
+
 const updateTodoApiProviderUI = (provider) => {
     const msFields = document.getElementById('microsoftTodoFields');
     const googleFields = document.getElementById('googleTodoFields');
@@ -917,15 +1226,52 @@ const updateTodoApiProviderUI = (provider) => {
     const ticktickFields = document.getElementById('ticktickTodoFields');
     const commonFields = document.getElementById('todoApiCommonFields');
     const googleDueWarningText = document.getElementById('googleTodoDueWarningText');
-    if (!msFields || !googleFields || !todoistFields || !ticktickFields || !commonFields) return;
-    msFields.style.display = provider === 'microsoft' ? 'block' : 'none';
-    googleFields.style.display = provider === 'google' ? 'block' : 'none';
-    todoistFields.style.display = provider === 'todoist' ? 'block' : 'none';
-    ticktickFields.style.display = provider === 'ticktick' ? 'block' : 'none';
-    commonFields.style.display = provider === 'none' ? 'none' : 'block';
+    const visibleProvider = normalizeTodoApiProviderForSurface(provider);
+    if (msFields) msFields.style.display = 'none';
+    if (googleFields) googleFields.style.display = 'none';
+    if (todoistFields) todoistFields.style.display = 'none';
+    if (ticktickFields) ticktickFields.style.display = visibleProvider === 'ticktick' ? 'block' : 'none';
+    if (commonFields) commonFields.style.display = visibleProvider === 'none' ? 'none' : 'block';
     if (googleDueWarningText) {
-        googleDueWarningText.style.display = provider === 'google' ? 'block' : 'none';
+        googleDueWarningText.style.display = 'none';
     }
+};
+
+const getMicrosoftTenantElements = () => ({
+    presetEl: document.getElementById('msTodoTenantPreset'),
+    customFieldEl: document.getElementById('msTodoTenantCustomField'),
+    customEl: document.getElementById('msTodoTenantCustom')
+});
+
+const getMicrosoftTenantValue = () => {
+    const { presetEl, customEl } = getMicrosoftTenantElements();
+    if (!presetEl) return MS_TODO_DEFAULT_TENANT;
+    const presetValue = (presetEl.value || '').trim() || MS_TODO_DEFAULT_TENANT;
+    if (presetValue === 'custom') {
+        return (customEl?.value || '').trim() || MS_TODO_DEFAULT_TENANT;
+    }
+    return presetValue;
+};
+
+const setMicrosoftTenantValue = (tenantValue) => {
+    const { presetEl, customEl } = getMicrosoftTenantElements();
+    if (!presetEl) return;
+    const normalizedTenant = (tenantValue || '').trim() || MS_TODO_DEFAULT_TENANT;
+    if (normalizedTenant === 'common' || normalizedTenant === 'organizations' || normalizedTenant === 'consumers') {
+        presetEl.value = normalizedTenant;
+        if (customEl) customEl.value = '';
+        return;
+    }
+    presetEl.value = 'custom';
+    if (customEl) customEl.value = normalizedTenant;
+};
+
+const updateMicrosoftTenantUi = () => {
+    const { presetEl, customFieldEl, customEl } = getMicrosoftTenantElements();
+    if (!presetEl || !customFieldEl || !customEl) return;
+    const useCustomTenant = presetEl.value === 'custom';
+    customFieldEl.style.display = useCustomTenant ? 'block' : 'none';
+    customEl.disabled = !useCustomTenant;
 };
 
 const updateTodoApiSettingsAvailability = (enabled) => {
@@ -1058,12 +1404,11 @@ const connectMicrosoftTodo = async () => {
     const disconnectBtn = document.getElementById('msTodoDisconnectBtn');
     const providerEl = document.getElementById('todoApiProvider');
     const clientIdEl = document.getElementById('msTodoClientId');
-    const tenantEl = document.getElementById('msTodoTenantId');
     const listNameEl = document.getElementById('msTodoListName');
-    if (!statusEl || !providerEl || !listNameEl || !clientIdEl || !tenantEl) return;
+    if (!statusEl || !providerEl || !listNameEl || !clientIdEl) return;
 
     const clientId = (clientIdEl.value || '').trim();
-    const tenant = (tenantEl.value || '').trim() || MS_TODO_DEFAULT_TENANT;
+    const tenant = getMicrosoftTenantValue();
     const listName = sanitizeTodoName(listNameEl.value, TODO_DEFAULT_LIST_NAME);
     if (!clientId) {
         statusEl.style.color = '#c62828';
@@ -1305,7 +1650,7 @@ const refreshTodoistTodoAuthStatus = () => {
     });
 };
 
-const connectTodoistTodo = () => {
+const connectTodoistTodo = async () => {
     const statusEl = document.getElementById('todoistTodoAuthStatus');
     const connectBtn = document.getElementById('todoistTodoConnectBtn');
     const disconnectBtn = document.getElementById('todoistTodoDisconnectBtn');
@@ -1330,13 +1675,15 @@ const connectTodoistTodo = () => {
     statusEl.style.color = '#666';
     statusEl.textContent = 'Todoist に接続中...';
 
-    chrome.storage.local.set({
-        [TODO_API_PROVIDER_KEY]: 'todoist',
-        [TODOIST_TODO_API_TOKEN_KEY]: '',
-        [TODOIST_TODO_PROJECT_NAME_KEY]: projectName
-    }, async () => {
+    try {
+        const encryptedApiToken = await encryptSecureLocalString(apiToken);
+        await storageLocalSetAsync({
+            [TODO_API_PROVIDER_KEY]: 'todoist',
+            [TODOIST_TODO_API_TOKEN_KEY]: encryptedApiToken,
+            [TODOIST_TODO_PROJECT_NAME_KEY]: projectName
+        });
         await storageSessionSetAsync({
-            [TODOIST_TODO_API_TOKEN_KEY]: apiToken
+            [TODOIST_TODO_API_TOKEN_KEY]: ''
         });
         chrome.runtime.sendMessage({ type: 'TODOIST_TODO_CONNECT' }, (response) => {
             if (connectBtn) connectBtn.disabled = false;
@@ -1357,7 +1704,12 @@ const connectTodoistTodo = () => {
             statusEl.style.color = '#2e7d32';
             statusEl.textContent = `接続完了${listPart}`;
         });
-    });
+    } catch (error) {
+        if (connectBtn) connectBtn.disabled = false;
+        if (disconnectBtn) disconnectBtn.disabled = false;
+        statusEl.style.color = '#c62828';
+        statusEl.textContent = `謗･邯壹お繝ｩ繝ｼ: ${error instanceof Error ? error.message : String(error)}`;
+    }
 };
 
 const disconnectTodoistTodo = () => {
@@ -1670,7 +2022,7 @@ const initAutoSave = () => {
     document.addEventListener('input', (event) => {
         const target = event.target;
         if (!isAutoSaveTarget(target)) return;
-        if (target.id === 'viewToggleShortcut') return;
+        if (target.id === 'viewToggleShortcut' || target.id === 'password') return;
         scheduleAutoSave();
     });
 
@@ -1692,7 +2044,9 @@ const initAutoSave = () => {
     }
 
     const flushPendingAutoSave = () => {
-        if (autoSaveTimerId === null) return;
+        if (autoSaveTimerId === null && !autoLoginPasswordInputDirty && !autoLoginPasswordPendingDeletion) {
+            return;
+        }
         saveOptions({ source: 'auto', showSuccess: false });
     };
     window.addEventListener('beforeunload', flushPendingAutoSave);
@@ -1707,15 +2061,55 @@ document.addEventListener('DOMContentLoaded', () => {
     initSettingsNavigation();
     restoreOptions();
     initAutoSave();
+
+    document.getElementById('goToWebClassHome').addEventListener('click', () => {
+        chrome.tabs.query({ url: WEBCLASS_TAB_URL_PATTERNS }, (tabs) => {
+            if (tabs.length > 0) {
+                chrome.tabs.update(tabs[0].id, { active: true });
+                if (tabs[0].windowId != null) {
+                    chrome.windows.update(tabs[0].windowId, { focused: true });
+                }
+            } else {
+                chrome.tabs.create({ url: WEBCLASS_HOME_URL });
+            }
+        });
+    });
 });
 document.getElementById('autoLoginEnabled').addEventListener('change', (e) => {
     toggleCredentialsArea(e.target.checked);
+});
+document.getElementById('password').addEventListener('input', () => {
+    autoLoginPasswordInputDirty = true;
+    autoLoginPasswordPendingDeletion = false;
+    updateAutoLoginPasswordUi();
+});
+document.getElementById('clearStoredPasswordButton').addEventListener('click', async () => {
+    if (!autoLoginPasswordStored) return;
+    const passwordInput = document.getElementById('password');
+    autoLoginPasswordPendingDeletion = true;
+    autoLoginPasswordInputDirty = false;
+    if (passwordInput) {
+        passwordInput.value = '';
+    }
+    updateAutoLoginPasswordUi();
+    const saved = await saveOptions({ source: 'manual' });
+    if (!saved) {
+        autoLoginPasswordPendingDeletion = false;
+        updateAutoLoginPasswordUi();
+    }
 });
 document.getElementById('debugModeEnabled').addEventListener('change', (e) => {
     updateDebugOnlySettingsVisibility(!!e.target.checked);
 });
 document.getElementById('autoRunCourseNameConversionOnDashboardLoad').addEventListener('change', (e) => {
     updateCourseNameConversionActionState(!!e.target.checked);
+});
+document.getElementById('extensionUpdateCheckEnabled').addEventListener('change', (e) => {
+    if (!e.target.checked) {
+        renderExtensionUpdateStatus({ enabled: false });
+        return;
+    }
+    refreshExtensionUpdateStatus();
 });
 document.getElementById('useLlmCourseNameEnabled').addEventListener('change', () => {
     enforceLlmRuleMutualExclusion('useLlmCourseNameEnabled');
@@ -1725,6 +2119,8 @@ document.getElementById('useRuleCourseNameEnabled').addEventListener('change', (
 });
 document.getElementById('clearOpenaiCourseNameCache').addEventListener('click', clearOpenAiCourseNameCache);
 document.getElementById('runCourseNameConversionNow').addEventListener('click', runCourseNameConversionFromSettings);
+document.getElementById('checkExtensionUpdateNow').addEventListener('click', runExtensionUpdateCheck);
+document.getElementById('showExtensionUpdateNotificationPreview').addEventListener('click', showExtensionUpdateNotificationPreview);
 document.getElementById('courseNameProvider').addEventListener('change', (e) => {
     updateCourseNameProviderUI(e.target.value);
 });
@@ -1737,12 +2133,15 @@ document.getElementById('todoApiEnabled').addEventListener('change', (e) => {
     }
     if (!enabled) {
         providerEl.value = 'none';
+    } else if (normalizeTodoApiProviderForSurface(providerEl.value) === 'none') {
+        providerEl.value = TODO_API_VISIBLE_PROVIDER;
     }
-    updateTodoApiProviderUI(enabled ? providerEl.value : 'none');
+    updateTodoApiProviderUI(enabled ? normalizeTodoApiProviderForSurface(providerEl.value) : 'none');
     updateTodoApiSettingsAvailability(enabled);
 });
 document.getElementById('todoApiProvider').addEventListener('change', (e) => {
-    const provider = e.target.value;
+    const provider = normalizeTodoApiProviderForSurface(e.target.value);
+    e.target.value = provider;
     updateTodoApiProviderUI(provider);
 
     const msStatusEl = document.getElementById('msTodoAuthStatus');
@@ -1785,11 +2184,16 @@ document.getElementById('todoApiProvider').addEventListener('change', (e) => {
 document.getElementById('todoApiTaskTitleFormat').addEventListener('change', (e) => {
     updateTodoApiTaskTitleFormatUI(e.target.value);
 });
+document.getElementById('msTodoTenantPreset')?.addEventListener('change', () => {
+    updateMicrosoftTenantUi();
+});
+/*
 document.getElementById('msTodoConnectBtn').addEventListener('click', connectMicrosoftTodo);
 document.getElementById('msTodoDisconnectBtn').addEventListener('click', disconnectMicrosoftTodo);
 document.getElementById('googleTodoConnectBtn')?.addEventListener('click', connectGoogleTodo);
 document.getElementById('googleTodoDisconnectBtn')?.addEventListener('click', disconnectGoogleTodo);
 document.getElementById('todoistTodoConnectBtn').addEventListener('click', connectTodoistTodo);
 document.getElementById('todoistTodoDisconnectBtn').addEventListener('click', disconnectTodoistTodo);
+*/
 document.getElementById('ticktickTodoConnectBtn').addEventListener('click', connectTickTickTodo);
 document.getElementById('ticktickTodoDisconnectBtn').addEventListener('click', disconnectTickTickTodo);

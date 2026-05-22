@@ -57,6 +57,13 @@ body {
   display: none !important;
 }
 
+.root-header {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
+}
+
 .detail-header {
   margin: 0 0 10px;
   display: flex;

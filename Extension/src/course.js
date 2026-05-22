@@ -128,6 +128,60 @@ const CONFIG = {
     debug: false
 };
 
+const UX_COURSE_COLOR_TOKEN_STYLE_ID = 'ux-course-color-tokens';
+const UX_COURSE_COLOR_TOKEN_CSS = `
+    :root {
+        color-scheme: light;
+        --ux-home-page-bg: #f5f5f7;
+        --ux-home-surface: #ffffff;
+        --ux-home-surface-muted: #f2f2f7;
+        --ux-home-surface-soft: #fbfbfd;
+        --ux-home-fill: rgba(120, 120, 128, 0.12);
+        --ux-home-fill-strong: rgba(120, 120, 128, 0.2);
+        --ux-home-label: #1d1d1f;
+        --ux-home-secondary-label: #6e6e73;
+        --ux-home-tertiary-label: #8e8e93;
+        --ux-home-quaternary-label: #aeaeb2;
+        --ux-home-separator: rgba(60, 60, 67, 0.18);
+        --ux-home-separator-strong: rgba(60, 60, 67, 0.29);
+        --ux-home-accent: #0a84ff;
+        --ux-home-accent-emphasis: #0077ed;
+        --ux-home-accent-soft: rgba(10, 132, 255, 0.12);
+        --ux-home-accent-softer: rgba(10, 132, 255, 0.08);
+        --ux-home-success: #34c759;
+        --ux-home-success-soft: rgba(52, 199, 89, 0.14);
+        --ux-home-success-foreground: #248a3d;
+        --ux-home-warning: #ff9f0a;
+        --ux-home-warning-soft: rgba(255, 159, 10, 0.16);
+        --ux-home-warning-foreground: #9a5b00;
+        --ux-home-danger: #ff453a;
+        --ux-home-danger-soft: rgba(255, 69, 58, 0.14);
+        --ux-home-danger-foreground: #c12a1f;
+        --ux-home-purple: #bf5af2;
+        --ux-home-purple-soft: rgba(191, 90, 242, 0.14);
+        --ux-home-purple-foreground: #7a2fc7;
+        --ux-home-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+        --ux-home-shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
+        --ux-home-shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.14);
+        --ux-home-focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.18);
+        --ux-home-header-backdrop: rgba(255, 255, 255, 0.78);
+        --ux-home-overlay: rgba(15, 23, 42, 0.26);
+        --ux-select-display-font-size: 14px;
+        --ux-select-option-font-size: 14px;
+    }
+`;
+
+function ensureCourseColorTokens(targetDoc = document) {
+    if (!targetDoc || typeof targetDoc.createElement !== 'function') return;
+    const root = targetDoc.head || targetDoc.documentElement;
+    if (!root || targetDoc.getElementById(UX_COURSE_COLOR_TOKEN_STYLE_ID)) return;
+
+    const style = targetDoc.createElement('style');
+    style.id = UX_COURSE_COLOR_TOKEN_STYLE_ID;
+    style.textContent = UX_COURSE_COLOR_TOKEN_CSS;
+    root.appendChild(style);
+}
+
 uxDebugLog("WebClass UX Improver: Course script loaded");
 
 function log(...args) {
@@ -1664,11 +1718,12 @@ function getShikenTitlesFromFrames() {
 
 function renderShikenHeader(doc, titles) {
     const { courseName, contentName } = titles;
+    ensureCourseColorTokens(doc);
 
     doc.body.innerHTML = '';
     doc.body.style.margin = '0';
     doc.body.style.padding = '0';
-    doc.body.style.background = '#ffffff';
+    doc.body.style.background = 'var(--ux-home-page-bg)';
     doc.body.style.overflow = 'hidden';
     doc.body.style.fontFamily = `'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif`;
 
@@ -1676,29 +1731,29 @@ function renderShikenHeader(doc, titles) {
     header.id = 'ux-shiken-header';
     header.style.cssText = `
         height: 56px;
-        background: #0056b3;
+        background: var(--ux-home-surface);
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 18px;
-        border-bottom: 1px solid #004a96;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        border-bottom: 1px solid var(--ux-home-separator);
+        box-shadow: var(--ux-home-shadow-sm);
         box-sizing: border-box;
     `;
 
     const titleBlock = doc.createElement('div');
     titleBlock.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
     titleBlock.innerHTML = `
-        <div style="font-size:12px;color:rgba(255,255,255,0.75); line-height:1;">${escapeHtml(courseName)}</div>
-        <div style="font-size:15px;font-weight:600;color:#ffffff; line-height:1.2;">${escapeHtml(contentName)}</div>
+        <div style="font-size:12px;color:var(--ux-home-secondary-label); line-height:1;">${escapeHtml(courseName)}</div>
+        <div style="font-size:15px;font-weight:600;color:var(--ux-home-label); line-height:1.2;">${escapeHtml(contentName)}</div>
     `;
 
     const badge = doc.createElement('div');
     badge.textContent = '試験';
     badge.style.cssText = `
         font-size: 11px;
-        color: #0f172a;
-        background: #e0f2fe;
+        color: var(--ux-home-accent-emphasis);
+        background: var(--ux-home-accent-soft);
         padding: 4px 10px;
         border-radius: 999px;
         letter-spacing: 0.06em;
@@ -1712,6 +1767,7 @@ function renderShikenHeader(doc, titles) {
 
 function enhanceShikenButtonFrame() {
     log('Enhancing shiken button frame');
+    ensureCourseColorTokens(document);
 
     if (document.getElementById('ux-shiken-button-style')) return;
 
@@ -1721,16 +1777,16 @@ function enhanceShikenButtonFrame() {
         html, body { height: 100%; }
         body {
             margin: 0;
-            background: #f4f7f6;
+            background: var(--ux-home-page-bg);
             font-family: 'Noto Sans JP', 'Yu Gothic', 'Meiryo', 'Hiragino Sans', 'Segoe UI', sans-serif;
-            color: #0f172a;
+            color: var(--ux-home-label);
             -webkit-font-smoothing: antialiased;
         }
         #top {
             min-height: 0 !important;
-            background: #ffffff;
-            border-bottom: 1px solid #e2e8f0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            background: var(--ux-home-surface);
+            border-bottom: 1px solid var(--ux-home-separator);
+            box-shadow: var(--ux-home-shadow-sm);
             padding: 12px 12px 10px;
             box-sizing: border-box;
             overflow: visible;
@@ -1745,7 +1801,7 @@ function enhanceShikenButtonFrame() {
         #WsTitle h2 {
             margin: 0;
             font-size: 12px;
-            color: #475569;
+            color: var(--ux-home-secondary-label);
             line-height: 1.3;
             white-space: normal;
             word-break: break-word;
@@ -1756,11 +1812,11 @@ function enhanceShikenButtonFrame() {
         div[id*="User"] {
             margin-top: 6px;
             font-size: 11px;
-            color: #94a3b8;
+            color: var(--ux-home-tertiary-label);
             display: none !important;
         }
         #top hr {
-            border-color: #e2e8f0;
+            border-color: var(--ux-home-separator);
             margin: 8px 0 10px;
         }
         form[name="button_form"] {
@@ -1780,9 +1836,9 @@ function enhanceShikenButtonFrame() {
             gap: 6px;
         }
         .ux-btn {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            color: #0f172a;
+            background: var(--ux-home-surface);
+            border: 1px solid var(--ux-home-separator);
+            color: var(--ux-home-label);
             border-radius: 6px;
             padding: 6px 10px;
             font-size: 12px;
@@ -1790,40 +1846,44 @@ function enhanceShikenButtonFrame() {
             transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
             min-width: 84px;
         }
-        .ux-btn:hover { background: #f1f5f9; }
+        .ux-btn:hover {
+            background: var(--ux-home-accent-softer);
+            border-color: var(--ux-home-accent-soft);
+            color: var(--ux-home-accent-emphasis);
+        }
         .ux-btn.ux-danger {
-            background: #dc2626;
-            border-color: #dc2626;
-            color: #ffffff;
+            background: var(--ux-home-danger);
+            border-color: var(--ux-home-danger);
+            color: var(--ux-home-surface);
         }
         .ux-btn.ux-danger:hover {
-            background: #b91c1c;
-            border-color: #b91c1c;
+            background: var(--ux-home-danger-foreground);
+            border-color: var(--ux-home-danger-foreground);
         }
         .ux-btn:disabled {
-            background: #e2e8f0;
-            border-color: #cbd5e1;
-            color: #94a3b8;
+            background: var(--ux-home-fill);
+            border-color: var(--ux-home-separator);
+            color: var(--ux-home-tertiary-label);
             cursor: not-allowed;
         }
         .limitInfo {
             margin-top: 8px !important;
             padding: 6px 8px !important;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: var(--ux-home-surface-soft);
+            border: 1px solid var(--ux-home-separator);
             border-radius: 6px;
             font-size: 11px;
-            color: #475569;
+            color: var(--ux-home-secondary-label);
         }
         #TOC {
-            background: #f4f7f6;
+            background: var(--ux-home-page-bg);
             padding: 10px 12px 12px;
         }
         #TOCContent {
             border: none;
-            background: #ffffff;
+            background: var(--ux-home-surface);
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.05);
+            box-shadow: var(--ux-home-shadow-sm);
         }
     `;
     document.head.appendChild(style);
@@ -1839,10 +1899,11 @@ function enhanceShikenButtonFrame() {
         try {
             const tocDoc = tocIframe && (tocIframe.contentDocument || tocIframe.contentWindow?.document);
             if (!tocDoc || tocDoc.getElementById('ux-shiken-toc-style')) return;
+            ensureCourseColorTokens(tocDoc);
             const tocStyle = tocDoc.createElement('style');
             tocStyle.id = 'ux-shiken-toc-style';
             tocStyle.textContent = `
-                html, body { margin: 0; padding: 6px; background: #ffffff; font-family: 'Noto Sans JP', 'Yu Gothic', 'Meiryo', 'Hiragino Sans', 'Segoe UI', sans-serif; color: #0f172a; box-sizing: border-box; }
+                html, body { margin: 0; padding: 6px; background: var(--ux-home-surface); font-family: 'Noto Sans JP', 'Yu Gothic', 'Meiryo', 'Hiragino Sans', 'Segoe UI', sans-serif; color: var(--ux-home-label); box-sizing: border-box; }
                 table { width: 100%; border-collapse: collapse; }
                 td { padding: 6px 8px; font-size: 12px; }
                 .red_moji { display: none !important; }
@@ -1856,17 +1917,17 @@ function enhanceShikenButtonFrame() {
                     width: 6px;
                     height: 6px;
                     border-radius: 50%;
-                    background: #94a3b8;
-                    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.2);
+                    background: var(--ux-home-tertiary-label);
+                    box-shadow: 0 0 0 2px var(--ux-home-fill);
                 }
                 .ux-toc-label {
                     font-size: 12px;
                     line-height: 1;
-                    color: #0f172a;
+                    color: var(--ux-home-label);
                 }
                 .ux-toc-star {
                     margin-left: 6px;
-                    color: #94a3b8;
+                    color: var(--ux-home-tertiary-label);
                     font-weight: 600;
                     font-size: 11px;
                     line-height: 1;
@@ -1878,23 +1939,24 @@ function enhanceShikenButtonFrame() {
                 }
                 tr.bkkhaki td.ux-toc-item::before,
                 td.bkkhaki.ux-toc-item::before {
-                    background: #0056b3;
-                    box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.15);
+                    background: var(--ux-home-accent);
+                    box-shadow: 0 0 0 2px var(--ux-home-accent-soft);
                 }
                 input[type="button"] {
-                    background: #ffffff;
-                    border: 1px solid #cbd5e1;
+                    background: var(--ux-home-surface);
+                    border: 1px solid var(--ux-home-separator);
                     border-radius: 8px;
                     padding: 4px 8px;
                     font-size: 12px;
                     cursor: pointer;
                     min-width: 34px;
+                    color: var(--ux-home-label);
                 }
                 tr.bkkhaki input[type="button"],
                 td.bkkhaki input[type="button"] {
-                    background: #fde68a;
-                    border-color: #f59e0b;
-                    color: #92400e;
+                    background: var(--ux-home-warning-soft);
+                    border-color: rgba(255, 159, 10, 0.32);
+                    color: var(--ux-home-warning-foreground);
                 }
             `;
             tocDoc.head.appendChild(tocStyle);
@@ -2028,6 +2090,7 @@ function enhanceShikenButtonFrame() {
 
 function enhanceShikenAnswerFrame() {
     log('Enhancing shiken answer frame');
+    ensureCourseColorTokens(document);
     if (document.getElementById('ux-shiken-answer-style')) return;
 
     const style = document.createElement('style');
@@ -2036,20 +2099,20 @@ function enhanceShikenAnswerFrame() {
         html, body { height: 100%; }
         body {
             margin: 0;
-            background: #f4f7f6;
+            background: var(--ux-home-page-bg);
             font-family: 'Noto Sans JP', 'Yu Gothic', 'Meiryo', 'Hiragino Sans', 'Segoe UI', sans-serif;
-            color: #0f172a;
+            color: var(--ux-home-label);
             padding: 12px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
         }
         form[name="answer_form"] {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--ux-home-surface);
+            border: 1px solid var(--ux-home-separator);
             border-radius: 10px;
             padding: 12px;
-            box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06);
+            box-shadow: var(--ux-home-shadow-sm);
             flex: 1 1 auto;
             min-height: calc(100vh - 24px);
             box-sizing: border-box;
@@ -2084,7 +2147,7 @@ function enhanceShikenAnswerFrame() {
             text-align: center;
             vertical-align: top;
             font-weight: 600;
-            color: #475569;
+            color: var(--ux-home-secondary-label);
         }
         table.qstnoptions td {
             vertical-align: top;
@@ -2096,19 +2159,19 @@ function enhanceShikenAnswerFrame() {
         }
         .ux-native-select,
         select, input[type="text"], textarea {
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--ux-home-separator);
             border-radius: 6px;
             padding: 4px 6px;
             font-size: 12px;
             font-family: inherit;
-            background-color: #ffffff;
-            color: #0f172a;
+            background-color: var(--ux-home-surface);
+            color: var(--ux-home-label);
         }
         select:focus, input[type="text"]:focus, textarea:focus,
         .ux-select-display:focus {
             outline: none;
-            border-color: #0056b3;
-            box-shadow: 0 0 0 2px rgba(0, 86, 179, 0.15);
+            border-color: var(--ux-home-accent);
+            box-shadow: var(--ux-home-focus-ring);
         }
         .ux-select-wrap {
             position: relative;
@@ -2125,12 +2188,12 @@ function enhanceShikenAnswerFrame() {
         .ux-select-display {
             width: 100%;
             text-align: left;
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
+            background: var(--ux-home-surface);
+            border: 1px solid var(--ux-home-separator);
             border-radius: 6px;
             padding: 4px 26px 4px 8px;
             font-size: var(--ux-select-display-font-size, 14px);
-            color: #0f172a;
+            color: var(--ux-home-label);
             cursor: pointer;
             position: relative;
             display: flex;
@@ -2159,10 +2222,10 @@ function enhanceShikenAnswerFrame() {
             left: 0;
             right: 0;
             top: calc(100% + 6px);
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--ux-home-surface);
+            border: 1px solid var(--ux-home-separator);
             border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+            box-shadow: var(--ux-home-shadow-md);
             max-height: 220px;
             overflow-y: auto;
             display: none;
@@ -2182,32 +2245,32 @@ function enhanceShikenAnswerFrame() {
             line-height: 1.25;
             min-height: 32px;
             cursor: pointer;
-            color: #0f172a;
+            color: var(--ux-home-label);
         }
         .ux-select-option:hover {
-            background: #e8f2ff;
+            background: var(--ux-home-accent-softer);
         }
         .ux-select-option[aria-selected="true"] {
-            background: #dbeafe;
+            background: var(--ux-home-accent-soft);
             font-weight: 600;
         }
         input[type="button"], button {
-            background: #0056b3;
-            border: 1px solid #0056b3;
-            color: #ffffff;
+            background: var(--ux-home-accent);
+            border: 1px solid var(--ux-home-accent);
+            color: var(--ux-home-surface);
             border-radius: 6px;
             padding: 6px 10px;
             font-size: 12px;
             cursor: pointer;
         }
         input[type="button"]:hover, button:hover {
-            background: #004a96;
-            border-color: #004a96;
+            background: var(--ux-home-accent-emphasis);
+            border-color: var(--ux-home-accent-emphasis);
         }
         input[type="button"]:disabled, button:disabled {
-            background: #e2e8f0;
-            border-color: #cbd5e1;
-            color: #94a3b8;
+            background: var(--ux-home-fill);
+            border-color: var(--ux-home-separator);
+            color: var(--ux-home-tertiary-label);
             cursor: not-allowed;
         }
     `;
@@ -2495,19 +2558,19 @@ function enhanceShikenAnswerFrame() {
                 finishButton.value = '終了';
                 finishButton.className = backButton.className; // 同じスタイルを適用
                 finishButton.style.marginLeft = '8px';
-                finishButton.style.backgroundColor = '#dc3545';
-                finishButton.style.borderColor = '#dc3545';
-                finishButton.style.color = '#ffffff';
+                finishButton.style.backgroundColor = 'var(--ux-home-danger)';
+                finishButton.style.borderColor = 'var(--ux-home-danger)';
+                finishButton.style.color = 'var(--ux-home-surface)';
                 finishButton.style.cursor = 'pointer';
 
                 // ホバー効果を追加
                 finishButton.addEventListener('mouseenter', () => {
-                    finishButton.style.backgroundColor = '#c82333';
-                    finishButton.style.borderColor = '#bd2130';
+                    finishButton.style.backgroundColor = 'var(--ux-home-danger-foreground)';
+                    finishButton.style.borderColor = 'var(--ux-home-danger-foreground)';
                 });
                 finishButton.addEventListener('mouseleave', () => {
-                    finishButton.style.backgroundColor = '#dc3545';
-                    finishButton.style.borderColor = '#dc3545';
+                    finishButton.style.backgroundColor = 'var(--ux-home-danger)';
+                    finishButton.style.borderColor = 'var(--ux-home-danger)';
                 });
 
                 finishButton.addEventListener('click', () => {
@@ -2817,6 +2880,7 @@ function toggleRibbon(show) {
  */
 function createFloatingExpandButton() {
     const topDoc = window.top.document;
+    ensureCourseColorTokens(topDoc);
     if (topDoc.getElementById('ux-ribbon-expand-btn')) return;
 
     const btn = topDoc.createElement('div');
@@ -2832,17 +2896,17 @@ function createFloatingExpandButton() {
         right: 20px;
         width: 48px;
         height: 48px;
-        background: rgba(19, 101, 181, 0.75);
-        color: white;
+        background: var(--ux-home-accent);
+        color: var(--ux-home-surface);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         z-index: 10000;
-        transition: background 0.2s, transform 0.2s;
-        backdrop-filter: blur(4px);
-        box-shadow: 0 4px 6px rgba(12, 62, 112, 0.25);
+        transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+        border: 1px solid rgba(10, 132, 255, 0.12);
+        box-shadow: var(--ux-home-shadow-md);
         user-select: none;
         touch-action: none;
     `;
@@ -2850,11 +2914,13 @@ function createFloatingExpandButton() {
 
     // ホバー効果
     btn.onmouseover = () => {
-        btn.style.background = 'rgba(19, 101, 181, 0.9)';
+        btn.style.background = 'var(--ux-home-accent-emphasis)';
+        btn.style.boxShadow = 'var(--ux-home-shadow-lg)';
         btn.style.transform = 'scale(1.05)';
     };
     btn.onmouseout = () => {
-        btn.style.background = 'rgba(19, 101, 181, 0.75)';
+        btn.style.background = 'var(--ux-home-accent)';
+        btn.style.boxShadow = 'var(--ux-home-shadow-md)';
         btn.style.transform = 'scale(1)';
     };
 
@@ -3106,11 +3172,13 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
     const tocShowSectionTitles = options.tocShowSectionTitles !== undefined ? options.tocShowSectionTitles : true;
 
     // フレームの内容を完全に置換
+    ensureCourseColorTokens(doc);
     doc.body.innerHTML = '';
-    doc.body.style.cssText = 'margin: 0; padding: 0; overflow: hidden; background: #1365b5;';
+    doc.body.style.cssText = 'margin: 0; padding: 0; overflow: hidden; background: var(--ux-home-page-bg);';
 
     // 目次オーバーレイ用のiframeを作成（フレームセットの制約を回避）
     const topDoc = window.top.document;
+    ensureCourseColorTokens(topDoc);
 
     // ============================================================
     // Shiryou: 目次クリック時の白フラッシュ抑制（コンテンツ読み込みオーバーレイ）
@@ -3145,9 +3213,10 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            background: #0c3e70;
+            background: rgba(245, 245, 247, 0.94);
             transition: opacity 120ms ease-out;
             will-change: opacity;
+            backdrop-filter: blur(6px);
         `;
 
         const style = topDoc.createElement('style');
@@ -3165,13 +3234,13 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
             justify-content: center;
             gap: 10px;
             font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
-            color: rgba(255,255,255,0.92);
+            color: var(--ux-home-label);
             font-size: 14px;
             opacity: 0;
             transition: opacity 120ms ease;
         `;
         inner.innerHTML = `
-            <div style="width:18px;height:18px;border:2px solid rgba(255,204,102,0.35);border-top-color:rgba(255,204,102,0.95);border-radius:50%;animation:uxspin 0.8s linear infinite;"></div>
+            <div style="width:18px;height:18px;border:2px solid var(--ux-home-accent-soft);border-top-color:var(--ux-home-accent);border-radius:50%;animation:uxspin 0.8s linear infinite;"></div>
             <div>読み込み中…</div>
         `;
 
@@ -3360,14 +3429,14 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
     const header = doc.createElement('div');
     header.style.cssText = `
         height: 55px;
-        background: #1365b5;
-        color: #ffffff;
+        background: var(--ux-home-surface);
+        color: var(--ux-home-label);
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 20px;
-        border-bottom: 1px solid #0c3e70;
-        box-shadow: 0 2px 4px rgba(12, 62, 112, 0.25);
+        border-bottom: 1px solid var(--ux-home-separator);
+        box-shadow: var(--ux-home-shadow-sm);
         font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
         box-sizing: border-box;
     `;
@@ -3388,17 +3457,17 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         display: flex;
         align-items: center;
         padding: 8px 16px;
-        border: 1px solid rgba(12, 62, 112, 0.2);
+        border: 1px solid var(--ux-home-separator);
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
         cursor: pointer;
-        background: #f9f9f9;
-        color: #1365b5;
+        background: var(--ux-home-surface-soft);
+        color: var(--ux-home-accent-emphasis);
         transition: all 0.2s ease;
     `;
-    closeBtn.onmouseover = () => { closeBtn.style.background = '#e7e7e7'; closeBtn.style.color = '#0c3e70'; };
-    closeBtn.onmouseout = () => { closeBtn.style.background = '#f9f9f9'; closeBtn.style.color = '#1365b5'; };
+    closeBtn.onmouseover = () => { closeBtn.style.background = 'var(--ux-home-accent-softer)'; closeBtn.style.color = 'var(--ux-home-accent-emphasis)'; };
+    closeBtn.onmouseout = () => { closeBtn.style.background = 'var(--ux-home-surface-soft)'; closeBtn.style.color = 'var(--ux-home-accent-emphasis)'; };
     closeBtn.onclick = () => {
         // Prefer WebClass's quit flow to avoid beforeunload warnings.
         try {
@@ -3539,12 +3608,12 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     margin: 0;
                     padding: 20px;
                     font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
-                    background: white;
-                    color: #333;
+                    background: var(--ux-home-surface);
+                    color: var(--ux-home-label);
                     height: 100vh;
                     overflow-y: auto;
-                    border-right: 1px solid #c6d3e4;
-                    box-shadow: 2px 0 8px rgba(19, 101, 181, 0.18);
+                    border-right: 1px solid var(--ux-home-separator);
+                    box-shadow: var(--ux-home-shadow-md);
                 }
                 .header {
                     display: flex;
@@ -3552,18 +3621,18 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     align-items: center;
                     margin-bottom: 15px;
                     padding-bottom: 12px;
-                    border-bottom: 1px solid #c6d3e4;
+                    border-bottom: 1px solid var(--ux-home-separator);
                 }
                 .header h3 {
                     margin: 0;
                     font-size: 1.1rem;
                     font-weight: 600;
-                    color: #1365b5;
+                    color: var(--ux-home-label);
                 }
                 .close-btn {
-                    background: #f9f9f9;
+                    background: var(--ux-home-surface-soft);
                     border: none;
-                    color: #1365b5;
+                    color: var(--ux-home-accent-emphasis);
                     width: 32px;
                     height: 32px;
                     border-radius: 50%;
@@ -3575,30 +3644,30 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     transition: all 0.2s;
                 }
                 .close-btn:hover {
-                    background: #e7e7e7;
-                    color: #0c3e70;
+                    background: var(--ux-home-accent-softer);
+                    color: var(--ux-home-accent-emphasis);
                 }
                 #toc-content table {
                     width: 100%;
                     border-collapse: collapse;
                 }
                 #toc-content tr {
-                    border-bottom: 1px solid #c6d3e4;
+                    border-bottom: 1px solid var(--ux-home-separator);
                     transition: background 0.2s;
                 }
                 #toc-content tr:hover {
-                    background: #f4f7fb;
+                    background: var(--ux-home-accent-softer);
                 }
                 #toc-content td {
                     padding: 12px 8px;
                     vertical-align: middle;
                 }
                 #toc-content span {
-                    color: #333333 !important;
+                    color: var(--ux-home-label) !important;
                 }
                 #toc-content input[type="button"] {
-                    background: #1365b5;
-                    color: white;
+                    background: var(--ux-home-accent);
+                    color: var(--ux-home-surface);
                     border: none;
                     border-radius: 4px;
                     padding: 6px 12px;
@@ -3607,7 +3676,7 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     transition: all 0.2s;
                 }
                 #toc-content input[type="button"]:hover {
-                    background: #0c3e70;
+                    background: var(--ux-home-accent-emphasis);
                 }
                 #toc-content a[href*="file_down.php"] {
                     display: none !important;
@@ -3619,8 +3688,8 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     margin-left: 8px;
                 }
                 .ux-download-btn {
-                    background: #f9f9f9 !important;
-                    color: #1365b5 !important;
+                    background: var(--ux-home-surface-soft) !important;
+                    color: var(--ux-home-accent-emphasis) !important;
                     border: none !important;
                     border-radius: 4px !important;
                     padding: 4px 8px !important;
@@ -3629,12 +3698,12 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
                     transition: all 0.2s !important;
                 }
                 .ux-download-btn:hover {
-                    background: #e7e7e7 !important;
-                    color: #0c3e70 !important;
+                    background: var(--ux-home-accent-softer) !important;
+                    color: var(--ux-home-accent-emphasis) !important;
                 }
                 ::-webkit-scrollbar { width: 8px; }
-                ::-webkit-scrollbar-track { background: #eef2f6; }
-                ::-webkit-scrollbar-thumb { background: #b7c7dd; border-radius: 4px; }
+                ::-webkit-scrollbar-track { background: var(--ux-home-surface-soft); }
+                ::-webkit-scrollbar-thumb { background: var(--ux-home-fill-strong); border-radius: 4px; }
                 /* 節タイトル非表示用のクラス */
                 .ux-hide-section-titles {
                     display: none !important;
@@ -3653,6 +3722,7 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         </html>
     `);
     iframeDoc.close();
+    ensureCourseColorTokens(iframeDoc);
 
     // iframeへの参照を保持（後でアクセスするため）
     let tocCloseSetup = false;
@@ -3680,20 +3750,20 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         display: flex;
         align-items: center;
         padding: 8px 16px;
-        border: 1px solid rgba(12, 62, 112, 0.2);
+        border: 1px solid var(--ux-home-separator);
         border-radius: 6px;
         font-size: 0.875rem;
         font-weight: 500;
         cursor: pointer;
-        background: #f9f9f9;
-        color: #1365b5;
+        background: var(--ux-home-surface-soft);
+        color: var(--ux-home-accent-emphasis);
         transition: all 0.2s ease;
     `;
-    tocToggleBtn.onmouseover = () => { tocToggleBtn.style.background = '#e7e7e7'; tocToggleBtn.style.color = '#0c3e70'; };
+    tocToggleBtn.onmouseover = () => { tocToggleBtn.style.background = 'var(--ux-home-accent-softer)'; tocToggleBtn.style.color = 'var(--ux-home-accent-emphasis)'; };
     tocToggleBtn.onmouseout = () => {
         const isActive = tocOverlayIframe.style.display !== 'none';
-        tocToggleBtn.style.background = isActive ? '#ffcc66' : '#f9f9f9';
-        tocToggleBtn.style.color = isActive ? '#333333' : '#1365b5';
+        tocToggleBtn.style.background = isActive ? 'var(--ux-home-accent-soft)' : 'var(--ux-home-surface-soft)';
+        tocToggleBtn.style.color = isActive ? 'var(--ux-home-accent-emphasis)' : 'var(--ux-home-accent-emphasis)';
     };
 
     // 目次の表示/非表示状態を追跡
@@ -3767,8 +3837,8 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         tocVisible = false;
         // 左にスライドアウトするアニメーション
         tocOverlayIframe.style.transform = 'translateX(-100%)';
-        tocToggleBtn.style.background = '#f9f9f9';
-        tocToggleBtn.style.color = '#1365b5';
+        tocToggleBtn.style.background = 'var(--ux-home-surface-soft)';
+        tocToggleBtn.style.color = 'var(--ux-home-accent-emphasis)';
 
         // フレームセットのcolsをアニメーション（PDFビューワーを全幅に戻す）
         animateFramesetCols(0, 300);
@@ -3801,8 +3871,8 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         // 強制的にレイアウトを再計算させてからアニメーション開始
         void tocOverlayIframe.offsetWidth;
         tocOverlayIframe.style.transform = 'translateX(0)';
-        tocToggleBtn.style.background = '#ffcc66';
-        tocToggleBtn.style.color = '#333333';
+        tocToggleBtn.style.background = 'var(--ux-home-accent-soft)';
+        tocToggleBtn.style.color = 'var(--ux-home-accent-emphasis)';
 
         // フレームセットのcolsをアニメーション（目次分PDFビューワーを縮小）
         animateFramesetCols(350, 300);
@@ -4047,7 +4117,7 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
     const titleSpan = doc.createElement('span');
     titleSpan.textContent = contentName;
     titleSpan.style.cssText = `
-        color: #ffffff;
+        color: var(--ux-home-label);
         font-size: 1rem;
         font-weight: 600;
         text-overflow: ellipsis;
@@ -4080,16 +4150,16 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         font-size: 0.875rem;
         font-weight: 500;
         cursor: pointer;
-        background: #ffcc66;
-        color: #333333;
+        background: var(--ux-home-warning-soft);
+        color: var(--ux-home-warning-foreground);
         transition: all 0.2s ease;
     `;
     newWindowBtn.onmouseover = () => {
-        newWindowBtn.style.background = '#ffb84d';
-        newWindowBtn.style.boxShadow = '0 2px 8px rgba(255, 184, 77, 0.35)';
+        newWindowBtn.style.background = 'rgba(255, 159, 10, 0.22)';
+        newWindowBtn.style.boxShadow = 'var(--ux-home-shadow-sm)';
     };
     newWindowBtn.onmouseout = () => {
-        newWindowBtn.style.background = '#ffcc66';
+        newWindowBtn.style.background = 'var(--ux-home-warning-soft)';
         newWindowBtn.style.boxShadow = 'none';
     };
     newWindowBtn.onclick = () => {
@@ -4156,16 +4226,16 @@ function createModernHeaderInFrame(doc, contentName, contentsId, tocHtml = '', o
         border-radius: 6px;
         cursor: pointer;
         background: transparent;
-        color: rgba(255,255,255,0.9);
+        color: var(--ux-home-secondary-label);
         transition: all 0.2s ease;
     `;
     hideRibbonBtn.onmouseover = () => {
-        hideRibbonBtn.style.background = 'rgba(255,255,255,0.2)';
-        hideRibbonBtn.style.color = '#ffffff';
+        hideRibbonBtn.style.background = 'var(--ux-home-fill)';
+        hideRibbonBtn.style.color = 'var(--ux-home-label)';
     };
     hideRibbonBtn.onmouseout = () => {
         hideRibbonBtn.style.background = 'transparent';
-        hideRibbonBtn.style.color = 'rgba(255,255,255,0.9)';
+        hideRibbonBtn.style.color = 'var(--ux-home-secondary-label)';
     };
     hideRibbonBtn.onclick = () => {
         toggleRibbon(false);
@@ -4324,9 +4394,10 @@ function setupShiryouContentFlashGuardFromChapterFrame() {
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            background: #0c3e70;
+            background: rgba(245, 245, 247, 0.94);
             transition: opacity 120ms ease-out;
             will-change: opacity;
+            backdrop-filter: blur(6px);
         `;
 
         const style = topDoc.createElement('style');
@@ -4344,13 +4415,13 @@ function setupShiryouContentFlashGuardFromChapterFrame() {
             justify-content: center;
             gap: 10px;
             font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
-            color: rgba(255,255,255,0.92);
+            color: var(--ux-home-label);
             font-size: 14px;
             opacity: 0;
             transition: opacity 120ms ease;
         `;
         inner.innerHTML = `
-            <div style="width:18px;height:18px;border:2px solid rgba(255,204,102,0.35);border-top-color:rgba(255,204,102,0.95);border-radius:50%;animation:uxspin 0.8s linear infinite;"></div>
+            <div style="width:18px;height:18px;border:2px solid var(--ux-home-accent-soft);border-top-color:var(--ux-home-accent);border-radius:50%;animation:uxspin 0.8s linear infinite;"></div>
             <div>読み込み中…</div>
         `;
 
@@ -4562,10 +4633,12 @@ function setupShiryouContentFlashGuardFromChapterFrame() {
  * 目次フレームにモダンなスタイルを適用
  */
 function applyModernChapterStyles() {
+    ensureCourseColorTokens(document);
     const style = document.createElement('style');
     style.textContent = `
         body {
-            background: #eeeeee !important;
+            background: var(--ux-home-page-bg) !important;
+            color: var(--ux-home-label) !important;
             font-family: 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif !important;
             padding: 10px !important;
         }
@@ -4606,27 +4679,31 @@ function applyModernChapterStyles() {
         
         #naviLayout input[type="button"],
         #naviLayout button {
-            background: linear-gradient(135deg, #1365b5 0%, #0c3e70 100%) !important;
-            color: white !important;
-            border: none !important;
+            background: var(--ux-home-accent) !important;
+            color: var(--ux-home-surface) !important;
+            border: 1px solid var(--ux-home-accent) !important;
             border-radius: 6px !important;
             padding: 8px 14px !important;
             font-size: 0.8rem !important;
             font-weight: 500 !important;
             cursor: pointer !important;
             transition: all 0.2s ease !important;
-            box-shadow: 0 2px 4px rgba(19, 101, 181, 0.25) !important;
+            box-shadow: var(--ux-home-shadow-sm) !important;
         }
         
         #naviLayout input[type="button"]:hover,
         #naviLayout button:hover {
+            background: var(--ux-home-accent-emphasis) !important;
+            border-color: var(--ux-home-accent-emphasis) !important;
             transform: translateY(-1px) !important;
-            box-shadow: 0 4px 8px rgba(12, 62, 112, 0.35) !important;
+            box-shadow: var(--ux-home-shadow-md) !important;
         }
         
         #naviLayout input[type="button"]:disabled,
         #naviLayout button:disabled {
-            background: #b0b0b0 !important;
+            background: var(--ux-home-fill) !important;
+            color: var(--ux-home-tertiary-label) !important;
+            border-color: var(--ux-home-separator) !important;
             cursor: not-allowed !important;
             transform: none !important;
             box-shadow: none !important;
@@ -4634,11 +4711,11 @@ function applyModernChapterStyles() {
         
         /* 目次テーブルのスタイル改善 */
         #TOC {
-            background: white !important;
+            background: var(--ux-home-surface) !important;
             border-radius: 8px !important;
             padding: 10px !important;
             margin-top: 5px !important;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+            box-shadow: var(--ux-home-shadow-sm) !important;
         }
         
         #TOCLayout {
@@ -4650,7 +4727,7 @@ function applyModernChapterStyles() {
         }
         
         #TOCLayout tr:hover {
-            background-color: #f4f7fb !important;
+            background-color: var(--ux-home-accent-softer) !important;
         }
         
         #TOCLayout td {
@@ -4659,15 +4736,15 @@ function applyModernChapterStyles() {
         }
         
         #TOCLayout input[type="button"] {
-            background: #f9f9f9 !important;
-            color: #1365b5 !important;
+            background: var(--ux-home-surface-soft) !important;
+            color: var(--ux-home-accent-emphasis) !important;
             min-width: 32px !important;
             padding: 6px 10px !important;
             box-shadow: none !important;
         }
 
         #TOCLayout input[type="button"]:hover {
-            background: #e7e7e7 !important;
+            background: var(--ux-home-accent-softer) !important;
         }
         
         /* 添付資料リンクのテキスト/画像のみ非表示（ダウンロードボタンは残す） */
@@ -4833,6 +4910,25 @@ function enhanceCourseContentsPageUI() {
         } catch {
             return '';
         }
+    };
+
+    const normalizeCourseItemTypeLabel = (text) => {
+        return (text || '')
+            .replace(/\s+/g, '')
+            .replace(/[()（）]/g, '')
+            .trim();
+    };
+
+    const resolveCourseContentsItemType = (item) => {
+        if (!item || typeof item.querySelector !== 'function') return 'other';
+
+        const categoryLabel = normalizeCourseItemTypeLabel(
+            item.querySelector('.cl-contentsList_categoryLabel')?.textContent || ''
+        );
+
+        if (categoryLabel.startsWith('試験')) return 'shiken';
+        if (categoryLabel.startsWith('資料')) return 'shiryou';
+        return 'other';
     };
 
     const buildShortNameCacheKeys = (courseId, names = []) => {
@@ -5223,9 +5319,9 @@ function enhanceCourseContentsPageUI() {
     };
 
     const COURSE_ICON_COLORS = [
-        '#1a73e8', '#e8710a', '#137333', '#a142f4',
-        '#d93025', '#188038', '#1967d2', '#e37400',
-        '#b06000', '#9334e6', '#c5221f', '#0d652d'
+        'var(--ux-home-accent)', 'var(--ux-home-warning)', 'var(--ux-home-success)', 'var(--ux-home-purple)',
+        'var(--ux-home-danger)', 'var(--ux-home-accent-emphasis)', 'var(--ux-home-warning)', 'var(--ux-home-success)',
+        'var(--ux-home-accent)', 'var(--ux-home-purple)', 'var(--ux-home-danger)', 'var(--ux-home-success)'
     ];
 
     const getCourseIconColor = (courseId) => {
@@ -5345,12 +5441,13 @@ function enhanceCourseContentsPageUI() {
 
     const injectStyle = () => {
         if (document.getElementById(STYLE_ID)) return;
+        ensureCourseColorTokens(document);
 
         const style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent = `
             body.${BODY_CLASS} {
-                background: linear-gradient(180deg, #f8fbff 0%, #f5f7fb 42%, #f5f7fb 100%);
+                background: var(--ux-home-page-bg);
                 color: #334155;
             }
 
@@ -5397,7 +5494,7 @@ function enhanceCourseContentsPageUI() {
                 padding: 12px 16px;
                 border-bottom: 1px solid #dbe4ef;
                 flex-shrink: 0;
-                background: linear-gradient(135deg, #eef4ff 0%, #f8fbff 100%);
+                background: var(--ux-home-surface);
             }
 
             body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-title {
@@ -5695,7 +5792,7 @@ function enhanceCourseContentsPageUI() {
             }
 
             body.${BODY_CLASS} .cm-contentsList .cl-contentsList_folder .panel-heading {
-                background: linear-gradient(135deg, #eef4ff 0%, #f8fbff 100%);
+                background: var(--ux-home-surface-muted);
                 border-bottom: 1px solid #dbe4ef;
                 padding-top: 12px;
                 padding-bottom: 12px;
@@ -5708,16 +5805,26 @@ function enhanceCourseContentsPageUI() {
             }
 
             body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem {
-                border-left: 0;
+                --ux-content-item-hover-bg: #f8fbff;
+                --ux-content-label-bg: #f1f5f9;
+                --ux-content-label-color: #475569;
+                --ux-content-label-border: #dbe4ef;
+                --ux-content-action-bg: #ffffff;
+                --ux-content-action-border: #d1d5db;
+                --ux-content-action-color: #6b7280;
+                --ux-content-action-hover-bg: #ffffff;
+                --ux-content-action-hover-border: #c5cad3;
+                --ux-content-action-hover-color: #6b7280;
                 border-right: 0;
                 border-color: #edf2f8;
+                border-left: 4px solid transparent;
                 padding: 14px 16px;
-                transition: background-color 0.2s ease;
+                transition: background-color 0.2s ease, border-color 0.2s ease;
                 background: #ffffff;
             }
 
             body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem:hover {
-                background: #f8fbff;
+                background: var(--ux-content-item-hover-bg);
             }
 
             body.${BODY_CLASS} .cm-contentsList .cl-contentsList_content {
@@ -5779,8 +5886,9 @@ function enhanceCourseContentsPageUI() {
                 align-items: center;
                 border-radius: 999px;
                 padding: 2px 10px;
-                background: #eaf2ff;
-                color: #1d4ed8;
+                border: 1px solid var(--ux-content-label-border);
+                background: var(--ux-content-label-bg);
+                color: var(--ux-content-label-color);
                 font-size: 12px;
                 font-weight: 600;
             }
@@ -5806,19 +5914,65 @@ function enhanceCourseContentsPageUI() {
                 justify-content: center;
                 min-height: 34px;
                 padding: 0 12px;
-                border: 1px solid #d1d5db;
+                border: 1px solid var(--ux-content-action-border);
                 border-radius: 8px;
-                background: #ffffff;
-                color: #6b7280;
+                background: var(--ux-content-action-bg);
+                color: var(--ux-content-action-color);
                 text-decoration: none;
                 font-weight: 600;
                 transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
             }
 
             body.${BODY_CLASS} .cm-contentsList .cl-contentsList_contentDetailListItemData a:hover {
-                background: #ffffff;
-                border-color: #c5cad3;
-                color: #6b7280;
+                background: var(--ux-content-action-hover-bg);
+                border-color: var(--ux-content-action-hover-border);
+                color: var(--ux-content-action-hover-color);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou {
+                --ux-content-item-hover-bg: #f4f8ff;
+                --ux-content-label-bg: #eaf2ff;
+                --ux-content-label-color: #1d4ed8;
+                --ux-content-label-border: #bfdbfe;
+                --ux-content-action-bg: #eff6ff;
+                --ux-content-action-border: #bfdbfe;
+                --ux-content-action-color: #1d4ed8;
+                --ux-content-action-hover-bg: #dbeafe;
+                --ux-content-action-hover-border: #93c5fd;
+                --ux-content-action-hover-color: #1d4ed8;
+                border-left-color: #60a5fa;
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName a {
+                color: #1e3a8a;
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName a:hover {
+                color: #2563eb;
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken {
+                --ux-content-item-hover-bg: #fff8f1;
+                --ux-content-label-bg: #fff2e8;
+                --ux-content-label-color: #c2410c;
+                --ux-content-label-border: #fdba74;
+                --ux-content-action-bg: #fff7ed;
+                --ux-content-action-border: #fdba74;
+                --ux-content-action-color: #c2410c;
+                --ux-content-action-hover-bg: #ffedd5;
+                --ux-content-action-hover-border: #fb923c;
+                --ux-content-action-hover-color: #c2410c;
+                border-left-color: #f59e0b;
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName a {
+                color: #9a3412;
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName a:hover {
+                color: #ea580c;
             }
 
             body.${BODY_CLASS} .cm-sideNav_container {
@@ -5944,12 +6098,236 @@ function enhanceCourseContentsPageUI() {
             }
         `;
 
+        style.textContent += `
+            body.${BODY_CLASS} {
+                background: var(--ux-home-page-bg);
+                color: var(--ux-home-label);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} {
+                background: var(--ux-home-surface);
+                border-right: 1px solid var(--ux-home-separator);
+                box-shadow: var(--ux-home-shadow-md);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-header {
+                background: var(--ux-home-surface);
+                border-bottom: 1px solid var(--ux-home-separator);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-title,
+            body.${BODY_CLASS} .navbar-default .navbar-brand .course-webclass,
+            body.${BODY_CLASS} .navbar-default .navbar-brand .course-name,
+            body.${BODY_CLASS} #js-contents .page-header,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_folder .panel-title {
+                color: var(--ux-home-label);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-toggle,
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-link,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > li > a,
+            body.${BODY_CLASS} .btn.btn-default,
+            body.${BODY_CLASS} .cm-sideNav_folderLink,
+            body.${BODY_CLASS} .ft-footer .ft-footer_message {
+                color: var(--ux-home-secondary-label);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-toggle:hover,
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-link:hover,
+            body.${BODY_CLASS} .ux-course-quick-nav-floating-toggle:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > li > a:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > .active > a,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > .active > a:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > .active > a:focus,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > li.open > a,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > li.open > a:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav > li.open > a:focus,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > li > a:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > li > a:focus,
+            body.${BODY_CLASS} .btn.btn-default:hover,
+            body.${BODY_CLASS} .cm-sideNav_folderLink:hover {
+                background: var(--ux-home-accent-softer);
+                color: var(--ux-home-accent-emphasis);
+                border-color: var(--ux-home-accent-soft);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-link.is-active,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > .active > a,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > .active > a:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu > .active > a:focus {
+                background: var(--ux-home-accent-soft);
+                color: var(--ux-home-accent-emphasis);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-icon {
+                color: var(--ux-home-surface);
+                box-shadow: var(--ux-home-shadow-sm);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-list-wrap::-webkit-scrollbar-thumb {
+                background: var(--ux-home-fill-strong);
+            }
+
+            body.${BODY_CLASS} #${QUICK_NAV_ID} .ux-course-quick-nav-list-wrap::-webkit-scrollbar-thumb:hover {
+                background: var(--ux-home-separator-strong);
+            }
+
+            body.${BODY_CLASS} .ux-course-quick-nav-floating-toggle,
+            body.${BODY_CLASS} .navbar.navbar-default,
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_folder,
+            body.${BODY_CLASS} .cm-sideNav_container,
+            body.${BODY_CLASS} .timeline-messages {
+                background: var(--ux-home-surface);
+                border-color: var(--ux-home-separator);
+                box-shadow: var(--ux-home-shadow-md);
+            }
+
+            body.${BODY_CLASS} .ux-course-quick-nav-floating-toggle {
+                color: var(--ux-home-label);
+            }
+
+            body.${BODY_CLASS} .navbar.navbar-default {
+                background: var(--ux-home-header-backdrop);
+                border-color: var(--ux-home-separator);
+                box-shadow: var(--ux-home-shadow-sm);
+                backdrop-filter: blur(10px);
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-brand .course-webclass:hover,
+            body.${BODY_CLASS} .navbar-default .navbar-brand .course-name:hover {
+                color: var(--ux-home-accent-emphasis);
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav .dropdown-menu .divider {
+                background: var(--ux-home-separator);
+            }
+
+            body.${BODY_CLASS} .ft-footer {
+                border-color: var(--ux-home-separator);
+                background: transparent;
+            }
+
+            body.${BODY_CLASS} #js-contents .page-header,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_folder .panel-heading {
+                border-bottom: 1px solid var(--ux-home-separator);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_folder .panel-heading {
+                background: var(--ux-home-surface-muted);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem {
+                --ux-content-item-hover-bg: var(--ux-home-accent-softer);
+                --ux-content-label-bg: var(--ux-home-surface-soft);
+                --ux-content-label-color: var(--ux-home-secondary-label);
+                --ux-content-label-border: var(--ux-home-separator);
+                --ux-content-action-bg: var(--ux-home-surface);
+                --ux-content-action-border: var(--ux-home-separator);
+                --ux-content-action-color: var(--ux-home-secondary-label);
+                --ux-content-action-hover-bg: var(--ux-home-accent-softer);
+                --ux-content-action-hover-border: var(--ux-home-accent-soft);
+                --ux-content-action-hover-color: var(--ux-home-accent-emphasis);
+                background: var(--ux-home-surface);
+                border-color: rgba(60, 60, 67, 0.08);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cm-contentsList_contentName a {
+                color: var(--ux-home-label);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cm-contentsList_contentName a:hover {
+                color: var(--ux-home-accent-emphasis);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-contents-disabled .cm-contentsList_contentName {
+                color: var(--ux-home-quaternary-label);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-contents-disabled:hover {
+                background: var(--ux-home-surface);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_new {
+                background: var(--ux-home-danger);
+                color: var(--ux-home-surface);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou {
+                --ux-content-item-hover-bg: rgba(10, 132, 255, 0.08);
+                --ux-content-label-bg: var(--ux-home-accent-soft);
+                --ux-content-label-color: var(--ux-home-accent-emphasis);
+                --ux-content-label-border: rgba(10, 132, 255, 0.22);
+                --ux-content-action-bg: rgba(10, 132, 255, 0.08);
+                --ux-content-action-border: rgba(10, 132, 255, 0.22);
+                --ux-content-action-color: var(--ux-home-accent-emphasis);
+                --ux-content-action-hover-bg: rgba(10, 132, 255, 0.14);
+                --ux-content-action-hover-border: rgba(10, 132, 255, 0.28);
+                --ux-content-action-hover-color: var(--ux-home-accent-emphasis);
+                border-left-color: var(--ux-home-accent);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName a,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiryou .cm-contentsList_contentName a:hover {
+                color: var(--ux-home-accent-emphasis);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken {
+                --ux-content-item-hover-bg: rgba(255, 159, 10, 0.1);
+                --ux-content-label-bg: var(--ux-home-warning-soft);
+                --ux-content-label-color: var(--ux-home-warning-foreground);
+                --ux-content-label-border: rgba(255, 159, 10, 0.28);
+                --ux-content-action-bg: rgba(255, 159, 10, 0.1);
+                --ux-content-action-border: rgba(255, 159, 10, 0.28);
+                --ux-content-action-color: var(--ux-home-warning-foreground);
+                --ux-content-action-hover-bg: rgba(255, 159, 10, 0.18);
+                --ux-content-action-hover-border: rgba(255, 159, 10, 0.34);
+                --ux-content-action-hover-color: var(--ux-home-warning-foreground);
+                border-left-color: var(--ux-home-warning);
+            }
+
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName a,
+            body.${BODY_CLASS} .cm-contentsList .cl-contentsList_listGroupItem.ux-content-type-shiken .cm-contentsList_contentName a:hover {
+                color: var(--ux-home-warning-foreground);
+            }
+
+            body.${BODY_CLASS} .btn.btn-default {
+                background: var(--ux-home-surface);
+                border-color: var(--ux-home-separator);
+            }
+
+            body.${BODY_CLASS} .btn.btn-primary {
+                background: var(--ux-home-accent);
+                border-color: var(--ux-home-accent);
+                color: var(--ux-home-surface);
+                box-shadow: var(--ux-home-shadow-sm);
+            }
+
+            body.${BODY_CLASS} .btn.btn-primary:hover,
+            body.${BODY_CLASS} .btn.btn-primary:focus {
+                background: var(--ux-home-accent-emphasis);
+                border-color: var(--ux-home-accent-emphasis);
+            }
+        `;
+
         (document.head || document.documentElement).appendChild(style);
     };
 
     const markDisabledContentsItems = () => {
         const items = document.querySelectorAll('.cm-contentsList .cl-contentsList_listGroupItem');
         items.forEach(item => {
+            const contentType = resolveCourseContentsItemType(item);
+            item.dataset.uxContentType = contentType;
+            item.classList.toggle('ux-content-type-shiryou', contentType === 'shiryou');
+            item.classList.toggle('ux-content-type-shiken', contentType === 'shiken');
+
+            const categoryLabel = item.querySelector('.cl-contentsList_categoryLabel');
+            if (categoryLabel) {
+                categoryLabel.dataset.uxContentType = contentType;
+            }
+
             const nameEl = item.querySelector('.cm-contentsList_contentName');
             if (!nameEl) return;
             const link = nameEl.querySelector('a[href]');
@@ -6034,7 +6412,8 @@ function init() {
         const setupTitleFrame = () => {
             // 一時的に背景色を設定して読み込み中のチラつきを防ぐ
             if (document.body) {
-                document.body.style.background = '#1365b5';
+                ensureCourseColorTokens(document);
+                document.body.style.background = 'var(--ux-home-page-bg)';
                 document.body.style.margin = '0';
             }
             log('shiryou_title frame: waiting for parent to inject header');

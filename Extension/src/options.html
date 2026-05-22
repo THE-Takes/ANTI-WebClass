@@ -11,6 +11,9 @@
 <body>
   <main class="settings-page">
     <section id="settingsRoot" class="settings-root">
+      <div class="root-header">
+        <button type="button" id="goToWebClassHome" class="back-button">‹ WebClass ホーム</button>
+      </div>
       <div class="ios-list nav-list">
         <button type="button" class="nav-item" data-open-section="home">
           <span>ホーム表示</span>
@@ -74,6 +77,34 @@
             </div>
           </div>
           <p class="helper-text setting-helper">1つのショートカットで、画面改変OFF（Plain）と画面改変ON（Switch View 2）を切り替えます。空欄で無効化できます。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">GitHub Release 通知</p>
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="extensionUpdateCheckEnabled">
+              <span class="switch-label">
+                <span class="item-title">新版を自動検出して通知する</span>
+              </span>
+              <input type="checkbox" id="extensionUpdateCheckEnabled" class="ios-switch" aria-label="新版を自動検出して通知する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="checkExtensionUpdateNow" class="btn-primary btn-block">今すぐ更新を確認</button>
+              <p id="extensionUpdateStatus" class="status-text"></p>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">GitHub Releases の最新安定版を確認します。更新通知のみ行い、zip などのダウンロードは行いません。</p>
+        </div>
+
+        <div class="setting-group debug-only-setting" hidden>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="showExtensionUpdateNotificationPreview" class="btn-primary btn-block">更新通知をテスト表示</button>
+              <p id="extensionUpdateNotificationPreviewStatus" class="status-text"></p>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">デバッグ用です。実際の更新有無に関係なく、更新通知の表示だけを確認します。</p>
         </div>
       </div>
     </section>
@@ -252,7 +283,7 @@
         <h2>ToDo API 連携</h2>
       </div>
       <div class="settings-groups">
-        <p class="setting-description">Smart ToDo と外部ToDoを同期します。Microsoft To Do / Google Tasks / Todoist / TickTick に対応しています。</p>
+        <p class="setting-description">Smart ToDo と外部ToDoを同期します。現在は TickTick のみ表示しています。</p>
 
         <div class="setting-group">
           <div class="ios-list">
@@ -273,15 +304,18 @@
             <div class="ios-item ios-item--stacked">
               <select id="todoApiProvider">
                 <option value="none">連携しない</option>
+                <!--
                 <option value="microsoft">Microsoft To Do</option>
                 <option value="google">Google Tasks</option>
                 <option value="todoist">Todoist</option>
+                -->
                 <option value="ticktick">TickTick</option>
               </select>
             </div>
           </div>
         </div>
 
+        <!--
         <div class="setting-group" id="microsoftTodoFields" style="display: none;">
           <p class="setting-title">Microsoft To Do 設定</p>
           <div class="ios-list">
@@ -347,7 +381,9 @@
             </div>
           </div>
         </div>
+        -->
 
+        <!--
         <div class="setting-group" id="googleTodoFields" style="display: none;">
           <p class="setting-title">Google Tasks 設定</p>
           <div class="ios-list">
@@ -382,7 +418,9 @@
             </div>
           </div>
         </div>
+        -->
 
+        <!--
         <div class="setting-group" id="todoistTodoFields" style="display: none;">
           <p class="setting-title">Todoist 設定</p>
           <div class="ios-list">
@@ -407,6 +445,7 @@
             </div>
           </div>
         </div>
+        -->
 
         <div class="setting-group" id="ticktickTodoFields" style="display: none;">
           <p class="setting-title">TickTick 設定</p>
@@ -454,7 +493,9 @@
             </div>
           </div>
         </div>
+        <!--
         <p id="googleTodoDueWarningText" class="helper-text helper-text--warning setting-helper" style="display: none;">Google Tasks の仕様上、期限（due）には時刻が保存されません。時刻の変更はメモ欄の <code>Current Deadline</code> を編集してください（次回同期で Smart ToDo に反映されます）。</p>
+        -->
         </div>
       </div>
     </section>
@@ -607,6 +648,10 @@
               <div class="field-grid">
                 <label class="field-label" for="password">パスワード</label>
                 <input type="password" id="password" placeholder="パスワードを入力" autocomplete="current-password">
+                <p id="autoLoginPasswordStatus" class="status-text">保存済みパスワードはありません。</p>
+                <div class="button-row">
+                  <button type="button" id="clearStoredPasswordButton" class="btn-reset">保存済みパスワードを削除</button>
+                </div>
               </div>
             </div>
           </div>

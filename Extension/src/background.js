@@ -58,6 +58,22 @@ function uxDebugWarn(...args) {
 
 uxDebugLog('WebClass UX Improver: Background script loaded');
 
+const EXTENSION_UPDATE_CHECK_ENABLED_KEY = 'extensionUpdateCheckEnabled';
+const EXTENSION_UPDATE_LAST_CHECKED_AT_KEY = 'extensionUpdateLastCheckedAt';
+const EXTENSION_UPDATE_LAST_ERROR_KEY = 'extensionUpdateLastError';
+const EXTENSION_UPDATE_LATEST_VERSION_KEY = 'extensionUpdateLatestVersion';
+const EXTENSION_UPDATE_LATEST_RELEASE_NAME_KEY = 'extensionUpdateLatestReleaseName';
+const EXTENSION_UPDATE_RELEASE_URL_KEY = 'extensionUpdateReleaseUrl';
+const EXTENSION_UPDATE_RELEASE_PUBLISHED_AT_KEY = 'extensionUpdateReleasePublishedAt';
+const EXTENSION_UPDATE_AVAILABLE_KEY = 'extensionUpdateAvailable';
+const EXTENSION_UPDATE_LAST_NOTIFIED_VERSION_KEY = 'extensionUpdateLastNotifiedVersion';
+const EXTENSION_UPDATE_ALARM_NAME = 'extensionReleaseUpdateCheck';
+const EXTENSION_UPDATE_ALARM_PERIOD_MINUTES = 360;
+const EXTENSION_UPDATE_MIN_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const EXTENSION_UPDATE_NOTIFICATION_ID = 'webclass-extension-update';
+const EXTENSION_RELEASES_API_URL = 'https://api.github.com/repos/THE-Takes/ANTI-WebClass/releases/latest';
+const EXTENSION_UPDATE_ICON_PATH = 'src/update-notice.svg';
+
 // ============================================================
 // Storage Utilities
 // ============================================================
@@ -105,6 +121,77 @@ function storageSessionRemove(keys) {
     } catch {
         return Promise.resolve();
     }
+}
+
+const AUTO_LOGIN_SESSION_DEFAULTS = {
+    username: '',
+    password: ''
+};
+const AUTO_LOGIN_SECURE_LOCAL_KEYS = ['username', 'password'];
+
+async function getStoredAutoLoginSettings() {
+    const [localSettings, sessionSecrets] = await Promise.all([
+        loadSecureLocalStrings(
+            {
+                autoLoginEnabled: false,
+                username: '',
+                password: ''
+            },
+            AUTO_LOGIN_SECURE_LOCAL_KEYS
+        ),
+        storageSessionGet(AUTO_LOGIN_SESSION_DEFAULTS)
+    ]);
+
+    const localUsername = typeof localSettings.username === 'string' ? localSettings.username.trim() : '';
+    const localPassword = typeof localSettings.password === 'string' ? localSettings.password.trim() : '';
+    const sessionUsername = typeof sessionSecrets.username === 'string' ? sessionSecrets.username.trim() : '';
+    const sessionPassword = typeof sessionSecrets.password === 'string' ? sessionSecrets.password.trim() : '';
+
+    const nextSettings = {
+        autoLoginEnabled: localSettings.autoLoginEnabled === true,
+        username: localUsername,
+        password: localPassword
+    };
+
+    const migratedSecureValues = {};
+    const legacySessionKeysToRemove = [];
+
+    if (sessionUsername) {
+        migratedSecureValues.username = await encryptSecureLocalString(sessionUsername);
+        nextSettings.username = sessionUsername;
+        legacySessionKeysToRemove.push('username');
+    }
+    if (sessionPassword) {
+        migratedSecureValues.password = await encryptSecureLocalString(sessionPassword);
+        nextSettings.password = sessionPassword;
+        legacySessionKeysToRemove.push('password');
+    }
+
+    if (Object.keys(migratedSecureValues).length > 0) {
+        await storageSet(migratedSecureValues);
+    }
+    if (legacySessionKeysToRemove.length > 0) {
+        await storageSessionRemove(legacySessionKeysToRemove);
+    }
+
+    return nextSettings;
+}
+
+function handleGetAutoLoginSettings(sendResponse) {
+    getStoredAutoLoginSettings()
+        .then((settings) => {
+            sendResponse({
+                success: true,
+                settings
+            });
+        })
+        .catch((error) => {
+            uxDebugWarn('[WebClass UX] Failed to resolve auto-login settings', error);
+            sendResponse({
+                success: false,
+                error: error?.message || 'Failed to resolve auto-login settings.'
+            });
+        });
 }
 
 function isEncryptedSecureStorageValue(value) {
@@ -164,6 +251,223 @@ async function loadSecureLocalStrings(defaults, secureKeys = []) {
     return normalized;
 }
 
+function normalizeReleaseVersion(rawVersion) {
+    const trimmed = typeof rawVersion === 'string' ? rawVersion.trim() : '';
+    return trimmed.replace(/^[vV]/, '');
+}
+
+function compareVersions(left, right) {
+    const leftParts = normalizeReleaseVersion(left).split('.');
+    const rightParts = normalizeReleaseVersion(right).split('.');
+    const maxLength = Math.max(leftParts.length, rightParts.length);
+
+    for (let index = 0; index < maxLength; index += 1) {
+        const leftPart = leftParts[index] ?? '0';
+        const rightPart = rightParts[index] ?? '0';
+        const leftNumber = /^\d+$/.test(leftPart) ? parseInt(leftPart, 10) : 0;
+        const rightNumber = /^\d+$/.test(rightPart) ? parseInt(rightPart, 10) : 0;
+        if (leftNumber !== rightNumber) {
+            return leftNumber > rightNumber ? 1 : -1;
+        }
+        if (!/^\d+$/.test(leftPart) || !/^\d+$/.test(rightPart)) {
+            const lexicalCompare = leftPart.localeCompare(rightPart);
+            if (lexicalCompare !== 0) {
+                return lexicalCompare > 0 ? 1 : -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+function getExtensionUpdateStorageDefaults() {
+    return {
+        [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: true,
+        [EXTENSION_UPDATE_LAST_CHECKED_AT_KEY]: '',
+        [EXTENSION_UPDATE_LAST_ERROR_KEY]: '',
+        [EXTENSION_UPDATE_LATEST_VERSION_KEY]: '',
+        [EXTENSION_UPDATE_LATEST_RELEASE_NAME_KEY]: '',
+        [EXTENSION_UPDATE_RELEASE_URL_KEY]: '',
+        [EXTENSION_UPDATE_RELEASE_PUBLISHED_AT_KEY]: '',
+        [EXTENSION_UPDATE_AVAILABLE_KEY]: false,
+        [EXTENSION_UPDATE_LAST_NOTIFIED_VERSION_KEY]: ''
+    };
+}
+
+function buildExtensionUpdateStatus(items = {}) {
+    const manifestVersion = chrome.runtime.getManifest().version;
+    return {
+        enabled: items[EXTENSION_UPDATE_CHECK_ENABLED_KEY] !== false,
+        currentVersion: manifestVersion,
+        latestVersion: items[EXTENSION_UPDATE_LATEST_VERSION_KEY] || '',
+        latestReleaseName: items[EXTENSION_UPDATE_LATEST_RELEASE_NAME_KEY] || '',
+        releaseUrl: items[EXTENSION_UPDATE_RELEASE_URL_KEY] || '',
+        publishedAt: items[EXTENSION_UPDATE_RELEASE_PUBLISHED_AT_KEY] || '',
+        lastCheckedAt: items[EXTENSION_UPDATE_LAST_CHECKED_AT_KEY] || '',
+        error: items[EXTENSION_UPDATE_LAST_ERROR_KEY] || '',
+        updateAvailable: items[EXTENSION_UPDATE_AVAILABLE_KEY] === true
+    };
+}
+
+async function readExtensionUpdateStatus() {
+    const items = await storageGet(getExtensionUpdateStorageDefaults());
+    return buildExtensionUpdateStatus(items);
+}
+
+function setExtensionUpdateBadge(updateAvailable) {
+    if (!chrome?.action?.setBadgeText || !chrome?.action?.setBadgeBackgroundColor) return;
+    chrome.action.setBadgeText({ text: updateAvailable ? 'NEW' : '' });
+    if (updateAvailable) {
+        chrome.action.setBadgeBackgroundColor({ color: '#d93025' });
+    }
+}
+
+function clearExtensionUpdateNotification() {
+    if (!chrome?.notifications?.clear) return;
+    chrome.notifications.clear(EXTENSION_UPDATE_NOTIFICATION_ID, () => {
+        void chrome.runtime?.lastError;
+    });
+}
+
+function showExtensionUpdateNotification(status) {
+    if (!chrome?.notifications?.create || !status?.latestVersion) return;
+    chrome.notifications.create(EXTENSION_UPDATE_NOTIFICATION_ID, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL(EXTENSION_UPDATE_ICON_PATH),
+        title: 'ANTI-WebClass update available',
+        message: `v${status.latestVersion} is available. Current version is v${status.currentVersion}.`,
+        priority: 2
+    }, () => {
+        if (chrome.runtime?.lastError) {
+            uxDebugWarn('[WebClass UX] Failed to show extension update notification', chrome.runtime.lastError);
+        }
+    });
+}
+
+async function showExtensionUpdateNotificationPreview() {
+    const status = await readExtensionUpdateStatus();
+    const latestVersion = status.latestVersion || status.currentVersion || 'preview';
+    if (!chrome?.notifications?.create) return;
+    chrome.notifications.create(EXTENSION_UPDATE_NOTIFICATION_ID, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL(EXTENSION_UPDATE_ICON_PATH),
+        title: 'ANTI-WebClass update available',
+        message: `Debug preview: v${latestVersion} update notification.`,
+        priority: 2
+    }, () => {
+        if (chrome.runtime?.lastError) {
+            uxDebugWarn('[WebClass UX] Failed to show extension update preview notification', chrome.runtime.lastError);
+        }
+    });
+}
+
+async function fetchLatestExtensionRelease() {
+    const response = await fetch(EXTENSION_RELEASES_API_URL, {
+        headers: {
+            'Accept': 'application/vnd.github+json'
+        },
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        if (response.status === 404) {
+            throw new Error('No published GitHub release was found yet.');
+        }
+        const errorText = await response.text();
+        throw new Error(`GitHub Releases API error (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    const latestVersion = normalizeReleaseVersion(data?.tag_name || data?.name || '');
+    if (!latestVersion) {
+        throw new Error('Latest release version could not be determined.');
+    }
+
+    return {
+        latestVersion,
+        latestReleaseName: typeof data?.name === 'string' ? data.name.trim() : '',
+        releaseUrl: typeof data?.html_url === 'string' ? data.html_url.trim() : '',
+        publishedAt: typeof data?.published_at === 'string' ? data.published_at : ''
+    };
+}
+
+async function checkForExtensionUpdate({ force = false } = {}) {
+    const items = await storageGet(getExtensionUpdateStorageDefaults());
+    const enabled = items[EXTENSION_UPDATE_CHECK_ENABLED_KEY] !== false;
+    if (!enabled) {
+        setExtensionUpdateBadge(false);
+        clearExtensionUpdateNotification();
+        const disabledStatus = buildExtensionUpdateStatus(items);
+        disabledStatus.updateAvailable = false;
+        return disabledStatus;
+    }
+
+    const lastCheckedAt = Date.parse(items[EXTENSION_UPDATE_LAST_CHECKED_AT_KEY] || '');
+    if (!force && Number.isFinite(lastCheckedAt) && (Date.now() - lastCheckedAt) < EXTENSION_UPDATE_MIN_CHECK_INTERVAL_MS) {
+        const cachedStatus = buildExtensionUpdateStatus(items);
+        setExtensionUpdateBadge(cachedStatus.updateAvailable);
+        return cachedStatus;
+    }
+
+    try {
+        const latestRelease = await fetchLatestExtensionRelease();
+        const currentVersion = chrome.runtime.getManifest().version;
+        const updateAvailable = compareVersions(latestRelease.latestVersion, currentVersion) > 0;
+
+        const nextItems = {
+            [EXTENSION_UPDATE_LAST_CHECKED_AT_KEY]: new Date().toISOString(),
+            [EXTENSION_UPDATE_LAST_ERROR_KEY]: '',
+            [EXTENSION_UPDATE_LATEST_VERSION_KEY]: latestRelease.latestVersion,
+            [EXTENSION_UPDATE_LATEST_RELEASE_NAME_KEY]: latestRelease.latestReleaseName,
+            [EXTENSION_UPDATE_RELEASE_URL_KEY]: latestRelease.releaseUrl,
+            [EXTENSION_UPDATE_RELEASE_PUBLISHED_AT_KEY]: latestRelease.publishedAt,
+            [EXTENSION_UPDATE_AVAILABLE_KEY]: updateAvailable
+        };
+
+        if (updateAvailable && items[EXTENSION_UPDATE_LAST_NOTIFIED_VERSION_KEY] !== latestRelease.latestVersion) {
+            nextItems[EXTENSION_UPDATE_LAST_NOTIFIED_VERSION_KEY] = latestRelease.latestVersion;
+        }
+
+        await storageSet(nextItems);
+
+        const status = buildExtensionUpdateStatus({
+            ...items,
+            ...nextItems
+        });
+
+        setExtensionUpdateBadge(status.updateAvailable);
+        if (status.updateAvailable) {
+            if (items[EXTENSION_UPDATE_LAST_NOTIFIED_VERSION_KEY] !== latestRelease.latestVersion) {
+                showExtensionUpdateNotification(status);
+            }
+        } else {
+            clearExtensionUpdateNotification();
+        }
+
+        return status;
+    } catch (error) {
+        const errorMessage = error?.message || 'Failed to check extension updates.';
+        await storageSet({
+            [EXTENSION_UPDATE_LAST_CHECKED_AT_KEY]: new Date().toISOString(),
+            [EXTENSION_UPDATE_LAST_ERROR_KEY]: errorMessage
+        });
+        const errorStatus = buildExtensionUpdateStatus({
+            ...items,
+            [EXTENSION_UPDATE_LAST_CHECKED_AT_KEY]: new Date().toISOString(),
+            [EXTENSION_UPDATE_LAST_ERROR_KEY]: errorMessage
+        });
+        setExtensionUpdateBadge(errorStatus.updateAvailable);
+        return errorStatus;
+    }
+}
+
+function ensureExtensionUpdateAlarmRegistered() {
+    if (!chrome?.alarms?.create) return;
+    chrome.alarms.create(EXTENSION_UPDATE_ALARM_NAME, {
+        periodInMinutes: EXTENSION_UPDATE_ALARM_PERIOD_MINUTES
+    });
+}
+
 // ============================================================
 // OpenAI Course Name Shortening (Switch View 2)
 // ============================================================
@@ -206,6 +510,7 @@ const TICKTICK_TODO_PROJECT_NAME_KEY = 'ticktickTodoProjectName';
 const TICKTICK_TODO_PROJECT_ID_KEY = 'ticktickTodoProjectId';
 const TICKTICK_TODO_AUTH_KEY = 'ticktickTodoAuth'; // legacy local key (migration only)
 const TICKTICK_TODO_AUTH_SESSION_KEY = 'ticktickTodoAuthSession';
+const TICKTICK_TODO_AUTH_LOCAL_KEY = 'ticktickTodoAuthLocal';
 const TICKTICK_TODO_REFRESH_TOKEN_KEY = 'ticktickTodoRefreshToken';
 const ASSIGNMENTS_STORAGE_KEY = 'assignments';
 const TODO_TRASH_STORAGE_KEY = 'webclass_todo_trash';
@@ -235,6 +540,8 @@ const TODO_TITLE_FORMAT_ULTRA_SHORT = 'ultra_short_plus_task';
 const MS_TODO_REMINDER_TIME_MODE_AT_9AM = 'at_9am';
 const MS_TODO_REMINDER_TIME_MODE_EXACT_OFFSET = 'exact_offset';
 const MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE = 1;
+const pendingDownloads = new Map();
+const urlToFilename = new Map();
 const todoSyncRuntimeState = {
     running: false,
     lastRunAt: 0
@@ -326,6 +633,21 @@ function normalizeSessionAuthState(raw) {
         tokenType: typeof raw.tokenType === 'string' && raw.tokenType ? raw.tokenType : 'Bearer',
         obtainedAt: typeof raw.obtainedAt === 'string' ? raw.obtainedAt : ''
     };
+}
+
+async function encodePersistedSessionAuth(auth) {
+    const normalized = normalizeSessionAuthState(auth);
+    if (!normalized) return '';
+    return encryptSecureLocalString(JSON.stringify(normalized));
+}
+
+function parsePersistedSessionAuth(rawValue) {
+    if (typeof rawValue !== 'string' || !rawValue.trim()) return null;
+    try {
+        return normalizeSessionAuthState(JSON.parse(rawValue));
+    } catch {
+        return null;
+    }
 }
 
 function extractCourseIdFromUrl(rawUrl) {
@@ -2323,11 +2645,11 @@ async function runGoogleTodoSync({ mode = 'full', trigger = 'manual', localMutat
 
 async function getTodoistAuthSettings() {
     const [localData, sessionData] = await Promise.all([
-        storageGet({
+        loadSecureLocalStrings({
             [TODO_API_PROVIDER_KEY]: 'none',
             [TODOIST_TODO_API_TOKEN_KEY]: '',
             [TODOIST_TODO_PROJECT_NAME_KEY]: TODOIST_DEFAULT_PROJECT_NAME
-        }),
+        }, [TODOIST_TODO_API_TOKEN_KEY]),
         storageSessionGet({
             [TODOIST_TODO_API_TOKEN_KEY]: ''
         })
@@ -2340,16 +2662,21 @@ async function getTodoistAuthSettings() {
         ? localData[TODOIST_TODO_API_TOKEN_KEY].trim()
         : '';
 
-    if (!sessionToken && localToken) {
-        await Promise.all([
-            storageSessionSet({ [TODOIST_TODO_API_TOKEN_KEY]: localToken }),
-            storageSet({ [TODOIST_TODO_API_TOKEN_KEY]: '' })
-        ]);
+    if (sessionToken) {
+        const syncTasks = [storageSessionRemove([TODOIST_TODO_API_TOKEN_KEY])];
+        if (!localToken) {
+            syncTasks.push(
+                encryptSecureLocalString(sessionToken).then((encryptedToken) => storageSet({
+                    [TODOIST_TODO_API_TOKEN_KEY]: encryptedToken
+                }))
+            );
+        }
+        await Promise.all(syncTasks);
     }
 
     return {
         ...localData,
-        [TODOIST_TODO_API_TOKEN_KEY]: sessionToken || localToken
+        [TODOIST_TODO_API_TOKEN_KEY]: localToken || sessionToken
     };
 }
 
@@ -2589,16 +2916,25 @@ async function runTodoistTodoSync({ mode = 'full', trigger = 'manual', localMuta
         const normalizedMode = mode === 'local_mutation' || mode === 'pull_only'
             ? mode
             : 'full';
-        const syncSettings = await storageGet({
-            [TODO_API_PROVIDER_KEY]: 'none',
-            [TODO_API_TASK_TITLE_FORMAT_KEY]: TODO_TITLE_FORMAT_TASK_ONLY,
-            [TODO_API_ULTRA_SHORT_MAP_KEY]: {},
-            [TODOIST_TODO_PROJECT_NAME_KEY]: TODOIST_DEFAULT_PROJECT_NAME,
-            [TODOIST_TODO_API_TOKEN_KEY]: '',
-            [TODOIST_TODO_PROJECT_ID_KEY]: '',
-            [ASSIGNMENTS_STORAGE_KEY]: [],
-            [TODO_TRASH_STORAGE_KEY]: [],
-        });
+        const [todoistAuthSettings, syncSettingsBase] = await Promise.all([
+            getTodoistAuthSettings(),
+            storageGet({
+                [TODO_API_PROVIDER_KEY]: 'none',
+                [TODO_API_TASK_TITLE_FORMAT_KEY]: TODO_TITLE_FORMAT_TASK_ONLY,
+                [TODO_API_ULTRA_SHORT_MAP_KEY]: {},
+                [TODOIST_TODO_PROJECT_NAME_KEY]: TODOIST_DEFAULT_PROJECT_NAME,
+                [TODOIST_TODO_PROJECT_ID_KEY]: '',
+                [ASSIGNMENTS_STORAGE_KEY]: [],
+                [TODO_TRASH_STORAGE_KEY]: [],
+            })
+        ]);
+        const syncSettings = {
+            ...syncSettingsBase,
+            [TODO_API_PROVIDER_KEY]: todoistAuthSettings[TODO_API_PROVIDER_KEY] || syncSettingsBase[TODO_API_PROVIDER_KEY],
+            [TODOIST_TODO_API_TOKEN_KEY]: todoistAuthSettings[TODOIST_TODO_API_TOKEN_KEY] || '',
+            [TODOIST_TODO_PROJECT_NAME_KEY]:
+                todoistAuthSettings[TODOIST_TODO_PROJECT_NAME_KEY] || syncSettingsBase[TODOIST_TODO_PROJECT_NAME_KEY]
+        };
 
         if (syncSettings[TODO_API_PROVIDER_KEY] !== 'todoist') {
             return { success: true, skipped: true, reason: 'provider_disabled' };
@@ -2870,13 +3206,29 @@ async function getTickTickAuthSettings() {
             [TICKTICK_TODO_CLIENT_SECRET_KEY]: '',
             [TICKTICK_TODO_PROJECT_NAME_KEY]: TICKTICK_DEFAULT_PROJECT_NAME,
             [TICKTICK_TODO_PROJECT_ID_KEY]: '',
+            [TICKTICK_TODO_AUTH_LOCAL_KEY]: '',
             [TICKTICK_TODO_REFRESH_TOKEN_KEY]: '',
             [TICKTICK_TODO_AUTH_KEY]: null
-        }, [TICKTICK_TODO_CLIENT_SECRET_KEY]),
+        }, [TICKTICK_TODO_CLIENT_SECRET_KEY, TICKTICK_TODO_AUTH_LOCAL_KEY]),
         storageSessionGet({
             [TICKTICK_TODO_AUTH_SESSION_KEY]: null
         })
     ]);
+
+    const sessionAuth = normalizeSessionAuthState(sessionData[TICKTICK_TODO_AUTH_SESSION_KEY]);
+    const persistedAuth = parsePersistedSessionAuth(localData[TICKTICK_TODO_AUTH_LOCAL_KEY]);
+    const legacyAuth = normalizeSessionAuthState(localData[TICKTICK_TODO_AUTH_KEY]);
+    if (!persistedAuth && (sessionAuth || legacyAuth)) {
+        const encodedAuth = await encodePersistedSessionAuth(sessionAuth || legacyAuth);
+        if (encodedAuth) {
+            await storageSet({
+                [TICKTICK_TODO_AUTH_LOCAL_KEY]: encodedAuth,
+                [TICKTICK_TODO_AUTH_KEY]: null
+            });
+            localData[TICKTICK_TODO_AUTH_LOCAL_KEY] = JSON.stringify(sessionAuth || legacyAuth);
+        }
+    }
+
     return {
         ...localData,
         ...sessionData
@@ -2963,8 +3315,13 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
     const { clientId, clientSecret } = getTickTickOauthCredentials(settings);
 
     const sessionAuth = normalizeSessionAuthState(settings[TICKTICK_TODO_AUTH_SESSION_KEY]);
+    const persistedAuth = parsePersistedSessionAuth(settings[TICKTICK_TODO_AUTH_LOCAL_KEY]);
     if (!forceRefresh && isAuthTokenUsable(sessionAuth)) {
         return sessionAuth.accessToken;
+    }
+    if (!forceRefresh && isAuthTokenUsable(persistedAuth)) {
+        await storageSessionSet({ [TICKTICK_TODO_AUTH_SESSION_KEY]: persistedAuth });
+        return persistedAuth.accessToken;
     }
 
     let refreshToken = typeof settings[TICKTICK_TODO_REFRESH_TOKEN_KEY] === 'string'
@@ -3011,6 +3368,7 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
         storageSessionSet({ [TICKTICK_TODO_AUTH_SESSION_KEY]: nextAuth }),
         storageSet({
             [TICKTICK_TODO_AUTH_KEY]: null,
+            [TICKTICK_TODO_AUTH_LOCAL_KEY]: await encodePersistedSessionAuth(nextAuth),
             [TICKTICK_TODO_REFRESH_TOKEN_KEY]: refreshToken
         })
     ]);
@@ -3884,35 +4242,20 @@ async function handleGoogleTodoRunSync(message, sendResponse) {
 
 async function handleTodoistTodoConnect(sendResponse) {
     try {
-        const [localSettings, sessionSettings] = await Promise.all([
-            storageGet({
-                [TODO_API_PROVIDER_KEY]: 'none',
-                [TODOIST_TODO_API_TOKEN_KEY]: '',
-                [TODOIST_TODO_PROJECT_NAME_KEY]: TODOIST_DEFAULT_PROJECT_NAME
-            }),
-            storageSessionGet({
-                [TODOIST_TODO_API_TOKEN_KEY]: ''
-            })
-        ]);
+        const settings = await getTodoistAuthSettings();
 
-        const apiToken = (sessionSettings[TODOIST_TODO_API_TOKEN_KEY] || localSettings[TODOIST_TODO_API_TOKEN_KEY] || '').trim();
-        const projectName = (localSettings[TODOIST_TODO_PROJECT_NAME_KEY] || TODOIST_DEFAULT_PROJECT_NAME).trim()
+        const apiToken = (settings[TODOIST_TODO_API_TOKEN_KEY] || '').trim();
+        const projectName = (settings[TODOIST_TODO_PROJECT_NAME_KEY] || TODOIST_DEFAULT_PROJECT_NAME).trim()
             || TODOIST_DEFAULT_PROJECT_NAME;
         if (!apiToken) {
             sendResponse({ success: false, error: 'Todoist Personal Token is required.' });
             return;
         }
 
-        await Promise.all([
-            storageSet({
-                [TODO_API_PROVIDER_KEY]: 'todoist',
-                [TODOIST_TODO_API_TOKEN_KEY]: '',
-                [TODOIST_TODO_PROJECT_NAME_KEY]: projectName
-            }),
-            storageSessionSet({
-                [TODOIST_TODO_API_TOKEN_KEY]: apiToken
-            })
-        ]);
+        await storageSet({
+            [TODO_API_PROVIDER_KEY]: 'todoist',
+            [TODOIST_TODO_PROJECT_NAME_KEY]: projectName
+        });
 
         const projectInfo = await ensureTodoistDedicatedProject();
         sendResponse({
@@ -4076,6 +4419,7 @@ async function handleTickTickTodoConnect(sendResponse) {
             storageSet({
                 [TODO_API_PROVIDER_KEY]: 'ticktick',
                 [TICKTICK_TODO_AUTH_KEY]: null,
+                [TICKTICK_TODO_AUTH_LOCAL_KEY]: await encodePersistedSessionAuth(sessionAuth),
                 [TICKTICK_TODO_REFRESH_TOKEN_KEY]: refreshToken,
                 [TICKTICK_TODO_PROJECT_NAME_KEY]: projectName,
                 [TICKTICK_TODO_CLIENT_ID_KEY]: clientId,
@@ -4098,6 +4442,7 @@ async function handleTickTickTodoConnect(sendResponse) {
             storageSet({
                 [TODO_API_PROVIDER_KEY]: 'none',
                 [TICKTICK_TODO_AUTH_KEY]: null,
+                [TICKTICK_TODO_AUTH_LOCAL_KEY]: '',
                 [TICKTICK_TODO_REFRESH_TOKEN_KEY]: '',
                 [TICKTICK_TODO_PROJECT_ID_KEY]: '',
             }),
@@ -4114,6 +4459,7 @@ async function handleTickTickTodoDisconnect(sendResponse) {
             storageSet({
                 [TODO_API_PROVIDER_KEY]: 'none',
                 [TICKTICK_TODO_AUTH_KEY]: null,
+                [TICKTICK_TODO_AUTH_LOCAL_KEY]: '',
                 [TICKTICK_TODO_REFRESH_TOKEN_KEY]: '',
                 [TICKTICK_TODO_PROJECT_ID_KEY]: '',
             }),
@@ -4139,9 +4485,10 @@ async function handleTickTickTodoGetStatus(sendResponse) {
             && localData[TICKTICK_TODO_REFRESH_TOKEN_KEY].trim().length > 0;
 
         const sessionAuth = normalizeSessionAuthState(localData[TICKTICK_TODO_AUTH_SESSION_KEY]);
+        const persistedAuth = parsePersistedSessionAuth(localData[TICKTICK_TODO_AUTH_LOCAL_KEY]);
         const connected = provider === 'ticktick'
             && hasCredentials
-            && (isAuthTokenUsable(sessionAuth) || hasRefreshToken);
+            && (isAuthTokenUsable(sessionAuth) || isAuthTokenUsable(persistedAuth) || hasRefreshToken);
 
         sendResponse({
             success: true,
@@ -4299,24 +4646,75 @@ function ensureTodoSyncAlarmRegistered() {
 
 chrome.runtime.onInstalled.addListener(() => {
     ensureTodoSyncAlarmRegistered();
+    ensureExtensionUpdateAlarmRegistered();
+    checkForExtensionUpdate({ force: true }).catch((error) => {
+        uxDebugWarn('[WebClass UX] extension update check on install failed', error);
+    });
 });
 
 chrome.runtime.onStartup.addListener(() => {
     ensureTodoSyncAlarmRegistered();
+    ensureExtensionUpdateAlarmRegistered();
+    checkForExtensionUpdate().catch((error) => {
+        uxDebugWarn('[WebClass UX] extension update check on startup failed', error);
+    });
 });
 
 if (chrome?.alarms?.onAlarm?.addListener) {
     chrome.alarms.onAlarm.addListener((alarm) => {
-        if (!alarm || alarm.name !== TODO_SYNC_ALARM_NAME) return;
-        handleTodoSyncAlarmTick().catch((error) => {
-            uxDebugWarn('[WebClass UX] todo sync alarm failed', error);
-        });
+        if (!alarm?.name) return;
+        if (alarm.name === TODO_SYNC_ALARM_NAME) {
+            handleTodoSyncAlarmTick().catch((error) => {
+                uxDebugWarn('[WebClass UX] todo sync alarm failed', error);
+            });
+            return;
+        }
+        if (alarm.name === EXTENSION_UPDATE_ALARM_NAME) {
+            checkForExtensionUpdate().catch((error) => {
+                uxDebugWarn('[WebClass UX] extension update alarm failed', error);
+            });
+        }
     });
 } else {
     uxDebugWarn('[WebClass UX] chrome.alarms.onAlarm API is unavailable; skipping alarm listener registration.');
 }
 
 ensureTodoSyncAlarmRegistered();
+ensureExtensionUpdateAlarmRegistered();
+checkForExtensionUpdate().catch((error) => {
+    uxDebugWarn('[WebClass UX] initial extension update check failed', error);
+});
+
+if (chrome?.notifications?.onClicked?.addListener) {
+    chrome.notifications.onClicked.addListener((notificationId) => {
+        if (notificationId !== EXTENSION_UPDATE_NOTIFICATION_ID) return;
+        clearExtensionUpdateNotification();
+        if (chrome.runtime?.openOptionsPage) {
+            chrome.runtime.openOptionsPage(() => {
+                void chrome.runtime?.lastError;
+            });
+            return;
+        }
+        chrome.tabs.create({ url: chrome.runtime.getURL('src/options.html') }, () => {
+            void chrome.runtime?.lastError;
+        });
+    });
+}
+
+if (chrome?.storage?.onChanged?.addListener) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local' || !changes[EXTENSION_UPDATE_CHECK_ENABLED_KEY]) return;
+        const enabled = changes[EXTENSION_UPDATE_CHECK_ENABLED_KEY].newValue !== false;
+        if (!enabled) {
+            setExtensionUpdateBadge(false);
+            clearExtensionUpdateNotification();
+            return;
+        }
+        checkForExtensionUpdate({ force: true }).catch((error) => {
+            uxDebugWarn('[WebClass UX] extension update check after enabling failed', error);
+        });
+    });
+}
 
 // ============================================================
 // OpenAI Course Name Shortening
@@ -4696,6 +5094,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message?.type) return false;
 
     switch (message.type) {
+        case 'GET_AUTO_LOGIN_SETTINGS':
+            handleGetAutoLoginSettings(sendResponse);
+            return true;
         case 'MICROSOFT_TODO_CONNECT':
             handleMicrosoftTodoConnect(sendResponse);
             return true;
@@ -4746,6 +5147,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
         case 'DOWNLOAD_FILE':
             handleDownloadFile(message, sender, sendResponse);
+            return true;
+        case 'GET_EXTENSION_UPDATE_STATUS':
+            readExtensionUpdateStatus()
+                .then((status) => {
+                    sendResponse({ success: true, status });
+                })
+                .catch((error) => {
+                    sendResponse({ success: false, error: error?.message || 'Failed to read update status.' });
+                });
+            return true;
+        case 'CHECK_EXTENSION_UPDATE_NOW':
+            checkForExtensionUpdate({ force: true })
+                .then((status) => {
+                    sendResponse({ success: true, status });
+                })
+                .catch((error) => {
+                    sendResponse({ success: false, error: error?.message || 'Failed to check updates.' });
+                });
+            return true;
+        case 'SHOW_EXTENSION_UPDATE_NOTIFICATION_PREVIEW':
+            showExtensionUpdateNotificationPreview()
+                .then(() => {
+                    sendResponse({ success: true });
+                })
+                .catch((error) => {
+                    sendResponse({ success: false, error: error?.message || 'Failed to show update preview.' });
+                });
             return true;
         case 'OPEN_OPTIONS_PAGE_FALLBACK':
             if (chrome.runtime?.openOptionsPage) {

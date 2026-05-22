@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Update available">
+  <rect width="128" height="128" rx="28" fill="#0a84ff"/>
+  <path d="M64 24c-15.4 0-28 12.6-28 28v16H22l42 42 42-42H92V52c0-15.4-12.6-28-28-28Z" fill="#ffffff"/>
+</svg>
