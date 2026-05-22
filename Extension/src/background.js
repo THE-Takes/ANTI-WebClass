@@ -292,16 +292,21 @@ function isAuthTokenUsable(auth) {
     return Number(auth.expiresAt) > Date.now();
 }
 
-function buildSessionAuthStateFromToken(token, fallbackScope = '') {
+function buildSessionAuthStateFromToken(token, fallbackScope = '', options = {}) {
     if (!token || typeof token !== 'object') return null;
     const accessToken = typeof token.access_token === 'string'
         ? token.access_token.trim()
         : '';
     if (!accessToken) return null;
+    const parsedExpiry = Number(token.expires_in);
+    const hasExplicitExpiry = Number.isFinite(parsedExpiry) && parsedExpiry > 0;
+    const expiresAt = hasExplicitExpiry
+        ? computeExpiryTimestamp(parsedExpiry)
+        : (options.allowMissingExpiry ? 0 : computeExpiryTimestamp(undefined));
     return {
         accessToken,
         refreshToken: '',
-        expiresAt: computeExpiryTimestamp(token.expires_in),
+        expiresAt,
         scope: token.scope || fallbackScope || '',
         tokenType: token.token_type || 'Bearer',
         obtainedAt: new Date().toISOString()
@@ -2976,7 +2981,10 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
     }
 
     if (!refreshToken) {
-        throw new Error('TickTick refresh token is not configured. Reconnect TickTick.');
+        if (sessionAuth?.accessToken) {
+            throw new Error('TickTick access token can no longer be refreshed. Reconnect TickTick.');
+        }
+        throw new Error('TickTick authentication is not configured. Reconnect TickTick.');
     }
 
     const refreshed = await refreshTickTickAccessToken({
@@ -2985,7 +2993,11 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
         refreshToken,
         scope: TICKTICK_OAUTH_SCOPE
     });
-    const nextAuth = buildSessionAuthStateFromToken(refreshed, TICKTICK_OAUTH_SCOPE);
+    const nextAuth = buildSessionAuthStateFromToken(
+        refreshed,
+        TICKTICK_OAUTH_SCOPE,
+        { allowMissingExpiry: true }
+    );
     if (!nextAuth) {
         throw new Error('TickTick token refresh did not return a usable access token.');
     }
@@ -3183,7 +3195,7 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
         const normalizedMode = mode === 'local_mutation' || mode === 'pull_only'
             ? mode
             : 'full';
-        const syncSettings = await storageGet({
+        const syncSettings = await loadSecureLocalStrings({
             [TODO_API_PROVIDER_KEY]: 'none',
             [TODO_API_TASK_TITLE_FORMAT_KEY]: TODO_TITLE_FORMAT_TASK_ONLY,
             [TODO_API_ULTRA_SHORT_MAP_KEY]: {},
@@ -3193,7 +3205,7 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             [TICKTICK_TODO_CLIENT_SECRET_KEY]: '',
             [ASSIGNMENTS_STORAGE_KEY]: [],
             [TODO_TRASH_STORAGE_KEY]: [],
-        });
+        }, [TICKTICK_TODO_CLIENT_SECRET_KEY]);
 
         if (syncSettings[TODO_API_PROVIDER_KEY] !== 'ticktick') {
             return { success: true, skipped: true, reason: 'provider_disabled' };
@@ -4050,11 +4062,11 @@ async function handleTickTickTodoConnect(sendResponse) {
             redirectUri
         });
         const refreshToken = typeof token?.refresh_token === 'string' ? token.refresh_token.trim() : '';
-        if (!refreshToken) {
-            throw new Error('TickTick refresh token was not returned.');
-        }
-
-        const sessionAuth = buildSessionAuthStateFromToken(token, TICKTICK_OAUTH_SCOPE);
+        const sessionAuth = buildSessionAuthStateFromToken(
+            token,
+            TICKTICK_OAUTH_SCOPE,
+            { allowMissingExpiry: true }
+        );
         if (!sessionAuth) {
             throw new Error('TickTick access token was not returned.');
         }
