@@ -519,19 +519,42 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-dashboard-v2-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
   padding: 10px 20px;
+  box-sizing: border-box;
   text-decoration: none;
   color: var(--ux-home-secondary-label);
   border-radius: 8px;
   font-weight: 500;
   font-size: 0.95rem;
   line-height: 1.4;
+  white-space: nowrap;
+  outline: none;
   transition: all 0.2s;
+}
+
+.ux-dashboard-v2-tab,
+.ux-dashboard-v2-tab:link,
+.ux-dashboard-v2-tab:visited,
+.ux-dashboard-v2-tab:hover,
+.ux-dashboard-v2-tab:focus,
+.ux-dashboard-v2-tab:active,
+.ux-dashboard-v2-tab * {
+  text-decoration: none !important;
 }
 
 .ux-dashboard-v2-tab:hover {
   background: var(--ux-home-fill);
   color: var(--ux-home-label);
+}
+
+.ux-dashboard-v2-tab:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.28);
 }
 
 .ux-dashboard-v2-tab.active {
@@ -540,58 +563,40 @@ body.ux-dashboard-v2-mode {
   box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.12);
 }
 
-.ux-dashboard-v2-header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
+.ux-dashboard-v2-tab.active:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.12);
 }
 
-.ux-dashboard-v2-bell {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 42px;
-  height: 42px;
-  padding: 0 14px;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--ux-home-label);
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.ux-dashboard-v2-bell:hover {
-  background: var(--ux-home-accent-soft);
-  border-color: rgba(10, 132, 255, 0.18);
-  color: var(--ux-home-accent-emphasis);
-}
-
-.ux-dashboard-v2-bell.has-unread {
-  border-color: rgba(255, 69, 58, 0.2);
-  background: var(--ux-home-danger-soft);
+.ux-dashboard-v2-tab.has-unread {
   color: var(--ux-home-danger-foreground);
-  box-shadow: 0 0 0 3px rgba(255, 69, 58, 0.1);
 }
 
-.ux-dashboard-v2-bell-badge {
-  position: absolute;
-  top: -7px;
-  right: -5px;
+.ux-dashboard-v2-tab-badge {
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  box-sizing: border-box;
   border-radius: 999px;
   background: var(--ux-home-danger);
   color: #fff;
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 6px 16px rgba(255, 69, 58, 0.28);
+  box-shadow: 0 6px 16px rgba(255, 69, 58, 0.22);
+}
+
+.ux-dashboard-v2-tab-badge[hidden] {
+  display: none;
+}
+
+.ux-dashboard-v2-header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .ux-message-debug-btn {
@@ -611,125 +616,149 @@ body.ux-dashboard-v2-mode {
   border-color: rgba(255, 69, 58, 0.28);
 }
 
-.ux-home-message-dock {
-  position: fixed;
-  left: 20px;
-  bottom: 20px;
-  z-index: 9998;
+.ux-dashboard-v2-messages {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.ux-home-message-debug-fab {
-  box-shadow: var(--ux-home-shadow-md);
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.ux-home-message-fab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 58px;
-  height: 58px;
-  border: none;
-  border-radius: 999px;
-  background: var(--ux-home-accent);
-  color: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 18px 36px rgba(10, 132, 255, 0.24);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-}
-
-.ux-home-message-fab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 22px 40px rgba(10, 132, 255, 0.28);
-  filter: saturate(1.05);
-}
-
-.ux-home-message-fab.has-unread {
-  animation: ux-message-fab-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes ux-message-fab-pulse {
-  0%, 100% {
-    box-shadow: 0 18px 36px rgba(10, 132, 255, 0.24);
-  }
-  50% {
-    box-shadow: 0 18px 36px rgba(255, 69, 58, 0.18);
-  }
-}
-
-.ux-home-message-fab-icon {
-  width: 26px;
-  height: 26px;
-}
-
-.ux-home-message-fab-badge {
-  position: absolute;
-  top: -6px;
-  right: -4px;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--ux-home-danger);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1;
-  box-shadow: 0 6px 16px rgba(255, 69, 58, 0.28);
-}
-
-.ux-home-message-panel {
-  position: fixed;
-  left: 20px;
-  bottom: 92px;
-  z-index: 9997;
-  width: min(420px, calc(100vw - 32px));
-  max-height: min(70vh, 560px);
-  display: none;
-  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
   overflow: hidden;
-  box-shadow: var(--ux-home-shadow-lg);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
-.ux-home-message-close {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 999px;
-  background: var(--ux-home-fill);
+.ux-message-toolbar,
+.ux-dashboard-v2-message-list {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ux-message-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap;
+  margin: 0 !important;
+  padding: 10px 12px;
+  border: 1px solid var(--ux-home-separator);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.ux-message-toolbar-btn {
+  width: 36px;
+  height: 36px;
+  padding: 8px !important;
+  border: 1px solid var(--ux-home-separator) !important;
+  border-radius: 10px !important;
+  background: var(--ux-home-surface) !important;
   color: var(--ux-home-secondary-label);
-  font-size: 1.3rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.ux-home-message-close:hover {
-  background: var(--ux-home-fill-strong);
+.ux-message-toolbar-btn:hover {
+  background: var(--ux-home-fill) !important;
   color: var(--ux-home-label);
 }
 
-@media (max-width: 768px) {
-  .ux-home-message-dock {
-    left: 12px;
-    bottom: 12px;
-  }
+.ux-message-status {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--ux-home-secondary-label);
+  font-size: 0.86rem !important;
+}
 
-  .ux-home-message-panel {
-    left: 12px;
-    bottom: 84px;
-    width: calc(100vw - 24px);
-    max-height: min(65vh, 520px);
-  }
+.ux-dashboard-v2-message-list {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  overflow-y: auto;
+  padding: 4px 2px 10px;
+}
+
+.ux-message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.ux-message-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 16px;
+  padding: 16px 18px !important;
+  border: 1px solid var(--ux-home-separator) !important;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: var(--ux-home-shadow-sm);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.ux-message-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(10, 132, 255, 0.22) !important;
+  background: var(--ux-home-surface) !important;
+  box-shadow: var(--ux-home-shadow-md);
+}
+
+.ux-message-item.is-unread {
+  border-left: 4px solid var(--ux-home-danger) !important;
+}
+
+.ux-message-item.is-just-read {
+  border-left: 4px solid var(--ux-home-success) !important;
+}
+
+.ux-message-sender {
+  grid-column: 1;
+  margin: 0 !important;
+  color: var(--ux-home-secondary-label) !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
+}
+
+.ux-message-subject {
+  grid-column: 1 / -1;
+  min-width: 0;
+  color: var(--ux-home-label) !important;
+  font-size: 1rem;
+  line-height: 1.45;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.ux-message-date {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: 0 !important;
+  color: var(--ux-home-tertiary-label) !important;
+  font-size: 0.78rem !important;
+  white-space: nowrap;
+}
+
+.ux-message-empty {
+  padding: 28px 18px !important;
+  border: 1px solid var(--ux-home-separator);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ux-home-secondary-label) !important;
+  text-align: center;
+}
+
+.ux-message-empty-success {
+  color: var(--ux-home-success-foreground) !important;
+  background: var(--ux-home-success-soft);
+}
+
+.ux-message-empty-warning {
+  color: var(--ux-home-warning-foreground) !important;
+  background: var(--ux-home-warning-soft);
 }
 
 .ux-dashboard-v2-header-link {
@@ -852,10 +881,11 @@ body.ux-dashboard-v2-mode {
   grid-template-columns: minmax(0, 1fr) 470px;
   gap: 16px;
   padding: 16px 20px 16px 6px;
-  height: auto;
-  min-height: calc(100dvh - 62px);
+  height: calc(100dvh - var(--ux-dashboard-header-height, 62px));
+  min-height: calc(100dvh - var(--ux-dashboard-header-height, 62px));
   box-sizing: border-box;
   align-items: stretch;
+  overflow: hidden;
 }
 
 @media (max-width: 1200px) {
@@ -863,6 +893,7 @@ body.ux-dashboard-v2-mode {
     grid-template-columns: 1fr;
     height: auto;
     min-height: auto;
+    overflow: visible;
   }
 
   .ux-dashboard-v2-center,
@@ -972,6 +1003,11 @@ body.ux-dashboard-v2-mode {
 
 .ux-dashboard-v2-timetable-body.ux-scroll-managed-fit {
   overflow: hidden;
+}
+
+.ux-dashboard-v2-timetable-body.ux-scroll-managed-fit-safe {
+  overflow: auto;
+  padding-bottom: 6px;
 }
 
 .ux-dashboard-v2-timetable-body.ux-scroll-managed-natural {
@@ -1457,6 +1493,43 @@ body.ux-dashboard-v2-mode {
   /* Equal width columns */
 }
 
+table.schedule-table.ux-optimized-cell-width {
+  width: 100%;
+  table-layout: fixed !important;
+}
+
+table.schedule-table.ux-optimized-cell-width tbody tr {
+  height: 72px;
+}
+
+table.schedule-table.ux-optimized-cell-width tbody td {
+  height: 72px !important;
+  max-height: 72px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized {
+  padding: 6px 8px !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+
+table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
+  display: -webkit-box !important;
+  width: 100%;
+  max-height: 54px;
+  overflow: hidden !important;
+  color: inherit;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
 .ux-dashboard-v2-schedule-table.ux-compact-density {
   border-spacing: 6px;
   font-size: 0.92rem;
@@ -1476,9 +1549,26 @@ body.ux-dashboard-v2-mode {
   box-shadow: var(--ux-home-shadow-sm);
 }
 
+.ux-dashboard-v2-schedule-table tbody tr {
+  height: 96px;
+}
+
+.ux-dashboard-v2-schedule-table tbody td {
+  height: 96px;
+  max-height: 96px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
 .ux-dashboard-v2-schedule-table.ux-compact-density th,
 .ux-dashboard-v2-schedule-table.ux-compact-density td {
   padding: 8px 10px;
+}
+
+.ux-dashboard-v2-schedule-table.ux-compact-density tbody tr,
+.ux-dashboard-v2-schedule-table.ux-compact-density tbody td {
+  height: 78px;
+  max-height: 78px;
 }
 
 .ux-dashboard-v2-schedule-table th {
@@ -1528,20 +1618,24 @@ body.ux-dashboard-v2-mode {
 .ux-dashboard-v2-schedule-table td a {
   color: var(--ux-home-label);
   text-decoration: none;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
+  display: -webkit-box;
   width: 100%;
+  max-height: 68px;
+  overflow: hidden;
   font-weight: 500;
   font-size: 1.08rem;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow-wrap: anywhere;
 }
 
 .ux-dashboard-v2-schedule-table.ux-compact-density td a {
   font-size: 0.92rem;
   line-height: 1.28;
+  max-height: 60px;
 }
 
 .ux-dashboard-v2-schedule-table td a:hover {
@@ -2410,4 +2504,18 @@ body.ux-dashboard-v2-mode {
   background: var(--ux-home-accent-soft);
   border-color: rgba(10, 132, 255, 0.18);
   color: var(--ux-home-accent-emphasis);
+}
+
+/* Keep dashboard header tabs immune to WebClass/global link hover styles. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:link,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:visited,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:focus,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab > span {
+  background-image: none !important;
+  border-bottom: 0 !important;
+  text-decoration-line: none !important;
+  text-decoration: none !important;
 }

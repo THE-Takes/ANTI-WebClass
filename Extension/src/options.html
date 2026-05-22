@@ -27,6 +27,10 @@
           <span>コース名短縮</span>
           <span class="chevron" aria-hidden="true">›</span>
         </button>
+        <button type="button" class="nav-item" data-open-section="course">
+          <span>コースページ設定</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
         <button type="button" class="nav-item" data-open-section="todo">
           <span>ToDo API 連携</span>
           <span class="chevron" aria-hidden="true">›</span>
@@ -73,10 +77,39 @@
           <p class="setting-title">ショートカット: 表示モード切替</p>
           <div class="ios-list">
             <div class="ios-item">
-              <input type="text" id="viewToggleShortcut" placeholder="Alt+Shift+M" autocomplete="off">
+              <input type="text" id="viewToggleShortcut" placeholder="Alt+Shift+M / Option+Shift+M" autocomplete="off">
             </div>
           </div>
-          <p class="helper-text setting-helper">1つのショートカットで、画面改変OFF（Plain）と画面改変ON（Switch View 2）を切り替えます。空欄で無効化できます。</p>
+          <p class="helper-text setting-helper">1つのショートカットで、画面改変OFF（Plain）と画面改変ON（Switch View 2）を切り替えます。WindowsではAlt、MacではOptionとして使えます。空欄で無効化できます。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">ホーム表示項目: 時間割の表示範囲</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <p id="dashboardVisibleRangeSummary" class="dashboard-range-summary"></p>
+              <div id="dashboardVisibleRangeGrid" class="dashboard-range-grid" aria-label="6x6時間割表示範囲"></div>
+              <input type="hidden" id="dashboardVisibleStartPeriod" value="1">
+              <input type="hidden" id="dashboardVisibleEndPeriod" value="6">
+              <input type="hidden" id="dashboardVisibleStartWeekday" value="1">
+              <input type="hidden" id="dashboardVisibleEndWeekday" value="6">
+            </div>
+          </div>
+          <p class="helper-text setting-helper">6x6 のボックスで、開始セルまたは終了セルをドラッグしてホーム時間割に表示する範囲を調整します。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">ホーム表示項目: ToDo 強調</p>
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="dashboardDangerTodoOutlineEnabled">
+              <span class="switch-label">
+                <span class="item-title">期限が近い講義マスを赤く縁取る</span>
+              </span>
+              <input type="checkbox" id="dashboardDangerTodoOutlineEnabled" class="ios-switch" aria-label="期限が近い講義マスを赤く縁取る">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">My TODOs で赤く表示される期限間近のタスクがある講義だけ、時間割マスに薄い赤のアウトラインを表示します。</p>
         </div>
 
         <div class="setting-group">
@@ -105,6 +138,31 @@
             </div>
           </div>
           <p class="helper-text setting-helper">デバッグ用です。実際の更新有無に関係なく、更新通知の表示だけを確認します。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="course" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>コースページ設定</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">左ジャンプリンクの初期表示</p>
+          <div class="ios-list" role="radiogroup" aria-label="左ジャンプリンクの初期表示">
+            <label class="ios-check-item" for="courseQuickNavDefaultExpanded">
+              <input type="radio" name="courseQuickNavDefaultState" value="expanded" id="courseQuickNavDefaultExpanded">
+              <span class="ios-check-label">標準で展開する</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+            <label class="ios-check-item" for="courseQuickNavDefaultCollapsed">
+              <input type="radio" name="courseQuickNavDefaultState" value="collapsed" id="courseQuickNavDefaultCollapsed">
+              <span class="ios-check-label">標準で閉じる</span>
+              <span class="ios-check-mark" aria-hidden="true">✓</span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">コースページ左側の各コースへのジャンプリンクを、ページを開いたときに展開するかを選択します。</p>
         </div>
       </div>
     </section>

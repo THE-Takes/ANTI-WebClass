@@ -26,6 +26,38 @@ const SHORTCUT_MODIFIER_TOKEN_MAP = {
     win: 'Meta',
     windows: 'Meta',
 };
+let runtimePlatformOs = '';
+const initRuntimePlatform = () => new Promise((resolve) => {
+    if (typeof chrome === 'undefined' || !chrome.runtime?.getPlatformInfo) {
+        resolve();
+        return;
+    }
+    chrome.runtime.getPlatformInfo((info) => {
+        runtimePlatformOs = info?.os || '';
+        resolve();
+    });
+});
+const isMacPlatform = () => {
+    if (runtimePlatformOs === 'mac') return true;
+    const platformHints = [
+        navigator.userAgentData?.platform,
+        navigator.platform,
+        navigator.userAgent
+    ]
+        .filter(Boolean)
+        .join(' ');
+    return /\b(Mac|macOS|iPhone|iPad|iPod)\b/i.test(platformHints);
+};
+const displayShortcutForPlatform = (shortcut) => (
+    isMacPlatform() ? shortcut.replace(/\bAlt\b/g, 'Option') : shortcut
+);
+const shortcutInputToStorageValue = (shortcut) => shortcut.replace(/\bOption\b/gi, 'Alt');
+const shortcutPlaceholderForPlatform = () => displayShortcutForPlatform(DEFAULT_VIEW_TOGGLE_SHORTCUT);
+const setShortcutInputDisplayValue = (shortcut) => {
+    const shortcutInput = document.getElementById('viewToggleShortcut');
+    if (!shortcutInput) return;
+    shortcutInput.value = displayShortcutForPlatform(shortcut || '');
+};
 
 const TODO_API_PROVIDER_KEY = 'todoApiProvider';
 const TODO_API_ENABLED_KEY = 'todoApiEnabled';
@@ -55,8 +87,21 @@ const TODO_API_VISIBLE_PROVIDER = 'ticktick';
 const TODO_MOJIBAKE_PATTERN = /[繝鬯郢驛隴隱蜈蜷霑ｽ]/;
 const EXTENSION_VISUAL_ENABLED_KEY = 'extensionVisualEnabled';
 const EXTENSION_UPDATE_CHECK_ENABLED_KEY = 'extensionUpdateCheckEnabled';
+const COURSE_QUICK_NAV_COLLAPSED_KEY = 'courseQuickNavCollapsed';
+const DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY = 'dashboardDangerTodoOutlineEnabled';
+const DASHBOARD_VISIBLE_START_PERIOD_KEY = 'dashboardVisibleStartPeriod';
+const DASHBOARD_VISIBLE_END_PERIOD_KEY = 'dashboardVisibleEndPeriod';
+const DASHBOARD_VISIBLE_START_WEEKDAY_KEY = 'dashboardVisibleStartWeekday';
+const DASHBOARD_VISIBLE_END_WEEKDAY_KEY = 'dashboardVisibleEndWeekday';
+const DASHBOARD_VISIBLE_RANGE_MIN = 1;
+const DASHBOARD_VISIBLE_RANGE_MAX = 6;
+const DASHBOARD_VISIBLE_WEEKDAY_LABELS = ['月', '火', '水', '木', '金', '土'];
 const AUTO_SAVE_DEBOUNCE_MS = 220;
-const WEBCLASS_TAB_URL_PATTERNS = ['https://kulms.kanagawa-u.ac.jp/webclass/*'];
+const WEBCLASS_TAB_URL_PATTERNS = [
+    'https://kulms.kanagawa-u.ac.jp/webclass/*',
+    'http://127.0.0.1/webclass/*',
+    'http://localhost/webclass/*'
+];
 const WEBCLASS_HOME_URL = 'https://kulms.kanagawa-u.ac.jp/webclass/index.php';
 const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
     'debugModeEnabled',
@@ -65,6 +110,9 @@ const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
     'useRuleCourseNameEnabled',
     'autoRunCourseNameConversionOnDashboardLoad',
     'showLlmCourseStatusEnabled',
+    'dashboardDangerTodoOutlineEnabled',
+    'courseQuickNavDefaultExpanded',
+    'courseQuickNavDefaultCollapsed',
     'tocInitialOpen',
     'tocInitialClosed',
     'tocInitialCloseDelay',
@@ -77,6 +125,7 @@ const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
 
 let lastSavedViewToggleShortcut = DEFAULT_VIEW_TOGGLE_SHORTCUT;
 let autoSaveTimerId = null;
+let dashboardRangeDragState = null;
 
 const clearAutoSaveTimer = () => {
     if (autoSaveTimerId === null) return;
@@ -99,7 +148,7 @@ const showStatusMessage = (text, color = '#2e7d32', durationMs = 2000) => {
 };
 
 const showInvalidShortcutStatus = () => {
-    showStatusMessage('ショートカットは Alt+Shift+M 形式で入力してください。', '#c62828', 2500);
+    showStatusMessage('ショートカットは Windows: Alt+Shift+M / Mac: Option+Shift+M の形式で入力してください。', '#c62828', 2500);
 };
 
 const formatUpdateTimestamp = (rawValue) => {
@@ -535,6 +584,320 @@ const enforceLlmRuleMutualExclusion = (changedToggleId = '') => {
     updateLlmProviderSettingsAvailability(normalizedFlags.llmEnabled);
 };
 
+const normalizeDashboardVisibleRangeValue = (value, fallback = DASHBOARD_VISIBLE_RANGE_MIN) => {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(DASHBOARD_VISIBLE_RANGE_MAX, Math.max(DASHBOARD_VISIBLE_RANGE_MIN, parsed));
+};
+
+const normalizeDashboardVisibleRange = (range = {}) => {
+    const normalized = {
+        startPeriod: normalizeDashboardVisibleRangeValue(range.startPeriod, DASHBOARD_VISIBLE_RANGE_MIN),
+        endPeriod: normalizeDashboardVisibleRangeValue(range.endPeriod, DASHBOARD_VISIBLE_RANGE_MAX),
+        startWeekday: normalizeDashboardVisibleRangeValue(range.startWeekday, DASHBOARD_VISIBLE_RANGE_MIN),
+        endWeekday: normalizeDashboardVisibleRangeValue(range.endWeekday, DASHBOARD_VISIBLE_RANGE_MAX)
+    };
+
+    if (normalized.startPeriod > normalized.endPeriod) {
+        normalized.endPeriod = normalized.startPeriod;
+    }
+    if (normalized.startWeekday > normalized.endWeekday) {
+        normalized.endWeekday = normalized.startWeekday;
+    }
+
+    return normalized;
+};
+
+const getDashboardVisibleRangeFromInputs = () => normalizeDashboardVisibleRange({
+    startPeriod: document.getElementById(DASHBOARD_VISIBLE_START_PERIOD_KEY)?.value,
+    endPeriod: document.getElementById(DASHBOARD_VISIBLE_END_PERIOD_KEY)?.value,
+    startWeekday: document.getElementById(DASHBOARD_VISIBLE_START_WEEKDAY_KEY)?.value,
+    endWeekday: document.getElementById(DASHBOARD_VISIBLE_END_WEEKDAY_KEY)?.value
+});
+
+const setDashboardVisibleRangeInputs = (range = {}) => {
+    const normalized = normalizeDashboardVisibleRange(range);
+    [
+        [DASHBOARD_VISIBLE_START_PERIOD_KEY, normalized.startPeriod],
+        [DASHBOARD_VISIBLE_END_PERIOD_KEY, normalized.endPeriod],
+        [DASHBOARD_VISIBLE_START_WEEKDAY_KEY, normalized.startWeekday],
+        [DASHBOARD_VISIBLE_END_WEEKDAY_KEY, normalized.endWeekday]
+    ].forEach(([id, value]) => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = String(value);
+        }
+    });
+    return normalized;
+};
+
+const formatDashboardVisibleRangeSummary = (range = {}) => {
+    const normalized = normalizeDashboardVisibleRange(range);
+    const startWeekday = DASHBOARD_VISIBLE_WEEKDAY_LABELS[normalized.startWeekday - 1] || String(normalized.startWeekday);
+    const endWeekday = DASHBOARD_VISIBLE_WEEKDAY_LABELS[normalized.endWeekday - 1] || String(normalized.endWeekday);
+    return `${normalized.startPeriod}限 - ${normalized.endPeriod}限 / ${startWeekday} - ${endWeekday}`;
+};
+
+const getDashboardVisibleRangeKey = (range = {}) => {
+    const normalized = normalizeDashboardVisibleRange(range);
+    return [
+        normalized.startPeriod,
+        normalized.endPeriod,
+        normalized.startWeekday,
+        normalized.endWeekday
+    ].join(':');
+};
+
+const getDashboardRangePositionFromCell = (cell) => {
+    if (!(cell instanceof HTMLElement) || !cell.classList.contains('dashboard-range-cell')) return null;
+    return {
+        period: normalizeDashboardVisibleRangeValue(cell.dataset.period, DASHBOARD_VISIBLE_RANGE_MIN),
+        weekday: normalizeDashboardVisibleRangeValue(cell.dataset.weekday, DASHBOARD_VISIBLE_RANGE_MIN)
+    };
+};
+
+const getDashboardRangeDragHandleMode = (cell, range = getDashboardVisibleRangeFromInputs(), event = null) => {
+    const position = getDashboardRangePositionFromCell(cell);
+    if (!position) return '';
+
+    const isStart = position.period === range.startPeriod && position.weekday === range.startWeekday;
+    const isEnd = position.period === range.endPeriod && position.weekday === range.endWeekday;
+    if (isStart && isEnd) {
+        if (!event) return 'end';
+        const rect = cell.getBoundingClientRect();
+        const relativeX = event.clientX - rect.left;
+        const relativeY = event.clientY - rect.top;
+        return relativeX + relativeY < (rect.width + rect.height) / 2 ? 'start' : 'end';
+    }
+    if (isStart) return 'start';
+    if (isEnd) return 'end';
+    return '';
+};
+
+const getDashboardVisibleRangeWithMovedHandle = (range, handleMode, targetPosition) => {
+    const normalized = normalizeDashboardVisibleRange(range);
+    if (handleMode === 'start') {
+        return normalizeDashboardVisibleRange({
+            ...normalized,
+            startPeriod: Math.min(targetPosition.period, normalized.endPeriod),
+            startWeekday: Math.min(targetPosition.weekday, normalized.endWeekday)
+        });
+    }
+    if (handleMode === 'end') {
+        return normalizeDashboardVisibleRange({
+            ...normalized,
+            endPeriod: Math.max(targetPosition.period, normalized.startPeriod),
+            endWeekday: Math.max(targetPosition.weekday, normalized.startWeekday)
+        });
+    }
+    return normalized;
+};
+
+const getDashboardRangeCellFromPointerEvent = (event) => {
+    const elementAtPoint = document.elementFromPoint(event.clientX, event.clientY);
+    return elementAtPoint?.closest?.('.dashboard-range-cell') || event.target?.closest?.('.dashboard-range-cell') || null;
+};
+
+const renderDashboardVisibleRangeGrid = () => {
+    const grid = document.getElementById('dashboardVisibleRangeGrid');
+    const summary = document.getElementById('dashboardVisibleRangeSummary');
+    if (!grid) return;
+
+    const range = setDashboardVisibleRangeInputs(getDashboardVisibleRangeFromInputs());
+    if (summary) {
+        summary.textContent = `表示範囲: ${formatDashboardVisibleRangeSummary(range)}`;
+    }
+
+    grid.classList.toggle('is-dragging', !!dashboardRangeDragState);
+    grid.replaceChildren();
+
+    const corner = document.createElement('div');
+    corner.className = 'dashboard-range-axis-label is-corner';
+    grid.appendChild(corner);
+
+    DASHBOARD_VISIBLE_WEEKDAY_LABELS.forEach((label) => {
+        const header = document.createElement('div');
+        header.className = 'dashboard-range-axis-label';
+        header.textContent = label;
+        grid.appendChild(header);
+    });
+
+    for (let period = DASHBOARD_VISIBLE_RANGE_MIN; period <= DASHBOARD_VISIBLE_RANGE_MAX; period += 1) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'dashboard-range-axis-label';
+        rowHeader.textContent = String(period);
+        grid.appendChild(rowHeader);
+
+        for (let weekday = DASHBOARD_VISIBLE_RANGE_MIN; weekday <= DASHBOARD_VISIBLE_RANGE_MAX; weekday += 1) {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'dashboard-range-cell';
+            cell.dataset.period = String(period);
+            cell.dataset.weekday = String(weekday);
+
+            const isSelected =
+                period >= range.startPeriod &&
+                period <= range.endPeriod &&
+                weekday >= range.startWeekday &&
+                weekday <= range.endWeekday;
+            const isStart = period === range.startPeriod && weekday === range.startWeekday;
+            const isEnd = period === range.endPeriod && weekday === range.endWeekday;
+            const isDragOrigin =
+                dashboardRangeDragState &&
+                period === dashboardRangeDragState.anchorPeriod &&
+                weekday === dashboardRangeDragState.anchorWeekday;
+
+            cell.classList.toggle('is-selected', isSelected);
+            cell.classList.toggle(
+                'is-edge',
+                isSelected && (
+                    period === range.startPeriod ||
+                    period === range.endPeriod ||
+                    weekday === range.startWeekday ||
+                    weekday === range.endWeekday
+                )
+            );
+            cell.classList.toggle('is-start', isStart);
+            cell.classList.toggle('is-end', isEnd);
+            cell.classList.toggle('is-drag-origin', !!isDragOrigin);
+            cell.classList.toggle('is-range-handle', isStart || isEnd);
+            cell.dataset.handle = isStart && isEnd ? 'both' : isStart ? 'start' : isEnd ? 'end' : '';
+            cell.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+
+            const cellStateLabel = isStart && isEnd
+                ? ' 開始位置 終了位置'
+                : isStart
+                    ? ' 開始位置'
+                    : isEnd
+                        ? ' 終了位置'
+                        : isSelected
+                            ? ' 表示範囲内'
+                            : '';
+            cell.setAttribute('aria-label', `${period}限 ${DASHBOARD_VISIBLE_WEEKDAY_LABELS[weekday - 1]}曜${cellStateLabel}`);
+
+            grid.appendChild(cell);
+        }
+    }
+};
+
+const updateDashboardVisibleRangeDuringDrag = (targetCell) => {
+    if (!dashboardRangeDragState) return null;
+    const targetPosition = getDashboardRangePositionFromCell(targetCell);
+    if (!targetPosition) return null;
+
+    const nextRange = getDashboardVisibleRangeWithMovedHandle(
+        dashboardRangeDragState.initialRange,
+        dashboardRangeDragState.handleMode,
+        targetPosition
+    );
+    const nextRangeKey = getDashboardVisibleRangeKey(nextRange);
+    if (dashboardRangeDragState.lastRangeKey === nextRangeKey) return nextRange;
+
+    dashboardRangeDragState.lastRangeKey = nextRangeKey;
+    setDashboardVisibleRangeInputs(nextRange);
+    renderDashboardVisibleRangeGrid();
+    return nextRange;
+};
+
+const handleDashboardRangePointerDown = (event) => {
+    if (event.button !== 0) return;
+    const cell = event.target?.closest?.('.dashboard-range-cell');
+    const position = getDashboardRangePositionFromCell(cell);
+    if (!position) return;
+
+    const grid = document.getElementById('dashboardVisibleRangeGrid');
+    const initialRange = getDashboardVisibleRangeFromInputs();
+    const handleMode = getDashboardRangeDragHandleMode(cell, initialRange, event);
+    if (!handleMode) return;
+
+    event.preventDefault();
+    dashboardRangeDragState = {
+        pointerId: event.pointerId,
+        handleMode,
+        anchorPeriod: position.period,
+        anchorWeekday: position.weekday,
+        initialRange,
+        initialRangeKey: getDashboardVisibleRangeKey(initialRange),
+        lastRangeKey: ''
+    };
+
+    if (grid?.setPointerCapture) {
+        try {
+            grid.setPointerCapture(event.pointerId);
+        } catch (_error) {
+            // Pointer capture is a nice-to-have for dragging beyond cell edges.
+        }
+    }
+
+    updateDashboardVisibleRangeDuringDrag(cell);
+};
+
+const handleDashboardRangePointerMove = (event) => {
+    if (!dashboardRangeDragState || dashboardRangeDragState.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const cell = getDashboardRangeCellFromPointerEvent(event);
+    updateDashboardVisibleRangeDuringDrag(cell);
+};
+
+const finishDashboardRangeDrag = async (event) => {
+    if (!dashboardRangeDragState || dashboardRangeDragState.pointerId !== event.pointerId) return;
+    event.preventDefault();
+
+    const grid = document.getElementById('dashboardVisibleRangeGrid');
+    const cell = getDashboardRangeCellFromPointerEvent(event);
+    updateDashboardVisibleRangeDuringDrag(cell);
+
+    const completedDragState = dashboardRangeDragState;
+    const finalRange = getDashboardVisibleRangeFromInputs();
+    const didChangeRange = getDashboardVisibleRangeKey(finalRange) !== completedDragState.initialRangeKey;
+    dashboardRangeDragState = null;
+
+    if (grid?.hasPointerCapture?.(event.pointerId)) {
+        try {
+            grid.releasePointerCapture(event.pointerId);
+        } catch (_error) {
+            // Ignore capture release failures caused by browser timing.
+        }
+    }
+    renderDashboardVisibleRangeGrid();
+
+    if (didChangeRange) {
+        await saveOptions({
+            source: 'auto',
+            showSuccess: false,
+            reloadWebClassTabsAfterSave: true
+        });
+    }
+};
+
+const cancelDashboardRangeDrag = (event) => {
+    if (!dashboardRangeDragState || dashboardRangeDragState.pointerId !== event.pointerId) return;
+    const grid = document.getElementById('dashboardVisibleRangeGrid');
+    setDashboardVisibleRangeInputs(dashboardRangeDragState.initialRange);
+    dashboardRangeDragState = null;
+
+    if (grid?.hasPointerCapture?.(event.pointerId)) {
+        try {
+            grid.releasePointerCapture(event.pointerId);
+        } catch (_error) {
+            // Ignore capture release failures caused by browser timing.
+        }
+    }
+    renderDashboardVisibleRangeGrid();
+};
+
+const initDashboardVisibleRangeControls = () => {
+    const grid = document.getElementById('dashboardVisibleRangeGrid');
+    if (!grid) return;
+
+    grid.addEventListener('pointerdown', handleDashboardRangePointerDown);
+    grid.addEventListener('pointermove', handleDashboardRangePointerMove);
+    grid.addEventListener('pointerup', finishDashboardRangeDrag);
+    grid.addEventListener('pointercancel', cancelDashboardRangeDrag);
+
+    renderDashboardVisibleRangeGrid();
+};
+
 // Saves options to chrome.storage
 const saveOptions = async ({
     source = 'manual',
@@ -555,7 +918,10 @@ const saveOptions = async ({
     const currentView = defaultViewVersion === 'original' ? 'plain' : 'dashboard';
     const extensionVisualEnabled = defaultViewVersion !== 'original';
     const extensionUpdateCheckEnabled = !!document.getElementById('extensionUpdateCheckEnabled')?.checked;
-    const rawViewToggleShortcut = document.getElementById('viewToggleShortcut').value.trim();
+    const dashboardDangerTodoOutlineEnabled = document.getElementById('dashboardDangerTodoOutlineEnabled')?.checked !== false;
+    const courseQuickNavDefaultState = document.querySelector('input[name="courseQuickNavDefaultState"]:checked')?.value || 'expanded';
+    const courseQuickNavCollapsed = courseQuickNavDefaultState === 'collapsed';
+    const rawViewToggleShortcut = shortcutInputToStorageValue(document.getElementById('viewToggleShortcut').value.trim());
     const normalizedViewToggleShortcut = rawViewToggleShortcut
         ? normalizeShortcut(rawViewToggleShortcut)
         : '';
@@ -569,7 +935,7 @@ const saveOptions = async ({
         }
         shortcutToPersist = lastSavedViewToggleShortcut;
     } else {
-        document.getElementById('viewToggleShortcut').value = normalizedViewToggleShortcut;
+        setShortcutInputDisplayValue(normalizedViewToggleShortcut);
     }
 
     const useCustomCourseNameEnabled = document.getElementById('useCustomCourseNameEnabled').checked;
@@ -668,6 +1034,7 @@ const saveOptions = async ({
     const tocAutoHideDelay = document.getElementById('tocAutoHideDelay').value;
     const tocShowSectionTitles = document.getElementById('tocShowSectionTitles').checked;
     const tocHoverReveal = document.getElementById('tocHoverReveal').checked;
+    const dashboardVisibleRange = getDashboardVisibleRangeFromInputs();
 
         const localWritePayload = {
             autoLoginEnabled,
@@ -677,6 +1044,8 @@ const saveOptions = async ({
             currentView,
             [EXTENSION_VISUAL_ENABLED_KEY]: extensionVisualEnabled,
             [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: extensionUpdateCheckEnabled,
+            [DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY]: dashboardDangerTodoOutlineEnabled,
+            [COURSE_QUICK_NAV_COLLAPSED_KEY]: courseQuickNavCollapsed,
             viewToggleShortcut: shortcutToPersist,
             viewToggleShortcutMigratedToCtrlShiftM: false,
             useCustomCourseNameEnabled,
@@ -715,7 +1084,11 @@ const saveOptions = async ({
             tocAutoHide,
             tocAutoHideDelay,
             tocShowSectionTitles,
-            tocHoverReveal
+            tocHoverReveal,
+            [DASHBOARD_VISIBLE_START_PERIOD_KEY]: dashboardVisibleRange.startPeriod,
+            [DASHBOARD_VISIBLE_END_PERIOD_KEY]: dashboardVisibleRange.endPeriod,
+            [DASHBOARD_VISIBLE_START_WEEKDAY_KEY]: dashboardVisibleRange.startWeekday,
+            [DASHBOARD_VISIBLE_END_WEEKDAY_KEY]: dashboardVisibleRange.endWeekday
         };
         if (shouldDeleteAutoLoginPassword) {
             localWritePayload.password = '';
@@ -766,6 +1139,8 @@ const restoreOptions = () => {
             currentView: 'dashboard',
             [EXTENSION_VISUAL_ENABLED_KEY]: true,
             [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: true,
+            [DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY]: true,
+            [COURSE_QUICK_NAV_COLLAPSED_KEY]: false,
             viewToggleShortcut: DEFAULT_VIEW_TOGGLE_SHORTCUT,
             viewToggleShortcutMigratedToCtrlShiftM: false,
             useCustomCourseNameEnabled: null,
@@ -803,7 +1178,11 @@ const restoreOptions = () => {
             tocAutoHide: false,
             tocAutoHideDelay: '10',
             tocShowSectionTitles: true,
-            tocHoverReveal: true
+            tocHoverReveal: true,
+            [DASHBOARD_VISIBLE_START_PERIOD_KEY]: 1,
+            [DASHBOARD_VISIBLE_END_PERIOD_KEY]: 6,
+            [DASHBOARD_VISIBLE_START_WEEKDAY_KEY]: 1,
+            [DASHBOARD_VISIBLE_END_WEEKDAY_KEY]: 6
         },
         async (localItems) => {
             try {
@@ -1088,6 +1467,13 @@ const restoreOptions = () => {
             document.getElementById('tocAutoHideDelay').value = items.tocAutoHideDelay;
             document.getElementById('tocShowSectionTitles').checked = items.tocShowSectionTitles;
             document.getElementById('tocHoverReveal').checked = items.tocHoverReveal;
+            setDashboardVisibleRangeInputs({
+                startPeriod: items[DASHBOARD_VISIBLE_START_PERIOD_KEY],
+                endPeriod: items[DASHBOARD_VISIBLE_END_PERIOD_KEY],
+                startWeekday: items[DASHBOARD_VISIBLE_START_WEEKDAY_KEY],
+                endWeekday: items[DASHBOARD_VISIBLE_END_WEEKDAY_KEY]
+            });
+            renderDashboardVisibleRangeGrid();
 
             const visualEnabled = items[EXTENSION_VISUAL_ENABLED_KEY] !== false;
             const normalizedStoredDefaultViewVersion = items.defaultViewVersion === 'original' ? 'original' : '2';
@@ -1130,10 +1516,22 @@ const restoreOptions = () => {
                     viewToggleShortcutMigratedToCtrlShiftM: false,
                 });
             }
-            document.getElementById('viewToggleShortcut').value = resolvedViewToggleShortcut;
+            setShortcutInputDisplayValue(resolvedViewToggleShortcut);
             const extensionUpdateCheckToggle = document.getElementById('extensionUpdateCheckEnabled');
             if (extensionUpdateCheckToggle) {
                 extensionUpdateCheckToggle.checked = items[EXTENSION_UPDATE_CHECK_ENABLED_KEY] !== false;
+            }
+            const dashboardDangerTodoOutlineToggle = document.getElementById('dashboardDangerTodoOutlineEnabled');
+            if (dashboardDangerTodoOutlineToggle) {
+                dashboardDangerTodoOutlineToggle.checked = items[DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY] !== false;
+            }
+            const courseQuickNavRadio = document.getElementById(
+                items[COURSE_QUICK_NAV_COLLAPSED_KEY] === true
+                    ? 'courseQuickNavDefaultCollapsed'
+                    : 'courseQuickNavDefaultExpanded'
+            );
+            if (courseQuickNavRadio) {
+                courseQuickNavRadio.checked = true;
             }
             refreshExtensionUpdateStatus();
             lastSavedViewToggleShortcut = resolvedViewToggleShortcut;
@@ -2036,6 +2434,7 @@ const initAutoSave = () => {
 
     const shortcutInput = document.getElementById('viewToggleShortcut');
     if (shortcutInput) {
+        shortcutInput.placeholder = shortcutPlaceholderForPlatform();
         const saveShortcutWithValidation = () => {
             saveOptions({ source: 'shortcut', showSuccess: false });
         };
@@ -2057,8 +2456,10 @@ const initAutoSave = () => {
     });
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await initRuntimePlatform();
     initSettingsNavigation();
+    initDashboardVisibleRangeControls();
     restoreOptions();
     initAutoSave();
 

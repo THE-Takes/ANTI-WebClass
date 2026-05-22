@@ -11851,4 +11851,3 @@ export {
   boxEqualFields,
   createFile
 };
-//# sourceMappingURL=mp4box.all.js.map

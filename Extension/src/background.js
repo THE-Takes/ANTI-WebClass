@@ -134,6 +134,49 @@ const AUTO_LOGIN_SESSION_DEFAULTS = {
     password: ''
 };
 const AUTO_LOGIN_SECURE_LOCAL_KEYS = ['username', 'password'];
+const TRUSTED_WEBCLASS_ORIGINS = new Set([
+    'https://kulms.kanagawa-u.ac.jp',
+    'http://127.0.0.1',
+    'http://localhost'
+]);
+
+function isTrustedWebClassUrl(rawUrl) {
+    if (typeof rawUrl !== 'string' || !rawUrl) {
+        return false;
+    }
+
+    try {
+        const parsedUrl = new URL(rawUrl);
+        return TRUSTED_WEBCLASS_ORIGINS.has(parsedUrl.origin)
+            && parsedUrl.pathname.startsWith('/webclass/');
+    } catch {
+        return false;
+    }
+}
+
+function isTrustedWebClassSender(sender) {
+    return isTrustedWebClassUrl(sender?.url)
+        || isTrustedWebClassUrl(sender?.tab?.url);
+}
+
+function isTrustedExtensionPageUrl(rawUrl) {
+    if (typeof rawUrl !== 'string' || !rawUrl) {
+        return false;
+    }
+
+    try {
+        const parsedUrl = new URL(rawUrl);
+        return parsedUrl.protocol === 'chrome-extension:'
+            && parsedUrl.hostname === chrome.runtime.id;
+    } catch {
+        return false;
+    }
+}
+
+function isTrustedRuntimeMessageSender(sender) {
+    return isTrustedWebClassSender(sender)
+        || isTrustedExtensionPageUrl(sender?.url);
+}
 
 async function getStoredAutoLoginSettings() {
     const [localSettings, sessionSecrets] = await Promise.all([
@@ -183,7 +226,19 @@ async function getStoredAutoLoginSettings() {
     return nextSettings;
 }
 
-function handleGetAutoLoginSettings(sendResponse) {
+function handleGetAutoLoginSettings(sender, sendResponse) {
+    if (!isTrustedWebClassSender(sender)) {
+        sendResponse({
+            success: true,
+            settings: {
+                autoLoginEnabled: false,
+                username: '',
+                password: ''
+            }
+        });
+        return;
+    }
+
     getStoredAutoLoginSettings()
         .then((settings) => {
             sendResponse({
@@ -259,27 +314,20 @@ async function loadSecureLocalStrings(defaults, secureKeys = []) {
 
 function normalizeReleaseVersion(rawVersion) {
     const trimmed = typeof rawVersion === 'string' ? rawVersion.trim() : '';
-    return trimmed.replace(/^[vV]/, '');
+    const semverMatch = trimmed.match(/(\d+(?:\.\d+){0,2})/);
+    return semverMatch ? semverMatch[1] : '';
 }
 
 function compareVersions(left, right) {
-    const leftParts = normalizeReleaseVersion(left).split('.');
-    const rightParts = normalizeReleaseVersion(right).split('.');
+    const leftParts = normalizeReleaseVersion(left).split('.').map(part => parseInt(part, 10));
+    const rightParts = normalizeReleaseVersion(right).split('.').map(part => parseInt(part, 10));
     const maxLength = Math.max(leftParts.length, rightParts.length);
 
     for (let index = 0; index < maxLength; index += 1) {
-        const leftPart = leftParts[index] ?? '0';
-        const rightPart = rightParts[index] ?? '0';
-        const leftNumber = /^\d+$/.test(leftPart) ? parseInt(leftPart, 10) : 0;
-        const rightNumber = /^\d+$/.test(rightPart) ? parseInt(rightPart, 10) : 0;
+        const leftNumber = Number.isFinite(leftParts[index]) ? leftParts[index] : 0;
+        const rightNumber = Number.isFinite(rightParts[index]) ? rightParts[index] : 0;
         if (leftNumber !== rightNumber) {
             return leftNumber > rightNumber ? 1 : -1;
-        }
-        if (!/^\d+$/.test(leftPart) || !/^\d+$/.test(rightPart)) {
-            const lexicalCompare = leftPart.localeCompare(rightPart);
-            if (lexicalCompare !== 0) {
-                return lexicalCompare > 0 ? 1 : -1;
-            }
         }
     }
 
@@ -1715,6 +1763,11 @@ function buildTickTickTaskPatchFromAssignment(
         hasPayloadDiff = true;
     }
 
+    if (desired.status === 0 && remoteCompleted) {
+        payload.status = 0;
+        hasPayloadDiff = true;
+    }
+
     const shouldComplete = desired.status === 2 && !remoteCompleted;
     const shouldReopen = false;
 
@@ -1727,14 +1780,14 @@ function buildTickTickTaskPatchFromAssignment(
 
 async function getMicrosoftAuthSettings() {
     const [localData, sessionData] = await Promise.all([
-        storageGet({
+        loadSecureLocalStrings({
             [TODO_API_PROVIDER_KEY]: 'none',
             [MS_TODO_CLIENT_ID_KEY]: MS_TODO_DEFAULT_CLIENT_ID,
             [MS_TODO_TENANT_ID_KEY]: MS_TODO_DEFAULT_TENANT,
             [MS_TODO_LIST_NAME_KEY]: MS_TODO_DEFAULT_LIST_NAME,
             [MS_TODO_REFRESH_TOKEN_KEY]: '',
             [MS_TODO_AUTH_KEY]: null
-        }),
+        }, [MS_TODO_REFRESH_TOKEN_KEY]),
         storageSessionGet({
             [MS_TODO_AUTH_SESSION_KEY]: null
         })
@@ -1832,8 +1885,9 @@ async function getValidMicrosoftAccessToken({ forceRefresh = false } = {}) {
     const legacyRefreshToken = typeof legacyAuth?.refreshToken === 'string' ? legacyAuth.refreshToken.trim() : '';
     if (!refreshToken && legacyRefreshToken) {
         refreshToken = legacyRefreshToken;
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
         await storageSet({
-            [MS_TODO_REFRESH_TOKEN_KEY]: refreshToken,
+            [MS_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken,
             [MS_TODO_AUTH_KEY]: null
         });
     }
@@ -1858,11 +1912,12 @@ async function getValidMicrosoftAccessToken({ forceRefresh = false } = {}) {
     if (rotatedRefreshToken) {
         refreshToken = rotatedRefreshToken;
     }
+    const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
     await Promise.all([
         storageSessionSet({ [MS_TODO_AUTH_SESSION_KEY]: nextAuth }),
         storageSet({
             [MS_TODO_AUTH_KEY]: null,
-            [MS_TODO_REFRESH_TOKEN_KEY]: refreshToken
+            [MS_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken
         })
     ]);
     return nextAuth.accessToken;
@@ -2256,7 +2311,7 @@ async function getGoogleAuthSettings() {
             [GOOGLE_TODO_LIST_NAME_KEY]: GOOGLE_TODO_DEFAULT_LIST_NAME,
             [GOOGLE_TODO_REFRESH_TOKEN_KEY]: '',
             [GOOGLE_TODO_AUTH_KEY]: null
-        }, [GOOGLE_TODO_CLIENT_SECRET_KEY]),
+        }, [GOOGLE_TODO_CLIENT_SECRET_KEY, GOOGLE_TODO_REFRESH_TOKEN_KEY]),
         storageSessionGet({
             [GOOGLE_TODO_AUTH_SESSION_KEY]: null
         })
@@ -2349,7 +2404,8 @@ async function getValidGoogleAccessToken({ forceRefresh = false } = {}) {
     const legacyAuth = settings[GOOGLE_TODO_AUTH_KEY];
     if (!refreshToken && legacyAuth?.refreshToken) {
         refreshToken = legacyAuth.refreshToken.trim();
-        await storageSet({ [GOOGLE_TODO_REFRESH_TOKEN_KEY]: refreshToken, [GOOGLE_TODO_AUTH_KEY]: null });
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
+        await storageSet({ [GOOGLE_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken, [GOOGLE_TODO_AUTH_KEY]: null });
     }
     if (!refreshToken) {
         throw new Error('Google の認証情報がありません。設定画面から再接続してください。');
@@ -3315,7 +3371,7 @@ async function getTickTickAuthSettings() {
             [TICKTICK_TODO_AUTH_LOCAL_KEY]: '',
             [TICKTICK_TODO_REFRESH_TOKEN_KEY]: '',
             [TICKTICK_TODO_AUTH_KEY]: null
-        }, [TICKTICK_TODO_CLIENT_SECRET_KEY, TICKTICK_TODO_AUTH_LOCAL_KEY]),
+        }, [TICKTICK_TODO_CLIENT_SECRET_KEY, TICKTICK_TODO_AUTH_LOCAL_KEY, TICKTICK_TODO_REFRESH_TOKEN_KEY]),
         storageSessionGet({
             [TICKTICK_TODO_AUTH_SESSION_KEY]: null
         })
@@ -3437,8 +3493,9 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
     const legacyRefreshToken = typeof legacyAuth?.refreshToken === 'string' ? legacyAuth.refreshToken.trim() : '';
     if (!refreshToken && legacyRefreshToken) {
         refreshToken = legacyRefreshToken;
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
         await storageSet({
-            [TICKTICK_TODO_REFRESH_TOKEN_KEY]: refreshToken,
+            [TICKTICK_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken,
             [TICKTICK_TODO_AUTH_KEY]: null
         });
     }
@@ -3470,12 +3527,14 @@ async function getValidTickTickAccessToken({ forceRefresh = false } = {}) {
     if (rotatedRefreshToken) {
         refreshToken = rotatedRefreshToken;
     }
+    const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
+    const encodedAuth = await encodePersistedSessionAuth(nextAuth);
     await Promise.all([
         storageSessionSet({ [TICKTICK_TODO_AUTH_SESSION_KEY]: nextAuth }),
         storageSet({
             [TICKTICK_TODO_AUTH_KEY]: null,
-            [TICKTICK_TODO_AUTH_LOCAL_KEY]: await encodePersistedSessionAuth(nextAuth),
-            [TICKTICK_TODO_REFRESH_TOKEN_KEY]: refreshToken
+            [TICKTICK_TODO_AUTH_LOCAL_KEY]: encodedAuth,
+            [TICKTICK_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken
         })
     ]);
     return nextAuth.accessToken;
@@ -4202,12 +4261,13 @@ async function handleMicrosoftTodoConnect(sendResponse) {
         if (!sessionAuth) {
             throw new Error('Microsoft access token was not returned.');
         }
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
 
         await Promise.all([
             storageSet({
                 [TODO_API_PROVIDER_KEY]: 'microsoft',
                 [MS_TODO_AUTH_KEY]: null,
-                [MS_TODO_REFRESH_TOKEN_KEY]: refreshToken,
+                [MS_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken,
                 [MS_TODO_TENANT_ID_KEY]: tenantId,
                 [MS_TODO_CLIENT_ID_KEY]: clientId,
                 [MS_TODO_LIST_NAME_KEY]: listName
@@ -4251,12 +4311,12 @@ async function handleMicrosoftTodoDisconnect(sendResponse) {
 async function handleMicrosoftTodoGetStatus(sendResponse) {
     try {
         const [localData, sessionData] = await Promise.all([
-            storageGet({
+            loadSecureLocalStrings({
                 [TODO_API_PROVIDER_KEY]: 'none',
                 [MS_TODO_REFRESH_TOKEN_KEY]: '',
                 [MS_TODO_LIST_ID_KEY]: '',
                 [MS_TODO_LIST_NAME_KEY]: MS_TODO_DEFAULT_LIST_NAME
-            }),
+            }, [MS_TODO_REFRESH_TOKEN_KEY]),
             storageSessionGet({
                 [MS_TODO_AUTH_SESSION_KEY]: null
             })
@@ -4369,6 +4429,7 @@ async function handleGoogleTodoConnect(sendResponse) {
             throw new Error('Google access token was not returned.');
         }
         const encryptedClientSecret = await encryptSecureLocalString(clientSecret);
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
 
         await Promise.all([
             storageSet({
@@ -4376,7 +4437,7 @@ async function handleGoogleTodoConnect(sendResponse) {
                 [GOOGLE_TODO_AUTH_KEY]: null,
                 [GOOGLE_TODO_CLIENT_ID_KEY]: clientId,
                 [GOOGLE_TODO_CLIENT_SECRET_KEY]: encryptedClientSecret,
-                [GOOGLE_TODO_REFRESH_TOKEN_KEY]: refreshToken,
+                [GOOGLE_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken,
                 [GOOGLE_TODO_LIST_NAME_KEY]: listName
             }),
             storageSessionSet({ [GOOGLE_TODO_AUTH_SESSION_KEY]: sessionAuth })
@@ -4641,13 +4702,14 @@ async function handleTickTickTodoConnect(sendResponse) {
             throw new Error('TickTick access token was not returned.');
         }
         const encryptedClientSecret = await encryptSecureLocalString(clientSecret);
+        const encryptedRefreshToken = await encryptSecureLocalString(refreshToken);
 
         await Promise.all([
             storageSet({
                 [TODO_API_PROVIDER_KEY]: 'ticktick',
                 [TICKTICK_TODO_AUTH_KEY]: null,
                 [TICKTICK_TODO_AUTH_LOCAL_KEY]: await encodePersistedSessionAuth(sessionAuth),
-                [TICKTICK_TODO_REFRESH_TOKEN_KEY]: refreshToken,
+                [TICKTICK_TODO_REFRESH_TOKEN_KEY]: encryptedRefreshToken,
                 [TICKTICK_TODO_PROJECT_NAME_KEY]: projectName,
                 [TICKTICK_TODO_CLIENT_ID_KEY]: clientId,
                 [TICKTICK_TODO_CLIENT_SECRET_KEY]: encryptedClientSecret
@@ -4797,7 +4859,13 @@ function buildTokyoDateUtc(year, month, day, hour, minute = 0, second = 0) {
 }
 
 async function requestTodoSyncOnOpenHomeTab(payload) {
-    const tabs = await chrome.tabs.query({ url: 'https://kulms.kanagawa-u.ac.jp/webclass/*' });
+    const tabs = await chrome.tabs.query({
+        url: [
+            'https://kulms.kanagawa-u.ac.jp/webclass/*',
+            'http://127.0.0.1/webclass/*',
+            'http://localhost/webclass/*'
+        ]
+    });
     const homeTabs = tabs
         .filter((tab) => isWebClassHomeUrl(tab.url) && typeof tab.id === 'number')
         .sort((a, b) => Number(Boolean(b.active)) - Number(Boolean(a.active)));
@@ -5319,10 +5387,17 @@ async function handleDownloadFile(message, sender, sendResponse) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message?.type) return false;
+    if (!isTrustedRuntimeMessageSender(sender)) {
+        sendResponse({
+            success: false,
+            error: 'Unauthorized message sender.'
+        });
+        return false;
+    }
 
     switch (message.type) {
         case 'GET_AUTO_LOGIN_SETTINGS':
-            handleGetAutoLoginSettings(sendResponse);
+            handleGetAutoLoginSettings(sender, sendResponse);
             return true;
         case 'MICROSOFT_TODO_CONNECT':
             handleMicrosoftTodoConnect(sendResponse);
@@ -5422,7 +5497,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
             return true;
         case 'RUN_DASHBOARD_COURSE_NAME_CONVERSION_FROM_OPTIONS':
-            chrome.tabs.query({ url: 'https://kulms.kanagawa-u.ac.jp/webclass/*' }, (tabs) => {
+            chrome.tabs.query({
+                url: [
+                    'https://kulms.kanagawa-u.ac.jp/webclass/*',
+                    'http://127.0.0.1/webclass/*',
+                    'http://localhost/webclass/*'
+                ]
+            }, (tabs) => {
                 if (!tabs?.length) {
                     sendResponse({ success: false, error: 'WebClass のタブが見つかりません。' });
                     return;

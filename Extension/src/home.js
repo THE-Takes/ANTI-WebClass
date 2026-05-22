@@ -1,4 +1,4 @@
-﻿// home.js
+// home.js
 // Handles Home Page improvements: ToDo list, Message widget, Layout changes
 
 // uxDebugModeState, uxDebugLog, uxDebugWarn, syncUxMasterStateToPage,
@@ -253,28 +253,6 @@ if (!isHomePage) {
             60% { stroke-dashoffset: 15.5; }
             100% { stroke-dashoffset: 0; }
         }
-        @keyframes ux-title-burst-beam {
-            0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
-            14% { opacity: 0.96; }
-            76% { opacity: 0.82; }
-            100% { transform: translateX(135%) skewX(-18deg); opacity: 0; }
-        }
-        @keyframes ux-title-burst-ring {
-            0% { transform: translate(-50%, -50%) scale(0.28); opacity: 0; }
-            18% { opacity: 0.55; }
-            100% { transform: translate(-50%, -50%) scale(1.12); opacity: 0; }
-        }
-        @keyframes ux-title-burst-spark {
-            0% {
-                transform: translate(0, 0) scale(0.65);
-                opacity: 0;
-            }
-            14% { opacity: 1; }
-            100% {
-                transform: translate(var(--ux-spark-x), var(--ux-spark-y)) scale(0.18);
-                opacity: 0;
-            }
-        }
         .ux-refresh-btn {
             display: inline-flex;
             align-items: center;
@@ -318,57 +296,46 @@ if (!isHomePage) {
             background: var(--ux-home-warning);
             animation: ux-pulse 1s ease-in-out infinite;
         }
-        .ux-title-burst-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .ux-todo-title-marquee-wrap {
+            position: relative;
+            display: block;
             width: 100%;
-            height: 100%;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .ux-todo-title-marquee-source {
+            position: relative;
+            z-index: 1;
+        }
+        .ux-todo-title-marquee-wrap.is-marquee:not(.is-editing) .ux-todo-title-marquee-source {
+            color: transparent !important;
+            text-shadow: none !important;
+        }
+        .ux-todo-title-marquee {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
             overflow: hidden;
             pointer-events: none;
-            border-radius: inherit;
-            z-index: 11;
-            mix-blend-mode: screen;
+            opacity: 0;
+            z-index: 2;
+            box-sizing: border-box;
         }
-        .ux-title-burst-beam {
-            position: absolute;
-            top: -40%;
-            left: -55%;
-            width: 48%;
-            height: 180%;
-            background: linear-gradient(
-                90deg,
-                rgba(149, 224, 255, 0) 0%,
-                rgba(149, 224, 255, 0.92) 34%,
-                rgba(255, 255, 255, 0.98) 52%,
-                rgba(149, 224, 255, 0.88) 72%,
-                rgba(149, 224, 255, 0) 100%
-            );
-            filter: blur(0.25px);
-            animation: ux-title-burst-beam 620ms cubic-bezier(0.22, 0.81, 0.26, 1) forwards;
+        .ux-todo-title-marquee-wrap.is-marquee:not(.is-editing) .ux-todo-title-marquee {
+            opacity: 1;
         }
-        .ux-title-burst-ring {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: clamp(12px, 1.7vw, 18px);
-            aspect-ratio: 1;
-            border: 1px solid rgba(214, 247, 255, 0.9);
-            border-radius: 999px;
-            box-shadow: 0 0 0 1px rgba(145, 215, 255, 0.36);
-            animation: ux-title-burst-ring 560ms ease-out forwards;
+        .ux-todo-title-marquee-track {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            will-change: transform;
+            transform: translateX(0);
         }
-        .ux-title-burst-spark {
-            position: absolute;
-            top: 50%;
-            left: 52%;
-            width: 4px;
-            aspect-ratio: 1;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.96);
-            box-shadow: 0 0 12px rgba(170, 224, 255, 0.9);
-            animation: ux-title-burst-spark 520ms cubic-bezier(0.25, 0.82, 0.2, 1) forwards;
-            animation-delay: var(--ux-spark-delay, 0ms);
+        .ux-todo-title-marquee-unit {
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
     `;
     document.head.appendChild(uxRefreshStyle);
@@ -401,6 +368,7 @@ if (!isHomePage) {
     document.head.appendChild(uxTimetableHighlightStyle);
 
     // --- Configuration & State ---
+    const STORAGE_KEY_DASHBOARD_DANGER_TODO_OUTLINE_ENABLED = 'dashboardDangerTodoOutlineEnabled';
     const STORAGE_KEY_TODO = 'webclass_todo_list'; // Legacy key (user edits) - keeping for custom todos if needed
     const STORAGE_KEY_ASSIGNMENTS = 'assignments'; // Scraped assignments
     const STORAGE_KEY_MESSAGES = 'webclass_messages'; // Messages cache
@@ -409,6 +377,10 @@ if (!isHomePage) {
     const STORAGE_KEY_SHORT_COURSE_CACHE = 'webclass_course_short_name_cache';
     const STORAGE_KEY_AUTO_RUN_COURSE_NAME_CONVERSION = 'autoRunCourseNameConversionOnDashboardLoad';
     const STORAGE_KEY_SHORT_NAME_MODE_ENABLED = 'webclass_short_name_mode_enabled';
+    const STORAGE_KEY_DASHBOARD_VISIBLE_START_PERIOD = 'dashboardVisibleStartPeriod';
+    const STORAGE_KEY_DASHBOARD_VISIBLE_END_PERIOD = 'dashboardVisibleEndPeriod';
+    const STORAGE_KEY_DASHBOARD_VISIBLE_START_WEEKDAY = 'dashboardVisibleStartWeekday';
+    const STORAGE_KEY_DASHBOARD_VISIBLE_END_WEEKDAY = 'dashboardVisibleEndWeekday';
     const STORAGE_KEY_TODO_API_PROVIDER = 'todoApiProvider';
     const STORAGE_KEY_MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE = 'msTodoDefaultReminderDaysBefore';
     const STORAGE_KEY_MS_TODO_DEFAULT_REMINDER_TIME_MODE = 'msTodoDefaultReminderTimeMode';
@@ -416,10 +388,13 @@ if (!isHomePage) {
     const MS_TODO_REMINDER_TIME_MODE_AT_9AM = 'at_9am';
     const MS_TODO_REMINDER_TIME_MODE_EXACT_OFFSET = 'exact_offset';
     const MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE = 1;
+    const DASHBOARD_VISIBLE_RANGE_MIN = 1;
+    const DASHBOARD_VISIBLE_RANGE_MAX = 6;
     const MESSAGE_TYPE_RUN_DASHBOARD_COURSE_NAME_CONVERSION = 'RUN_DASHBOARD_COURSE_NAME_CONVERSION';
     const MESSAGE_TYPE_RUN_TODO_API_SYNC_FROM_BACKGROUND = 'RUN_TODO_API_SYNC_FROM_BACKGROUND';
     let runDashboardCourseNameConversionFromSettings = null;
     let runTodoApiSyncFromBackground = null;
+    let dashboardDangerTodoOutlineEnabled = true;
 
     chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         if (message?.type === MESSAGE_TYPE_RUN_DASHBOARD_COURSE_NAME_CONVERSION) {
@@ -746,6 +721,42 @@ if (!isHomePage) {
             .replace('締切が近い課題があります。', '')
             .replace(/新着メッセージ\(\d+\)/, '')
             .trim();
+    }
+
+    function stripTimetableCourseStatusIndicators(link) {
+        if (!link) return '';
+
+        link.querySelectorAll('.course-new-message, .course-contents-info').forEach((element) => {
+            element.remove();
+        });
+
+        return normalizeDevdevCourseText(link.textContent || '');
+    }
+
+    function applyUniformTimetableCellLayout(scheduleTable = null) {
+        const tables = scheduleTable
+            ? [scheduleTable]
+            : Array.from(document.querySelectorAll('table.schedule-table, table.ux-dashboard-v2-schedule-table'));
+
+        tables.forEach((table) => {
+            if (!table) return;
+            if (table.classList.contains('schedule-table')) {
+                table.classList.add('ux-optimized-cell-width');
+            }
+
+            table.querySelectorAll('tbody td').forEach((cell) => {
+                if (cell.classList.contains('schedule-table-class_order')) return;
+                cell.classList.add('ux-cell-optimized');
+
+                const link = cell.querySelector('a[href*="course.php"]');
+                if (!link) return;
+
+                const courseName = stripTimetableCourseStatusIndicators(link);
+                if (courseName && !link.title) {
+                    link.title = courseName;
+                }
+            });
+        });
     }
 
     function resolveEditedCustomCourseName(customName, fullName) {
@@ -1158,9 +1169,48 @@ if (!isHomePage) {
         return -1;
     }
 
-    function shouldAlwaysKeepDashboardWeekdayColumn(headerCell) {
+    function normalizeDashboardVisibleRangeValue(value, fallback) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return fallback;
+        return Math.min(DASHBOARD_VISIBLE_RANGE_MAX, Math.max(DASHBOARD_VISIBLE_RANGE_MIN, parsed));
+    }
+
+    function normalizeDashboardVisibleRange(settings = {}) {
+        const normalized = {
+            startPeriod: normalizeDashboardVisibleRangeValue(
+                settings[STORAGE_KEY_DASHBOARD_VISIBLE_START_PERIOD] ?? settings.startPeriod,
+                DASHBOARD_VISIBLE_RANGE_MIN
+            ),
+            endPeriod: normalizeDashboardVisibleRangeValue(
+                settings[STORAGE_KEY_DASHBOARD_VISIBLE_END_PERIOD] ?? settings.endPeriod,
+                DASHBOARD_VISIBLE_RANGE_MAX
+            ),
+            startWeekday: normalizeDashboardVisibleRangeValue(
+                settings[STORAGE_KEY_DASHBOARD_VISIBLE_START_WEEKDAY] ?? settings.startWeekday,
+                DASHBOARD_VISIBLE_RANGE_MIN
+            ),
+            endWeekday: normalizeDashboardVisibleRangeValue(
+                settings[STORAGE_KEY_DASHBOARD_VISIBLE_END_WEEKDAY] ?? settings.endWeekday,
+                DASHBOARD_VISIBLE_RANGE_MAX
+            )
+        };
+
+        if (normalized.startPeriod > normalized.endPeriod) normalized.endPeriod = normalized.startPeriod;
+        if (normalized.startWeekday > normalized.endWeekday) normalized.endWeekday = normalized.startWeekday;
+        return normalized;
+    }
+
+    function isDashboardWeekdayWithinVisibleRange(weekdayIndex, visibleRange) {
+        return weekdayIndex >= visibleRange.startWeekday && weekdayIndex <= visibleRange.endWeekday;
+    }
+
+    function isDashboardPeriodWithinVisibleRange(classOrder, visibleRange) {
+        return classOrder >= visibleRange.startPeriod && classOrder <= visibleRange.endPeriod;
+    }
+
+    function shouldAlwaysKeepDashboardWeekdayColumn(headerCell, visibleRange = normalizeDashboardVisibleRange()) {
         const weekdayIndex = getWeekdayIndexFromHeaderText(headerCell?.textContent);
-        return weekdayIndex >= 1 && weekdayIndex <= 5;
+        return weekdayIndex >= 1 && weekdayIndex <= 6 && isDashboardWeekdayWithinVisibleRange(weekdayIndex, visibleRange);
     }
 
     function getTimetableClassOrderFromRow(row) {
@@ -1179,9 +1229,9 @@ if (!isHomePage) {
         return Number.isFinite(parsed) ? parsed : null;
     }
 
-    function shouldAlwaysKeepDashboardPeriodRow(row) {
+    function shouldAlwaysKeepDashboardPeriodRow(row, visibleRange = normalizeDashboardVisibleRange()) {
         const classOrder = getTimetableClassOrderFromRow(row);
-        return classOrder >= 1 && classOrder <= 5;
+        return classOrder >= 1 && classOrder <= 6 && isDashboardPeriodWithinVisibleRange(classOrder, visibleRange);
     }
 
     function getTodayColumnIndex(scheduleTable, now = getWebClassNow()) {
@@ -1704,6 +1754,7 @@ if (!isHomePage) {
         // エラー時の表示
         if (error === 'acs_not_found') {
             const errDiv = document.createElement('div');
+            errDiv.className = 'ux-message-empty ux-message-empty-warning';
             errDiv.style.padding = '20px';
             errDiv.style.textAlign = 'center';
             errDiv.style.color = 'var(--ux-home-warning-foreground)';
@@ -1716,6 +1767,7 @@ if (!isHomePage) {
 
         if (messages.length === 0) {
             const empty = document.createElement('div');
+            empty.className = 'ux-message-empty';
             empty.textContent = 'メッセージがありません';
             empty.style.padding = '20px';
             empty.style.textAlign = 'center';
@@ -1729,6 +1781,7 @@ if (!isHomePage) {
 
         if (displayMessages.length === 0) {
             const allRead = document.createElement('div');
+            allRead.className = 'ux-message-empty ux-message-empty-success';
             allRead.textContent = '✓ 未読メッセージはありません';
             allRead.style.padding = '20px';
             allRead.style.textAlign = 'center';
@@ -1739,51 +1792,91 @@ if (!isHomePage) {
 
         // メッセージリスト
         const ul = document.createElement('ul');
+        ul.className = 'ux-message-list';
+        ul.style.display = 'flex';
+        ul.style.flexDirection = 'column';
+        ul.style.gap = '10px';
         ul.style.listStyle = 'none';
         ul.style.margin = '0';
         ul.style.padding = '0';
 
         displayMessages.forEach(msg => {
             const li = document.createElement('li');
-            li.style.padding = '10px 15px';
-            li.style.borderBottom = '1px solid var(--ux-home-separator)';
+            li.className = 'ux-message-item' + (msg.justRead ? ' is-just-read' : ' is-unread');
+            li.style.display = 'grid';
+            li.style.gridTemplateColumns = 'minmax(0, 1fr) auto';
+            li.style.gap = '5px 16px';
+            li.style.padding = '16px 18px';
+            li.style.border = '1px solid var(--ux-home-separator)';
+            li.style.borderLeft = msg.justRead
+                ? '4px solid var(--ux-home-success)'
+                : '4px solid var(--ux-home-danger)';
+            li.style.borderRadius = '12px';
+            li.style.boxShadow = 'var(--ux-home-shadow-sm)';
             li.style.cursor = 'pointer';
-            li.style.transition = 'background-color 0.2s';
+            li.style.transition = 'transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease';
 
             // 背景色: 未読=warning, 今既読にした=success
             if (msg.justRead) {
-                li.style.backgroundColor = 'var(--ux-home-success-soft)';
-                li.onmouseenter = () => { li.style.backgroundColor = 'rgba(52, 199, 89, 0.2)'; };
-                li.onmouseleave = () => { li.style.backgroundColor = 'var(--ux-home-success-soft)'; };
+                li.style.backgroundColor = 'rgba(255, 255, 255, 0.94)';
+                li.onmouseenter = () => {
+                    li.style.transform = 'translateY(-1px)';
+                    li.style.backgroundColor = 'var(--ux-home-surface)';
+                    li.style.boxShadow = 'var(--ux-home-shadow-md)';
+                };
+                li.onmouseleave = () => {
+                    li.style.transform = '';
+                    li.style.backgroundColor = 'rgba(255, 255, 255, 0.94)';
+                    li.style.boxShadow = 'var(--ux-home-shadow-sm)';
+                };
             } else {
-                li.style.backgroundColor = 'var(--ux-home-warning-soft)';
-                li.onmouseenter = () => { li.style.backgroundColor = 'rgba(255, 159, 10, 0.22)'; };
-                li.onmouseleave = () => { li.style.backgroundColor = 'var(--ux-home-warning-soft)'; };
+                li.style.backgroundColor = 'rgba(255, 255, 255, 0.94)';
+                li.onmouseenter = () => {
+                    li.style.transform = 'translateY(-1px)';
+                    li.style.backgroundColor = 'var(--ux-home-surface)';
+                    li.style.boxShadow = 'var(--ux-home-shadow-md)';
+                };
+                li.onmouseleave = () => {
+                    li.style.transform = '';
+                    li.style.backgroundColor = 'rgba(255, 255, 255, 0.94)';
+                    li.style.boxShadow = 'var(--ux-home-shadow-sm)';
+                };
             }
 
             // 差出人
             const senderLine = document.createElement('div');
+            senderLine.className = 'ux-message-sender';
+            senderLine.style.gridColumn = '1';
             senderLine.style.fontSize = '0.8em';
             senderLine.style.color = 'var(--ux-home-secondary-label)';
-            senderLine.style.marginBottom = '4px';
+            senderLine.style.marginBottom = '0';
+            senderLine.style.fontWeight = '600';
             senderLine.textContent = msg.sender;
             li.appendChild(senderLine);
 
             // 件名
             const subjectLine = document.createElement('div');
+            subjectLine.className = 'ux-message-subject';
+            subjectLine.style.gridColumn = '1 / -1';
             subjectLine.style.fontWeight = msg.justRead ? 'normal' : 'bold'; // 既読は通常フォント
             subjectLine.style.color = 'var(--ux-home-label)';
-            subjectLine.style.overflow = 'hidden';
-            subjectLine.style.textOverflow = 'ellipsis';
-            subjectLine.style.whiteSpace = 'nowrap';
+            subjectLine.style.overflow = 'visible';
+            subjectLine.style.textOverflow = 'clip';
+            subjectLine.style.whiteSpace = 'normal';
+            subjectLine.style.lineHeight = '1.45';
             subjectLine.textContent = msg.justRead ? `✓ ${msg.subject}` : msg.subject;
             li.appendChild(subjectLine);
 
             // 日付
             const dateLine = document.createElement('div');
+            dateLine.className = 'ux-message-date';
+            dateLine.style.gridColumn = '2';
+            dateLine.style.gridRow = '1';
+            dateLine.style.alignSelf = 'center';
             dateLine.style.fontSize = '0.75em';
             dateLine.style.color = 'var(--ux-home-tertiary-label)';
-            dateLine.style.marginTop = '4px';
+            dateLine.style.marginTop = '0';
+            dateLine.style.whiteSpace = 'nowrap';
             dateLine.textContent = msg.date;
             li.appendChild(dateLine);
 
@@ -1845,10 +1938,10 @@ if (!isHomePage) {
     let uxActiveReminderCleanup = null;
     let uxTodoTitleAutoScrollCleanups = [];
     const UX_TODO_TITLE_SCROLL_START_DELAY_MS = 500;
-    const UX_TODO_TITLE_SCROLL_RESET_PAUSE_MS = 700;
-    const UX_TODO_TITLE_SCROLL_TRAVERSE_MS = 3200;
-    let uxTodoTitleScrollControllerSeq = 0;
-    const uxTodoTitleScrollControllers = new Map();
+    const UX_TODO_TITLE_SCROLL_LOOP_PAUSE_MS = 1000;
+    const UX_TODO_TITLE_SCROLL_SPEED_PX_PER_SEC = 42;
+    const UX_TODO_TITLE_SCROLL_MIN_DURATION_MS = 2600;
+    const UX_TODO_TITLE_SCROLL_LOOP_GAP_PX = 28;
 
     function closeDatetimePopover() {
         const onClose = uxActiveDatetimeOnClose;
@@ -1889,66 +1982,24 @@ if (!isHomePage) {
             }
         });
         uxTodoTitleAutoScrollCleanups = [];
-        uxTodoTitleScrollControllers.clear();
-    }
-
-    function getTodoTitleScrollEligibleControllers() {
-        const eligible = [];
-        uxTodoTitleScrollControllers.forEach((controller) => {
-            if (!controller || typeof controller.canParticipate !== 'function') return;
-            if (controller.canParticipate()) {
-                eligible.push(controller);
-            }
-        });
-        return eligible;
-    }
-
-    function reportTodoTitleReachedRight(controllerId) {
-        const reporter = uxTodoTitleScrollControllers.get(controllerId);
-        if (!reporter) return false;
-        if (typeof reporter.setReachedRight === 'function') {
-            reporter.setReachedRight(true);
-        }
-
-        const eligible = getTodoTitleScrollEligibleControllers();
-        if (eligible.length === 0) return false;
-
-        const allReached = eligible.every((controller) => {
-            if (typeof controller.getReachedRight !== 'function') return false;
-            return !!controller.getReachedRight();
-        });
-        if (!allReached) return false;
-
-        eligible.forEach((controller) => {
-            if (typeof controller.setReachedRight === 'function') {
-                controller.setReachedRight(false);
-            }
-        });
-        eligible.forEach((controller) => {
-            if (typeof controller.startBurst === 'function') {
-                controller.startBurst();
-            }
-        });
-        return true;
     }
 
     function attachTodoTitleAutoScroll(inputEl) {
         if (!(inputEl instanceof HTMLInputElement)) return null;
 
-        const controllerId = `ux-todo-title-scroll-${++uxTodoTitleScrollControllerSeq}`;
         let rafId = null;
-        let burstRafId = null;
         let startTimer = null;
-        let burstTimer = null;
-        let burstSessionSeq = 0;
-        let burstStyleSnapshot = null;
-        let burstOverlayEl = null;
-        let burstOverlayParent = null;
-        let burstParentPositionSnapshot = null;
+        let pauseTimer = null;
+        let setupRafId = null;
         let lastTime = 0;
         let currentOffset = 0;
-        let mode = 'normal'; // normal | waiting | burst
-        let reachedRightInRound = false;
+        let loopDistance = 0;
+        let loopDurationMs = UX_TODO_TITLE_SCROLL_MIN_DURATION_MS;
+        let wrapperEl = null;
+        let overlayEl = null;
+        let trackEl = null;
+        let firstTextEl = null;
+        let secondTextEl = null;
 
         const parsePx = (value) => {
             const parsed = parseFloat(value);
@@ -1979,102 +2030,30 @@ if (!isHomePage) {
             return width;
         };
 
-        const getMaxScroll = () => {
+        const getTitleMetrics = () => {
             const domMax = Math.max(0, inputEl.scrollWidth - inputEl.clientWidth);
             const style = window.getComputedStyle(inputEl);
             const horizontalPadding = parsePx(style.paddingLeft) + parsePx(style.paddingRight);
             const visibleTextWidth = Math.max(0, inputEl.clientWidth - horizontalPadding);
-            const measuredMax = Math.max(0, Math.ceil(measureTextWidth() - visibleTextWidth));
-            return Math.max(domMax, measuredMax);
-        };
-
-        const applyOffset = (offset, maxScroll = null) => {
-            const max = Number.isFinite(maxScroll) ? Math.max(0, maxScroll) : getMaxScroll();
-            const clamped = Math.max(0, Math.min(offset, max));
-            currentOffset = clamped;
-            inputEl.scrollLeft = clamped;
-            return clamped;
-        };
-
-        const captureBurstStyleSnapshot = () => {
-            if (burstStyleSnapshot) return;
-            burstStyleSnapshot = {
-                transition: inputEl.style.transition || '',
-                transform: inputEl.style.transform || '',
-                filter: inputEl.style.filter || '',
-                opacity: inputEl.style.opacity || '',
-                willChange: inputEl.style.willChange || ''
+            const textWidth = Math.ceil(measureTextWidth());
+            const measuredMax = Math.max(0, textWidth - visibleTextWidth);
+            return {
+                domMax,
+                horizontalPadding,
+                visibleTextWidth,
+                textWidth,
+                maxScroll: Math.max(domMax, measuredMax)
             };
         };
 
-        const applyBurstStyle = ({ transition, transform, filter, opacity } = {}) => {
-            captureBurstStyleSnapshot();
-            if (typeof transition === 'string') {
-                inputEl.style.transition = transition;
+        const applyOffset = (offset) => {
+            const max = Math.max(0, loopDistance);
+            const clamped = Math.max(0, Math.min(offset, max));
+            currentOffset = clamped;
+            if (trackEl) {
+                trackEl.style.transform = `translateX(${-clamped}px)`;
             }
-            if (typeof transform === 'string') {
-                inputEl.style.transform = transform;
-            }
-            if (typeof filter === 'string') {
-                inputEl.style.filter = filter;
-            }
-            if (typeof opacity === 'number') {
-                const clamped = Math.max(0, Math.min(1, opacity));
-                inputEl.style.opacity = `${clamped}`;
-            }
-            inputEl.style.willChange = 'transform, filter, opacity';
-        };
-
-        const restoreBurstStyle = () => {
-            if (!burstStyleSnapshot) return;
-            inputEl.style.transition = burstStyleSnapshot.transition;
-            inputEl.style.transform = burstStyleSnapshot.transform;
-            inputEl.style.filter = burstStyleSnapshot.filter;
-            inputEl.style.opacity = burstStyleSnapshot.opacity;
-            inputEl.style.willChange = burstStyleSnapshot.willChange;
-            burstStyleSnapshot = null;
-        };
-
-        const clearBurstOverlay = () => {
-            if (burstOverlayEl && burstOverlayEl.parentElement) {
-                burstOverlayEl.remove();
-            }
-            burstOverlayEl = null;
-            if (burstOverlayParent && burstParentPositionSnapshot !== null) {
-                burstOverlayParent.style.position = burstParentPositionSnapshot;
-            }
-            burstOverlayParent = null;
-            burstParentPositionSnapshot = null;
-        };
-
-        const createBurstOverlay = () => {
-            clearBurstOverlay();
-            const parent = inputEl.parentElement;
-            if (!parent) return;
-
-            const parentStyle = window.getComputedStyle(parent);
-            if (parentStyle.position === 'static') {
-                burstParentPositionSnapshot = parent.style.position || '';
-                parent.style.position = 'relative';
-            }
-
-            const overlay = document.createElement('div');
-            overlay.className = 'ux-title-burst-overlay';
-            overlay.style.top = `${inputEl.offsetTop}px`;
-            overlay.style.left = `${inputEl.offsetLeft}px`;
-            overlay.style.width = `${inputEl.offsetWidth}px`;
-            overlay.style.height = `${inputEl.offsetHeight}px`;
-            overlay.innerHTML = `
-                <span class="ux-title-burst-beam"></span>
-                <span class="ux-title-burst-ring"></span>
-                <span class="ux-title-burst-spark" style="--ux-spark-x: 66%; --ux-spark-y: -10px; --ux-spark-delay: 24ms;"></span>
-                <span class="ux-title-burst-spark" style="--ux-spark-x: 42%; --ux-spark-y: 12px; --ux-spark-delay: 60ms;"></span>
-                <span class="ux-title-burst-spark" style="--ux-spark-x: 88%; --ux-spark-y: 4px; --ux-spark-delay: 84ms;"></span>
-            `;
-
-            parent.appendChild(overlay);
-            burstOverlayParent = parent;
-            burstOverlayEl = overlay;
+            return clamped;
         };
 
         const clearTimers = () => {
@@ -2082,28 +2061,22 @@ if (!isHomePage) {
                 window.clearTimeout(startTimer);
                 startTimer = null;
             }
-            if (burstTimer !== null) {
-                window.clearTimeout(burstTimer);
-                burstTimer = null;
+            if (pauseTimer !== null) {
+                window.clearTimeout(pauseTimer);
+                pauseTimer = null;
             }
         };
 
         const stop = (resetScroll = false) => {
             clearTimers();
-            burstSessionSeq += 1;
             if (rafId !== null) {
                 window.cancelAnimationFrame(rafId);
                 rafId = null;
             }
-            if (burstRafId !== null) {
-                window.cancelAnimationFrame(burstRafId);
-                burstRafId = null;
-            }
             lastTime = 0;
-            restoreBurstStyle();
-            clearBurstOverlay();
             if (resetScroll) {
-                applyOffset(0, 0);
+                applyOffset(0);
+                inputEl.scrollLeft = 0;
             }
         };
 
@@ -2113,176 +2086,106 @@ if (!isHomePage) {
             document.activeElement !== inputEl
         );
 
-        const canParticipate = () => isRunnable() && getMaxScroll() > 1;
+        const ensureMarqueeElements = () => {
+            if (wrapperEl && wrapperEl.contains(inputEl) && overlayEl && trackEl) {
+                return true;
+            }
 
-        const queueNextFrame = () => {
-            if (!isRunnable()) {
-                stop(false);
-                return;
-            }
-            const maxScroll = getMaxScroll();
-            if (maxScroll <= 1) {
-                stop(true);
-                return;
-            }
-            rafId = window.requestAnimationFrame(step);
+            const parent = inputEl.parentElement;
+            if (!parent) return false;
+
+            wrapperEl = document.createElement('div');
+            wrapperEl.className = 'ux-todo-title-marquee-wrap';
+            parent.insertBefore(wrapperEl, inputEl);
+            wrapperEl.appendChild(inputEl);
+
+            overlayEl = document.createElement('div');
+            overlayEl.className = 'ux-todo-title-marquee';
+
+            trackEl = document.createElement('div');
+            trackEl.className = 'ux-todo-title-marquee-track';
+
+            firstTextEl = document.createElement('span');
+            firstTextEl.className = 'ux-todo-title-marquee-unit';
+            secondTextEl = document.createElement('span');
+            secondTextEl.className = 'ux-todo-title-marquee-unit';
+
+            trackEl.appendChild(firstTextEl);
+            trackEl.appendChild(secondTextEl);
+            overlayEl.appendChild(trackEl);
+            wrapperEl.appendChild(overlayEl);
+            inputEl.classList.add('ux-todo-title-marquee-source');
+            return true;
         };
 
-        const enterBurstMode = () => {
-            if (!canParticipate()) return;
-            mode = 'burst';
-            stop(false);
-            mode = 'burst';
-            const sessionId = ++burstSessionSeq;
+        const syncMarqueeStyle = (gapPx) => {
+            if (!overlayEl || !trackEl) return;
+            const wasMarquee = !!(wrapperEl && wrapperEl.classList.contains('is-marquee'));
+            if (wasMarquee) {
+                wrapperEl.classList.remove('is-marquee');
+            }
+            const style = window.getComputedStyle(inputEl);
+            overlayEl.style.fontStyle = style.fontStyle;
+            overlayEl.style.fontVariant = style.fontVariant;
+            overlayEl.style.fontWeight = style.fontWeight;
+            overlayEl.style.fontSize = style.fontSize;
+            overlayEl.style.fontFamily = style.fontFamily;
+            overlayEl.style.lineHeight = style.lineHeight;
+            overlayEl.style.letterSpacing = style.letterSpacing;
+            overlayEl.style.textTransform = style.textTransform;
+            overlayEl.style.textDecoration = style.textDecoration;
+            overlayEl.style.color = style.color;
+            overlayEl.style.paddingTop = style.paddingTop;
+            overlayEl.style.paddingRight = style.paddingRight;
+            overlayEl.style.paddingBottom = style.paddingBottom;
+            overlayEl.style.paddingLeft = style.paddingLeft;
+            overlayEl.style.borderRadius = style.borderRadius;
+            trackEl.style.gap = `${gapPx}px`;
+            if (wasMarquee) {
+                wrapperEl.classList.add('is-marquee');
+            }
+        };
 
-            const isBurstSessionAlive = () => (
-                mode === 'burst' &&
-                sessionId === burstSessionSeq &&
-                isRunnable()
-            );
+        const disableMarquee = () => {
+            if (wrapperEl) {
+                wrapperEl.classList.remove('is-marquee');
+            }
+            applyOffset(0);
+            inputEl.scrollLeft = 0;
+        };
 
-            const maxScroll = getMaxScroll();
-            if (maxScroll <= 1) {
-                mode = 'normal';
-                return;
+        const prepareMarquee = () => {
+            if (!ensureMarqueeElements()) return false;
+
+            const text = inputEl.value || '';
+            if (firstTextEl) firstTextEl.textContent = text;
+            if (secondTextEl) secondTextEl.textContent = text;
+
+            const metrics = getTitleMetrics();
+            if (!text || metrics.visibleTextWidth <= 0 || metrics.maxScroll <= 1) {
+                disableMarquee();
+                return false;
             }
 
-            const startScroll = Math.max(0, Math.min(Math.max(currentOffset, maxScroll), maxScroll));
-            applyOffset(startScroll, maxScroll);
+            const gapPx = Math.max(
+                UX_TODO_TITLE_SCROLL_LOOP_GAP_PX,
+                Math.min(56, Math.round(metrics.visibleTextWidth * 0.18))
+            );
+            syncMarqueeStyle(gapPx);
+            const renderedTextWidth = firstTextEl
+                ? Math.ceil(firstTextEl.getBoundingClientRect().width)
+                : metrics.textWidth;
+            loopDistance = Math.max(1, renderedTextWidth + gapPx);
+            loopDurationMs = Math.max(
+                UX_TODO_TITLE_SCROLL_MIN_DURATION_MS,
+                (loopDistance / UX_TODO_TITLE_SCROLL_SPEED_PX_PER_SEC) * 1000
+            );
+            wrapperEl.classList.add('is-marquee');
+            return true;
+        };
 
-            const HOLD_DURATION = 90;
-            const WARP_DURATION = 620;
-            const SETTLE_DURATION = 260;
-            const LOOP_PAUSE = UX_TODO_TITLE_SCROLL_RESET_PAUSE_MS;
-
-            const easeOutExpo = (value) => {
-                if (value >= 1) return 1;
-                return 1 - Math.pow(2, -10 * value);
-            };
-            const easeOutBack = (value) => {
-                const c1 = 1.70158;
-                const c3 = c1 + 1;
-                const x = value - 1;
-                return 1 + (c3 * x * x * x) + (c1 * x * x);
-            };
-
-            createBurstOverlay();
-            applyBurstStyle({
-                transition: 'none',
-                opacity: 1,
-                transform: 'translateX(0px) scaleX(1)',
-                filter: 'brightness(1) saturate(1)'
-            });
-
-            const finalizeBurst = () => {
-                burstRafId = null;
-                restoreBurstStyle();
-                clearBurstOverlay();
-
-                if (!isRunnable()) {
-                    mode = 'normal';
-                    return;
-                }
-
-                mode = 'normal';
-                lastTime = 0;
-                reachedRightInRound = false;
-                startTimer = window.setTimeout(() => {
-                    startTimer = null;
-                    if (!isRunnable()) return;
-                    if (getMaxScroll() <= 1) {
-                        stop(true);
-                        return;
-                    }
-                    queueNextFrame();
-                }, LOOP_PAUSE);
-            };
-
-            const startSettle = () => {
-                let settleStart = null;
-                const animateSettle = (timestamp) => {
-                    if (!isBurstSessionAlive()) {
-                        stop(false);
-                        return;
-                    }
-                    if (!settleStart) settleStart = timestamp;
-                    const elapsed = timestamp - settleStart;
-                    const progress = Math.min(1, elapsed / SETTLE_DURATION);
-                    const eased = easeOutBack(progress);
-                    const overshootShift = (1 - eased) * 5;
-                    const wobble = Math.sin(progress * Math.PI * 3) * (1 - progress) * 1.8;
-                    const scaleX = 1 + ((1 - progress) * 0.015);
-                    const brightness = 1 + ((1 - progress) * 0.1);
-                    const saturate = 1 + ((1 - progress) * 0.15);
-
-                    applyOffset(0, 0);
-                    applyBurstStyle({
-                        transition: 'none',
-                        opacity: 1,
-                        transform: `translateX(${(overshootShift + wobble).toFixed(3)}px) scaleX(${scaleX.toFixed(4)})`,
-                        filter: `brightness(${brightness.toFixed(3)}) saturate(${saturate.toFixed(3)})`
-                    });
-
-                    if (progress < 1) {
-                        burstRafId = window.requestAnimationFrame(animateSettle);
-                        return;
-                    }
-
-                    finalizeBurst();
-                };
-
-                burstRafId = window.requestAnimationFrame(animateSettle);
-            };
-
-            const startWarp = () => {
-                let warpStart = null;
-                const animateWarp = (timestamp) => {
-                    if (!isBurstSessionAlive()) {
-                        stop(false);
-                        return;
-                    }
-                    if (!warpStart) warpStart = timestamp;
-                    const elapsed = timestamp - warpStart;
-                    const progress = Math.min(1, elapsed / WARP_DURATION);
-                    const eased = easeOutExpo(progress);
-                    const nextScroll = startScroll * (1 - eased);
-                    const jitter = Math.sin(progress * 24) * (1 - progress) * 2.6;
-                    const scaleX = 1 + (Math.sin(progress * Math.PI) * 0.08);
-                    const skewX = (1 - progress) * 1.8;
-                    const blur = (1 - progress) * 1.2;
-                    const brightness = 1.3 - (0.25 * progress);
-                    const saturate = 1.8 - (0.6 * progress);
-                    const opacity = 0.84 + (0.16 * progress);
-
-                    applyOffset(nextScroll, maxScroll);
-                    applyBurstStyle({
-                        transition: 'none',
-                        opacity,
-                        transform: `translateX(${jitter.toFixed(3)}px) scaleX(${scaleX.toFixed(4)}) skewX(${skewX.toFixed(3)}deg)`,
-                        filter: `brightness(${brightness.toFixed(3)}) saturate(${saturate.toFixed(3)}) blur(${blur.toFixed(3)}px)`
-                    });
-
-                    if (progress < 1) {
-                        burstRafId = window.requestAnimationFrame(animateWarp);
-                        return;
-                    }
-
-                    applyOffset(0, 0);
-                    burstRafId = null;
-                    startSettle();
-                };
-
-                burstRafId = window.requestAnimationFrame(animateWarp);
-            };
-
-            burstTimer = window.setTimeout(() => {
-                burstTimer = null;
-                if (!isBurstSessionAlive()) {
-                    stop(false);
-                    return;
-                }
-                startWarp();
-            }, HOLD_DURATION);
+        const queueNextFrame = () => {
+            rafId = window.requestAnimationFrame(step);
         };
 
         const step = (timestamp) => {
@@ -2291,8 +2194,7 @@ if (!isHomePage) {
                 return;
             }
 
-            const maxScroll = getMaxScroll();
-            if (maxScroll <= 1) {
+            if (!prepareMarquee()) {
                 stop(true);
                 return;
             }
@@ -2308,43 +2210,41 @@ if (!isHomePage) {
                 queueNextFrame();
                 return;
             }
-            if (mode !== 'normal') {
-                stop(false);
-                return;
-            }
-            const traverseMs = Math.max(1, UX_TODO_TITLE_SCROLL_TRAVERSE_MS);
-            const deltaPx = (elapsed / traverseMs) * maxScroll;
+            const deltaPx = (elapsed / Math.max(1, loopDurationMs)) * loopDistance;
+            const nextScroll = currentOffset + deltaPx;
 
-            if (currentOffset > maxScroll) {
-                applyOffset(maxScroll, maxScroll);
-            }
-
-            let nextScroll = currentOffset + deltaPx;
-            if (nextScroll >= maxScroll) {
-                applyOffset(maxScroll, maxScroll);
-                reachedRightInRound = true;
-                const allReached = reportTodoTitleReachedRight(controllerId);
-                if (!allReached) {
-                    mode = 'waiting';
-                    stop(false);
-                }
+            if (nextScroll >= loopDistance) {
+                applyOffset(loopDistance);
+                rafId = null;
+                pauseTimer = window.setTimeout(() => {
+                    pauseTimer = null;
+                    if (!isRunnable()) return;
+                    if (!prepareMarquee()) {
+                        stop(true);
+                        return;
+                    }
+                    applyOffset(0);
+                    lastTime = 0;
+                    queueNextFrame();
+                }, UX_TODO_TITLE_SCROLL_LOOP_PAUSE_MS);
                 return;
             }
 
-            applyOffset(nextScroll, maxScroll);
+            applyOffset(nextScroll);
             queueNextFrame();
         };
 
         const start = () => {
             stop(true);
-            mode = 'normal';
-            reachedRightInRound = false;
+            if (wrapperEl) {
+                wrapperEl.classList.toggle('is-editing', document.activeElement === inputEl);
+            }
             if (!isRunnable()) return;
-            if (getMaxScroll() <= 1) return;
+            if (!prepareMarquee()) return;
             startTimer = window.setTimeout(() => {
                 startTimer = null;
                 if (!isRunnable()) return;
-                if (getMaxScroll() <= 1) return;
+                if (!prepareMarquee()) return;
                 lastTime = 0;
                 queueNextFrame();
             }, UX_TODO_TITLE_SCROLL_START_DELAY_MS);
@@ -2352,11 +2252,22 @@ if (!isHomePage) {
 
         const handleFocus = () => {
             stop(true);
-            mode = 'normal';
-            reachedRightInRound = false;
+            if (wrapperEl) {
+                wrapperEl.classList.add('is-editing');
+            }
         };
-        const handleBlur = () => start();
+        const handleBlur = () => {
+            if (wrapperEl) {
+                wrapperEl.classList.remove('is-editing');
+            }
+            start();
+        };
         const handleChange = () => start();
+        const handleInput = () => {
+            if (wrapperEl && document.activeElement !== inputEl) {
+                start();
+            }
+        };
         const handleResize = () => start();
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -2366,36 +2277,40 @@ if (!isHomePage) {
             }
         };
 
-        uxTodoTitleScrollControllers.set(controllerId, {
-            id: controllerId,
-            canParticipate,
-            getReachedRight: () => reachedRightInRound,
-            setReachedRight: (value) => {
-                reachedRightInRound = !!value;
-            },
-            startBurst: () => {
-                enterBurstMode();
-            }
-        });
-
         inputEl.addEventListener('focus', handleFocus);
         inputEl.addEventListener('blur', handleBlur);
         inputEl.addEventListener('change', handleChange);
+        inputEl.addEventListener('input', handleInput);
         window.addEventListener('resize', handleResize);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        window.requestAnimationFrame(() => {
+        setupRafId = window.requestAnimationFrame(() => {
+            setupRafId = null;
             start();
         });
 
         return () => {
             stop(false);
+            if (setupRafId !== null) {
+                window.cancelAnimationFrame(setupRafId);
+                setupRafId = null;
+            }
             inputEl.removeEventListener('focus', handleFocus);
             inputEl.removeEventListener('blur', handleBlur);
             inputEl.removeEventListener('change', handleChange);
+            inputEl.removeEventListener('input', handleInput);
             window.removeEventListener('resize', handleResize);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            uxTodoTitleScrollControllers.delete(controllerId);
+            inputEl.classList.remove('ux-todo-title-marquee-source');
+            if (wrapperEl && wrapperEl.parentElement && wrapperEl.contains(inputEl)) {
+                wrapperEl.parentElement.insertBefore(inputEl, wrapperEl);
+                wrapperEl.remove();
+            }
+            wrapperEl = null;
+            overlayEl = null;
+            trackEl = null;
+            firstTextEl = null;
+            secondTextEl = null;
         };
     }
 
@@ -3018,18 +2933,35 @@ if (!isHomePage) {
                 applyTimetableColorsFromTodo(updatedAssignments);
             };
 
+            // Priority color
+            const priority = getTodoPriority(todo);
+            let pColor = 'var(--ux-home-quaternary-label)';
+            let priorityLabel = priority;
+            const isDashboardExpired = viewMode === 'dashboard' && expiredTodoKeys.has(getTodoIdentity(todo));
+            if (isDashboardExpired) {
+                pColor = 'var(--ux-home-purple-foreground)';
+                priorityLabel = 'end';
+            } else {
+                if (priority === 'High') pColor = 'var(--ux-home-danger)';
+                if (priority === 'Medium') pColor = 'var(--ux-home-warning)';
+                if (priority === 'Low') pColor = 'var(--ux-home-success)';
+                if (priority === 'Done') pColor = 'var(--ux-home-quaternary-label)';
+            }
+
             // Checkbox (Round)
             const checkbox = document.createElement('div');
             checkbox.className = 'ux-todo-checkbox';
             checkbox.style.width = '20px';
             checkbox.style.height = '20px';
             checkbox.style.borderRadius = '50%';
-            checkbox.style.border = '2px solid ' + (todo.isCompleted ? 'var(--ux-home-success)' : 'var(--ux-home-separator)');
+            checkbox.style.border = '2px solid ' + (todo.isCompleted ? 'var(--ux-home-success)' : pColor);
             checkbox.style.backgroundColor = todo.isCompleted ? 'var(--ux-home-success)' : 'transparent';
             checkbox.style.cursor = 'pointer';
             checkbox.style.display = 'flex';
             checkbox.style.alignItems = 'center';
             checkbox.style.justifyContent = 'center';
+            checkbox.title = priorityLabel;
+            checkbox.setAttribute('aria-label', priorityLabel);
 
             if (todo.isCompleted) {
                 const checkMark = document.createElement('span');
@@ -3276,39 +3208,6 @@ if (!isHomePage) {
             rightMeta.style.alignItems = 'center';
             rightMeta.style.gap = '8px';
 
-            // Priority
-            const priority = getTodoPriority(todo);
-            const priorityBadge = document.createElement('div');
-            priorityBadge.style.display = 'flex';
-            priorityBadge.style.alignItems = 'center';
-            priorityBadge.style.gap = '4px';
-            priorityBadge.style.fontSize = '0.75em';
-            priorityBadge.style.fontWeight = 'bold';
-
-            let pColor = 'var(--ux-home-quaternary-label)';
-            let pText = priority;
-            const isDashboardExpired = viewMode === 'dashboard' && expiredTodoKeys.has(getTodoIdentity(todo));
-            if (isDashboardExpired) {
-                pColor = 'var(--ux-home-purple-foreground)';
-                pText = 'end';
-            } else {
-                if (priority === 'High') pColor = 'var(--ux-home-danger)';
-                if (priority === 'Medium') pColor = 'var(--ux-home-warning)';
-                if (priority === 'Low') pColor = 'var(--ux-home-success)';
-                if (priority === 'Done') pColor = 'var(--ux-home-quaternary-label)';
-            }
-
-            priorityBadge.style.color = pColor;
-
-            const dot = document.createElement('span');
-            dot.style.width = '6px';
-            dot.style.height = '6px';
-            dot.style.borderRadius = '50%';
-            dot.style.backgroundColor = pColor;
-
-            priorityBadge.appendChild(dot);
-            priorityBadge.appendChild(document.createTextNode(pText));
-
             if (showMicrosoftReminderControl) {
                 const reminderConfig = buildMsTodoReminderConfig(todo, reminderSettings);
                 const reminderBtn = document.createElement('button');
@@ -3339,7 +3238,6 @@ if (!isHomePage) {
                 rightMeta.appendChild(reminderBtn);
             }
 
-            rightMeta.appendChild(priorityBadge);
             li.appendChild(rightMeta);
 
             // Delete action (simple X for now)
@@ -4436,7 +4334,9 @@ if (!isHomePage) {
 
             // 元のテキストを保存（復元用）
             if (!link.dataset.originalText) {
-                link.dataset.originalText = link.textContent;
+                link.dataset.originalText = stripTimetableCourseStatusIndicators(link);
+            } else {
+                stripTimetableCourseStatusIndicators(link);
             }
 
             const originalText = link.dataset.originalText;
@@ -4448,7 +4348,7 @@ if (!isHomePage) {
                 newText = customName;
             } else {
                 // 「»」と先頭の空白を削除
-                newText = originalText.replace(/^»\s*/, '').trim();
+                newText = normalizeDevdevCourseText(originalText);
             }
 
             if (link.textContent !== newText) {
@@ -4456,6 +4356,8 @@ if (!isHomePage) {
                 uxDebugLog(`[WebClass UX] 時間割セルを更新: ${newText}`);
             }
         });
+
+        applyUniformTimetableCellLayout(scheduleTable);
     }
 
     function requestOpenAiShortCourseName(fullName, courseId) {
@@ -4606,7 +4508,9 @@ if (!isHomePage) {
             const courseId = courseIdCandidates[0] || '';
 
             if (!link.dataset.originalText) {
-                link.dataset.originalText = link.textContent || '';
+                link.dataset.originalText = stripTimetableCourseStatusIndicators(link);
+            } else {
+                stripTimetableCourseStatusIndicators(link);
             }
             const fullName = (link.dataset.originalText || link.textContent || '').trim();
             if (!fullName) return;
@@ -4655,6 +4559,8 @@ if (!isHomePage) {
             statusEl.style.display = 'inline-flex';
         }
 
+        applyUniformTimetableCellLayout(scheduleTable);
+
         if (!openaiEnabled || pendingByKey.size === 0) {
             await persistShortCourseCacheIfNeeded();
             return;
@@ -4685,6 +4591,7 @@ if (!isHomePage) {
             }
         } finally {
             await persistShortCourseCacheIfNeeded();
+            applyUniformTimetableCellLayout(scheduleTable);
             // Keep status visibility as-is; this function only updates names.
         }
     }
@@ -4695,33 +4602,48 @@ if (!isHomePage) {
      * @param {Array} assignments - 課題リスト
      */
     function applyTimetableColorsFromTodo(assignments) {
-        const scheduleTable = document.querySelector('table.schedule-table');
-        if (!scheduleTable) {
+        const scheduleTables = Array.from(document.querySelectorAll('table.schedule-table, table.ux-dashboard-v2-schedule-table'));
+        if (scheduleTables.length === 0) {
             uxDebugLog('[WebClass UX] 時間割表が見つかりません（色反映スキップ）');
             return;
         }
 
         // まず全セルの背景色をリセット（元の色に戻す）
-        resetTimetableColors(scheduleTable);
+        scheduleTables.forEach(resetTimetableColors);
 
         // 削除済み・完了済み・ゴミ箱は除外
         const activeAssignments = assignments.filter(a => !a.isDeleted && !a.isCompleted && !isInTrashBin(a));
 
         if (activeAssignments.length === 0) {
             uxDebugLog('[WebClass UX] アクティブな課題がありません');
-            applyTimetableDayTimeHighlight(scheduleTable);
+            scheduleTables.forEach(applyTimetableDayTimeHighlight);
             return;
         }
 
         // コースごとに最も優先度の高い色を決定
         // 優先度: 紫(3) > 赤(2) > 黄(1) > なし(0)
-        const courseColorMap = new Map(); // コース名 -> { priority, color }
+        const courseColorMap = new Map(); // コース名 -> { priority, color, hasDangerOutline }
 
         const now = getWebClassNow();
 
         activeAssignments.forEach(todo => {
             const courseName = todo.course;
             if (!courseName) return;
+            const hasDangerOutline = getTodoPriority(todo) === 'High';
+
+            const rememberCourseStyle = (priority, color, dangerOutline) => {
+                if (priority <= 0 && !dangerOutline) return;
+                const existing = courseColorMap.get(courseName);
+                if (!existing) {
+                    courseColorMap.set(courseName, { priority, color, hasDangerOutline: !!dangerOutline });
+                    return;
+                }
+                if (priority > existing.priority) {
+                    existing.priority = priority;
+                    existing.color = color;
+                }
+                existing.hasDangerOutline = existing.hasDangerOutline || !!dangerOutline;
+            };
 
             // 期限切れ判定（初期設定期限で判定）
             const deadlineForExpiredCheck = todo.originalDeadline || todo.deadline;
@@ -4732,6 +4654,7 @@ if (!isHomePage) {
 
             if (!deadlineForDisplay || deadlineForDisplay === '期限なし') {
                 // 期限なし → 色なし
+                rememberCourseStyle(0, null, hasDangerOutline);
                 return;
             }
 
@@ -4740,11 +4663,13 @@ if (!isHomePage) {
 
             if (isNaN(d.getTime())) {
                 // 日付パース失敗 → 色なし
+                rememberCourseStyle(0, null, hasDangerOutline);
                 return;
             }
 
             // 初期設定期限が過ぎている場合は期限切れセクションに行くので色なし（グレー扱い）
             if (dOriginal && !isNaN(dOriginal.getTime()) && dOriginal < now) {
+                rememberCourseStyle(0, null, hasDangerOutline);
                 return;
             }
 
@@ -4764,46 +4689,50 @@ if (!isHomePage) {
                 }
             }
 
-            if (priority > 0 && color) {
-                const existing = courseColorMap.get(courseName);
-                if (!existing || priority > existing.priority) {
-                    courseColorMap.set(courseName, { priority, color });
-                }
-            }
+            rememberCourseStyle(priority, color, hasDangerOutline);
         });
 
         if (courseColorMap.size === 0) {
             uxDebugLog('[WebClass UX] 背景色を設定する課題がありません');
-            applyTimetableDayTimeHighlight(scheduleTable);
+            scheduleTables.forEach(applyTimetableDayTimeHighlight);
             return;
         }
 
         uxDebugLog('[WebClass UX] 時間割表に色を反映するコース:', [...courseColorMap.keys()]);
 
         // 時間割表の各セルをチェック
-        const cells = scheduleTable.querySelectorAll('tbody td:not(.schedule-table-class_order)');
+        scheduleTables.forEach(scheduleTable => {
+            const cells = scheduleTable.querySelectorAll('tbody td:not(.schedule-table-class_order)');
 
-        cells.forEach(cell => {
-            // セル内のリンクからコース名を取得
-            const link = cell.querySelector('a');
-            if (!link) return; // 空きコマ
+            cells.forEach(cell => {
+                // セル内のリンクからコース名を取得
+                const link = cell.querySelector('a');
+                if (!link) return; // 空きコマ
 
-            const cellText = link.textContent || '';
+                const cellText = link.textContent || '';
 
-            // 各コース名とマッチングを試みる
-            for (const [courseName, { color }] of courseColorMap) {
-                // コース名の一部がセルのテキストに含まれているかチェック
-                // 例: 課題のcourse = "離散数学II演習 （計算・先端・情報）"
-                //     セル = "» 離散数学II演習 （計算・先端・情報） (2025-後期-火2-13HA014) [河野]"
+                // 各コース名とマッチングを試みる
+                for (const [courseName, { color, hasDangerOutline }] of courseColorMap) {
+                    // コース名の一部がセルのテキストに含まれているかチェック
+                    // 例: 課題のcourse = "離散数学II演習 （計算・先端・情報）"
+                    //     セル = "» 離散数学II演習 （計算・先端・情報） (2025-後期-火2-13HA014) [河野]"
 
-                if (matchCourseNameToCell(courseName, cellText)) {
-                    cell.style.backgroundColor = color;
-                    uxDebugLog(`[WebClass UX] 時間割セルに色を適用: ${courseName.substring(0, 20)}... → ${color}`);
-                    break; // 最初にマッチしたものを適用
+                    if (matchCourseNameToCell(courseName, cellText)) {
+                        if (color) {
+                            cell.style.backgroundColor = color;
+                        }
+                        if (dashboardDangerTodoOutlineEnabled && hasDangerOutline) {
+                            cell.style.outline = '2px solid rgba(255, 69, 58, 0.42)';
+                            cell.style.outlineOffset = '-2px';
+                            cell.style.boxShadow = '0 0 0 4px rgba(255, 69, 58, 0.08)';
+                        }
+                        uxDebugLog(`[WebClass UX] 時間割セルに色を適用: ${courseName.substring(0, 20)}... → ${color}`);
+                        break; // 最初にマッチしたものを適用
+                    }
                 }
-            }
+            });
+            applyTimetableDayTimeHighlight(scheduleTable);
         });
-        applyTimetableDayTimeHighlight(scheduleTable);
     }
 
     /**
@@ -4814,6 +4743,9 @@ if (!isHomePage) {
         const cells = scheduleTable.querySelectorAll('tbody td:not(.schedule-table-class_order)');
 
         cells.forEach(cell => {
+            cell.style.outline = '';
+            cell.style.outlineOffset = '';
+            cell.style.boxShadow = '';
             // 元の背景色がデータ属性に保存されていれば復元
             if (cell.dataset.originalBgColor) {
                 cell.style.backgroundColor = cell.dataset.originalBgColor;
@@ -4999,6 +4931,10 @@ if (!isHomePage) {
             chrome.storage.local.get({
                 [STORAGE_KEY_AUTO_RUN_COURSE_NAME_CONVERSION]: false,
                 [STORAGE_KEY_SHORT_NAME_MODE_ENABLED]: false,
+                [STORAGE_KEY_DASHBOARD_VISIBLE_START_PERIOD]: 1,
+                [STORAGE_KEY_DASHBOARD_VISIBLE_END_PERIOD]: 6,
+                [STORAGE_KEY_DASHBOARD_VISIBLE_START_WEEKDAY]: 1,
+                [STORAGE_KEY_DASHBOARD_VISIBLE_END_WEEKDAY]: 6,
                 useCustomCourseNameEnabled: null,
                 useLlmCourseNameEnabled: null,
                 useRuleCourseNameEnabled: null,
@@ -5009,6 +4945,7 @@ if (!isHomePage) {
         });
         const autoRunCourseNameConversion = !!dashboardViewSettings[STORAGE_KEY_AUTO_RUN_COURSE_NAME_CONVERSION];
         const debugModeEnabled = !!dashboardViewSettings.debugModeEnabled;
+        const dashboardVisibleRange = normalizeDashboardVisibleRange(dashboardViewSettings);
         // レガシー互換性ロジック（options.jsと同じ）
         const legacyShort = dashboardViewSettings.useShortCourseNameEnabled;
         const hasNewToggles =
@@ -5081,9 +5018,9 @@ if (!isHomePage) {
 
         const captureDashboardTimetableInlineEditReferenceBottom = () => {
             clearDashboardTimetableInlineEditReferenceReleaseTimer();
-            if (!todoSection) return;
-            const rect = todoSection.getBoundingClientRect();
-            const absoluteBottom = rect.bottom + window.scrollY;
+            const mainStyle = mainContent ? window.getComputedStyle(mainContent) : null;
+            const mainPaddingBottom = mainStyle ? (parseFloat(mainStyle.paddingBottom) || 0) : 0;
+            const absoluteBottom = window.scrollY + window.innerHeight - mainPaddingBottom;
             if (!Number.isFinite(absoluteBottom) || absoluteBottom <= 0) return;
             dashboardTimetableInlineEditReferenceBottom = absoluteBottom;
         };
@@ -5265,7 +5202,9 @@ if (!isHomePage) {
                 if (!courseId) return;
 
                 if (!link.dataset.originalText) {
-                    link.dataset.originalText = link.textContent || '';
+                    link.dataset.originalText = stripTimetableCourseStatusIndicators(link);
+                } else {
+                    stripTimetableCourseStatusIndicators(link);
                 }
                 const originalName = normalizeDevdevCourseText(link.dataset.originalText || link.textContent || '');
                 const currentDisplayName = normalizeDevdevCourseText(link.textContent || '') || originalName;
@@ -5426,7 +5365,9 @@ if (!isHomePage) {
             const links = dashboardTimetableElement.querySelectorAll('tbody td a[href*="course.php"]');
             links.forEach((link) => {
                 if (!link.dataset.originalText) {
-                    link.dataset.originalText = link.textContent || '';
+                    link.dataset.originalText = stripTimetableCourseStatusIndicators(link);
+                } else {
+                    stripTimetableCourseStatusIndicators(link);
                 }
                 const rawFullName = (link.dataset.originalText || link.textContent || '').trim();
                 const fullName = normalizeDevdevCourseText(rawFullName);
@@ -5515,8 +5456,9 @@ if (!isHomePage) {
 
         const headerTabs = [
             { name: 'コース', href: pageLinks.courseList, active: true, id: 'tab-course', mainTab: true },
+            { name: 'メッセージ', href: '#', active: false, id: 'tab-messages', mainTab: true },
             { name: 'ユーティリティ', href: '#', active: false, id: 'tab-stats', mainTab: true },
-            { name: 'デバッグ', href: '#', active: false, id: 'tab-debug', mainTab: true, debugOnly: true },
+            { name: 'デバッグ', href: '#', active: false, id: 'tab-debug', mainTab: true },
             { name: '設定', href: '#', active: false, id: 'tab-settings' },
         ];
 
@@ -5549,6 +5491,7 @@ if (!isHomePage) {
 
         const switchDashboardMainTab = (tabId) => {
             const timetableSectionEl = document.getElementById('ux-timetable-section');
+            const messageSectionEl = document.getElementById('ux-messages-section');
             const statsSectionEl = document.getElementById('ux-stats-section');
             const debugSectionEl = document.getElementById('ux-debug-section');
             const rightCol = document.querySelector('.ux-dashboard-v2-right');
@@ -5556,11 +5499,16 @@ if (!isHomePage) {
             const outsideCourseSectionEl = document.getElementById('ux-outside-courses-section');
 
             const showCourse = tabId === 'tab-course';
+            const showMessages = tabId === 'tab-messages';
             const showStats = tabId === 'tab-stats';
-            const showDebug = tabId === 'tab-debug' && !!debugSectionEl && !debugSectionEl.hidden;
+            const showDebug = tabId === 'tab-debug' && !!debugSectionEl;
 
             if (timetableSectionEl) timetableSectionEl.style.display = showCourse ? 'flex' : 'none';
             if (outsideCourseSectionEl) outsideCourseSectionEl.style.display = showCourse ? 'flex' : 'none';
+            if (messageSectionEl) {
+                messageSectionEl.style.display = showMessages ? 'flex' : 'none';
+                messageSectionEl.setAttribute('aria-hidden', showMessages ? 'false' : 'true');
+            }
             if (statsSectionEl) statsSectionEl.style.display = showStats ? 'block' : 'none';
             if (debugSectionEl) debugSectionEl.style.display = showDebug ? 'block' : 'none';
 
@@ -5589,6 +5537,18 @@ if (!isHomePage) {
             if (tabInfo.id) tab.id = tabInfo.id;
             if (tabInfo.mainTab) {
                 tab.dataset.dashboardMainTab = '1';
+            }
+            if (tabInfo.id === 'tab-messages') {
+                tab.setAttribute('aria-controls', 'ux-messages-section');
+                tab.setAttribute('aria-label', 'メッセージ');
+                const label = document.createElement('span');
+                label.textContent = tabInfo.name;
+                const badge = document.createElement('span');
+                badge.className = 'ux-dashboard-v2-tab-badge';
+                badge.hidden = true;
+                tab.textContent = '';
+                tab.appendChild(label);
+                tab.appendChild(badge);
             }
             if (tabInfo.id === 'tab-debug') {
                 debugTabEl = tab;
@@ -5746,6 +5706,14 @@ if (!isHomePage) {
         header.appendChild(headerCenter);
         header.appendChild(headerRight);
         dashboardContainer.appendChild(header);
+
+        const syncDashboardHeaderHeightVariable = () => {
+            const headerHeight = Math.ceil(header.getBoundingClientRect().height);
+            if (Number.isFinite(headerHeight) && headerHeight > 0) {
+                dashboardContainer.style.setProperty('--ux-dashboard-header-height', `${headerHeight}px`);
+            }
+        };
+        syncDashboardHeaderHeightVariable();
 
         // === Main 2-Column Layout (Left Removed) ===
         const mainContent = document.createElement('div');
@@ -6041,7 +6009,17 @@ if (!isHomePage) {
 
             // Loop through each day column (Monday=1 to Saturday/etc)
             for (let i = 1; i < headerCells.length; i++) {
-                if (shouldAlwaysKeepDashboardWeekdayColumn(headerCells[i])) {
+                const weekdayIndex = getWeekdayIndexFromHeaderText(headerCells[i].textContent);
+                if (
+                    weekdayIndex >= DASHBOARD_VISIBLE_RANGE_MIN &&
+                    weekdayIndex <= DASHBOARD_VISIBLE_RANGE_MAX &&
+                    !isDashboardWeekdayWithinVisibleRange(weekdayIndex, dashboardVisibleRange)
+                ) {
+                    columnsToRemove.push(i);
+                    continue;
+                }
+
+                if (shouldAlwaysKeepDashboardWeekdayColumn(headerCells[i], dashboardVisibleRange)) {
                     continue;
                 }
 
@@ -6068,7 +6046,17 @@ if (!isHomePage) {
             // Keep 1st-5th periods even when empty. 6th-8th can still collapse.
             const rowsToRemove = [];
             bodyRows.forEach((row) => {
-                if (shouldAlwaysKeepDashboardPeriodRow(row)) {
+                const classOrder = getTimetableClassOrderFromRow(row);
+                if (
+                    classOrder >= DASHBOARD_VISIBLE_RANGE_MIN &&
+                    classOrder <= DASHBOARD_VISIBLE_RANGE_MAX &&
+                    !isDashboardPeriodWithinVisibleRange(classOrder, dashboardVisibleRange)
+                ) {
+                    rowsToRemove.push(row);
+                    return;
+                }
+
+                if (shouldAlwaysKeepDashboardPeriodRow(row, dashboardVisibleRange)) {
                     return;
                 }
 
@@ -6144,6 +6132,7 @@ if (!isHomePage) {
 
             timetableBody.appendChild(clonedTable);
             dashboardTimetableElement = clonedTable;
+            applyUniformTimetableCellLayout(clonedTable);
             dashboardTimetableLlmApplyPromise = Promise.resolve()
                 .then(() => {
                     // 3つの短縮名設定のいずれかが有効な場合のみキャッシュから表示
@@ -6317,77 +6306,191 @@ if (!isHomePage) {
         todoTitle.textContent = 'My TODOs';
         todoHeader.appendChild(todoTitle);
 
+        const actionsContainer = document.createElement('div');
+        actionsContainer.style.display = 'flex';
+        actionsContainer.style.gap = '8px';
+        actionsContainer.style.alignItems = 'center';
+
+        const importBtn = document.createElement('button');
+        importBtn.type = 'button';
+        importBtn.className = 'ux-dashboard-v2-todo-import ux-action-btn';
+        importBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>';
+        importBtn.style.padding = '6px';
+        importBtn.style.border = 'none';
+        importBtn.style.background = 'transparent';
+        importBtn.style.color = 'var(--ux-home-secondary-label)';
+        importBtn.style.cursor = 'pointer';
+        importBtn.style.display = 'flex';
+        importBtn.style.alignItems = 'center';
+        importBtn.style.justifyContent = 'center';
+        importBtn.title = 'インポート';
+
+        const getImportIdentityCandidates = (item) => {
+            if (!item || typeof item !== 'object') return [];
+
+            const candidates = [];
+            const pushCandidate = (prefix, value) => {
+                if (typeof value !== 'string') return;
+                const trimmed = value.trim();
+                if (!trimmed) return;
+                const key = `${prefix}:${trimmed}`;
+                if (!candidates.includes(key)) {
+                    candidates.push(key);
+                }
+            };
+
+            pushCandidate('url', item.url);
+            pushCandidate('fallback', item.fallbackUrl);
+
+            if (candidates.length === 0) {
+                pushCandidate('id', item.id);
+            }
+
+            if (candidates.length === 0 && (item.title || item.course || item.deadline)) {
+                candidates.push(`semantic:${item.title || ''}::${item.course || ''}::${item.deadline || ''}`);
+            }
+
+            return candidates;
+        };
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const importedData = JSON.parse(text);
+                if (!Array.isArray(importedData)) throw new Error('Invalid format: not an array');
+
+                const existing = await loadAssignments();
+                const mergedAssignments = [];
+                const identityToIndex = new Map();
+                const rememberAssignment = (assignment, index) => {
+                    getImportIdentityCandidates(assignment).forEach((candidate) => {
+                        if (!identityToIndex.has(candidate)) {
+                            identityToIndex.set(candidate, index);
+                        }
+                    });
+                };
+                const findExistingImportIndex = (item) => {
+                    const candidates = getImportIdentityCandidates(item);
+                    return candidates
+                        .map((candidate) => identityToIndex.get(candidate))
+                        .find((index) => Number.isInteger(index));
+                };
+
+                existing.forEach((assignment) => {
+                    if (!assignment || typeof assignment !== 'object') return;
+                    const matchedIndex = findExistingImportIndex(assignment);
+                    if (Number.isInteger(matchedIndex)) {
+                        mergedAssignments[matchedIndex] = {
+                            ...mergedAssignments[matchedIndex],
+                            ...assignment
+                        };
+                        rememberAssignment(mergedAssignments[matchedIndex], matchedIndex);
+                    } else {
+                        const index = mergedAssignments.push({ ...assignment }) - 1;
+                        rememberAssignment(assignment, index);
+                    }
+                });
+
+                let added = 0;
+                let updated = 0;
+                importedData.forEach((item) => {
+                    if (!item || typeof item !== 'object') return;
+
+                    const matchedIndex = findExistingImportIndex(item);
+
+                    if (Number.isInteger(matchedIndex)) {
+                        mergedAssignments[matchedIndex] = {
+                            ...mergedAssignments[matchedIndex],
+                            ...item
+                        };
+                        rememberAssignment(mergedAssignments[matchedIndex], matchedIndex);
+                        updated++;
+                    } else {
+                        const index = mergedAssignments.push({ ...item }) - 1;
+                        rememberAssignment(item, index);
+                        added++;
+                    }
+                });
+
+                await saveAssignments(mergedAssignments);
+                alert(`インポート完了: 追加 ${added} 件, 更新 ${updated} 件`);
+                await updateAssignments({ forceRemote: false });
+            } catch (err) {
+                console.error('Import failed', err);
+                alert('インポートに失敗しました: ' + err.message);
+            }
+            fileInput.value = '';
+        };
+        importBtn.onclick = () => fileInput.click();
+        actionsContainer.appendChild(importBtn);
+        actionsContainer.appendChild(fileInput);
+
+        const exportBtn = document.createElement('button');
+        exportBtn.type = 'button';
+        exportBtn.className = 'ux-dashboard-v2-todo-export ux-action-btn';
+        exportBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+        exportBtn.style.padding = '6px';
+        exportBtn.style.border = 'none';
+        exportBtn.style.background = 'transparent';
+        exportBtn.style.color = 'var(--ux-home-secondary-label)';
+        exportBtn.style.cursor = 'pointer';
+        exportBtn.style.display = 'flex';
+        exportBtn.style.alignItems = 'center';
+        exportBtn.style.justifyContent = 'center';
+        exportBtn.title = 'エクスポート';
+        exportBtn.onclick = async () => {
+            try {
+                const assignments = await loadAssignments();
+                const json = JSON.stringify(assignments, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const dateStr = new Date().toISOString().slice(0, 10);
+                a.download = `mytodo_export_${dateStr}.json`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                    a.remove();
+                }, 0);
+            } catch (e) {
+                console.error('Export failed', e);
+                alert('エクスポートに失敗しました');
+            }
+        };
+        actionsContainer.appendChild(exportBtn);
+
         // Refresh Button (Icon only style) - Updated to UI1 style
         const refreshBtn = document.createElement('button');
         refreshBtn.className = 'ux-dashboard-v2-todo-refresh ux-refresh-btn';
-        refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
+        refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
         refreshBtn.style.padding = '6px';
         refreshBtn.style.border = 'none';
         refreshBtn.style.background = 'transparent';
         refreshBtn.style.color = 'var(--ux-home-secondary-label)';
         refreshBtn.style.cursor = 'pointer';
+        refreshBtn.style.display = 'flex';
+        refreshBtn.style.alignItems = 'center';
+        refreshBtn.style.justifyContent = 'center';
         refreshBtn.title = '更新';
-        todoHeader.appendChild(refreshBtn);
+        actionsContainer.appendChild(refreshBtn);
+
+        todoHeader.appendChild(actionsContainer);
 
         todoSection.appendChild(todoHeader);
 
         let dashboardAssignments = [];
         let viewCompleted = false;
 
-        // Status Cards
-        const statsContainer = document.createElement('div');
-        statsContainer.style.display = 'flex';
-        statsContainer.style.gap = '15px';
-        statsContainer.style.marginBottom = '20px';
 
-        const createStatCard = (label, count, colorClass) => {
-            const card = document.createElement('div');
-            card.className = 'ux-todo-stat-card';
-            card.style.flex = '1';
-            card.style.padding = '15px';
-            card.style.borderRadius = '12px';
-            card.style.textAlign = 'center';
-            card.style.boxShadow = 'var(--ux-home-shadow-sm)';
-            card.style.display = 'flex';
-            card.style.flexDirection = 'column';
-            card.style.alignItems = 'center';
-            card.style.justifyContent = 'center';
-
-            // Colors
-            let bg = 'var(--ux-home-surface)';
-            let text = 'var(--ux-home-label)';
-            if (colorClass === 'blue') { bg = 'var(--ux-home-accent-soft)'; text = 'var(--ux-home-accent-emphasis)'; }
-            if (colorClass === 'green') { bg = 'var(--ux-home-success-soft)'; text = 'var(--ux-home-success-foreground)'; }
-            if (colorClass === 'red') { bg = 'var(--ux-home-danger-soft)'; text = 'var(--ux-home-danger-foreground)'; }
-
-            card.style.backgroundColor = bg;
-            card.style.color = text;
-
-            const countSpan = document.createElement('span');
-            countSpan.style.fontSize = '1.8em';
-            countSpan.style.fontWeight = 'bold';
-            countSpan.style.lineHeight = '1';
-            countSpan.style.marginBottom = '4px';
-            countSpan.textContent = count;
-
-            const labelSpan = document.createElement('span');
-            labelSpan.style.fontSize = '0.85em';
-            labelSpan.style.opacity = '0.9';
-            labelSpan.textContent = label;
-
-            card.appendChild(countSpan);
-            card.appendChild(labelSpan);
-            return { card, update: (n) => countSpan.textContent = n };
-        };
-
-        const totalCard = createStatCard('Total', 0, 'blue');
-        const doneCard = createStatCard('Done', 0, 'green');
-        const pendingCard = createStatCard('Pending', 0, 'red');
-
-        statsContainer.appendChild(totalCard.card);
-        statsContainer.appendChild(doneCard.card);
-        statsContainer.appendChild(pendingCard.card);
-        todoSection.appendChild(statsContainer);
 
         // View Completed Toggle
         const toggleContainer = document.createElement('div');
@@ -6465,7 +6568,6 @@ if (!isHomePage) {
         todoListContainer.style.minHeight = '0';
         todoListContainer.style.maxHeight = 'none';
         todoListContainer.style.overflowY = 'auto';
-        const DASHBOARD_TIMETABLE_BOTTOM_LIFT_PX = 300; // 時間割表の底辺を調整したい場合はこの数値を変更する。
 
         const clearDashboardInlineLayoutSizing = () => {
             timetableSection.style.height = '';
@@ -6541,21 +6643,27 @@ if (!isHomePage) {
             return (rightRect.top - centerRect.top) > 8;
         };
 
+        const getDashboardTimetableViewportAvailableHeight = () => {
+            const timetableSectionRect = timetableSection.getBoundingClientRect();
+            const mainStyle = window.getComputedStyle(mainContent);
+            const mainPaddingBottom = parseFloat(mainStyle.paddingBottom) || 0;
+            const viewportBottom = Math.max(0, window.innerHeight - mainPaddingBottom);
+            const totalAvailableHeight = Math.floor(viewportBottom - timetableSectionRect.top);
+
+            return Number.isFinite(totalAvailableHeight) ? totalAvailableHeight : 0;
+        };
+
         const syncDashboardTimetableSectionHeight = () => {
             if (window.getComputedStyle(timetableSection).display === 'none') return;
 
-            const timetableSectionRect = timetableSection.getBoundingClientRect();
-            const todoSectionRect = todoSection.getBoundingClientRect();
-            const timetableSectionTop = timetableSectionRect.top + window.scrollY;
-            const liveReferenceBottom = todoSectionRect.bottom + window.scrollY;
-            // Keep the sibling-bottom baseline stable across inline-edit transitions to avoid fit-height feedback.
-            const referenceBottom = dashboardTimetableInlineEditReferenceBottom || liveReferenceBottom;
-            const totalAvailableHeight = Math.floor(referenceBottom - timetableSectionTop);
+            const totalAvailableHeight = dashboardTimetableInlineEditReferenceBottom
+                ? Math.floor(dashboardTimetableInlineEditReferenceBottom - (timetableSection.getBoundingClientRect().top + window.scrollY))
+                : getDashboardTimetableViewportAvailableHeight();
             const outOfScheduleTargetHeight = getDashboardOutOfScheduleTargetHeight();
             const sectionGap = getDashboardCenterColumnSectionGap();
             const targetHeight = outOfScheduleTargetHeight > 0
                 ? Math.floor(totalAvailableHeight - outOfScheduleTargetHeight - sectionGap)
-                : Math.floor(totalAvailableHeight - DASHBOARD_TIMETABLE_BOTTOM_LIFT_PX);
+                : Math.floor(totalAvailableHeight);
             if (!Number.isFinite(targetHeight) || targetHeight <= 0) return;
 
             const nextHeight = `${targetHeight}px`;
@@ -6594,11 +6702,11 @@ if (!isHomePage) {
             }
         };
 
-        const stretchDashboardTimetableToBody = () => {
+        const stretchDashboardTimetableToBody = ({ bottomInset = 0 } = {}) => {
             if (!dashboardTimetableElement || !timetableBody) return;
             if (window.getComputedStyle(timetableSection).display === 'none') return;
 
-            const availableHeight = Math.floor(timetableBody.clientHeight);
+            const availableHeight = Math.floor(timetableBody.clientHeight - bottomInset);
             if (!Number.isFinite(availableHeight) || availableHeight <= 0) return;
 
             const bodyRows = Array.from(dashboardTimetableElement.querySelectorAll('tbody tr'));
@@ -6653,6 +6761,16 @@ if (!isHomePage) {
             };
         };
 
+        const isDashboardTimetableBottomClipped = () => {
+            if (!dashboardTimetableElement || !timetableBody) return false;
+
+            const tableRect = dashboardTimetableElement.getBoundingClientRect();
+            const bodyRect = timetableBody.getBoundingClientRect();
+            if (!tableRect.height || !bodyRect.height) return false;
+
+            return tableRect.bottom > (bodyRect.bottom + 2);
+        };
+
         let courseLayoutSyncRafId = 0;
 
         const scheduleCourseLayoutSync = () => {
@@ -6662,9 +6780,10 @@ if (!isHomePage) {
 
             const runSync = () => {
                 courseLayoutSyncRafId = 0;
+                syncDashboardHeaderHeightVariable();
                 clearDashboardInlineLayoutSizing();
                 if (timetableBody) {
-                    timetableBody.classList.remove('ux-scroll-managed-fit', 'ux-scroll-managed-natural');
+                    timetableBody.classList.remove('ux-scroll-managed-fit', 'ux-scroll-managed-fit-safe', 'ux-scroll-managed-natural');
                 }
                 if (dashboardTimetableElement) {
                     dashboardTimetableElement.classList.remove('ux-compact-density');
@@ -6696,6 +6815,13 @@ if (!isHomePage) {
                     timetableBody.classList.add('ux-scroll-managed-fit');
                 }
                 stretchDashboardTimetableToBody();
+                if (timetableBody && isDashboardTimetableBottomClipped()) {
+                    stretchDashboardTimetableToBody({ bottomInset: 6 });
+                    if (isDashboardTimetableBottomClipped()) {
+                        timetableBody.classList.remove('ux-scroll-managed-fit');
+                        timetableBody.classList.add('ux-scroll-managed-fit-safe');
+                    }
+                }
                 syncDashboardOutOfScheduleSectionHeight();
             };
 
@@ -6719,10 +6845,8 @@ if (!isHomePage) {
                 scheduleCourseLayoutSync();
             });
             timetableResizeObserver.observe(centerColumn);
-            timetableResizeObserver.observe(rightColumn);
             timetableResizeObserver.observe(timetableSection);
             timetableResizeObserver.observe(timetableBody);
-            timetableResizeObserver.observe(todoSection);
         }
         window.addEventListener('resize', scheduleCourseLayoutSync);
         window.addEventListener('pageshow', requestStabilizedCourseLayoutSync);
@@ -6738,14 +6862,7 @@ if (!isHomePage) {
                 ? dashboardAssignments
                 : dashboardAssignments.filter(a => a?.category !== 'devdev');
 
-            // Stats
-            const total = visibleAssignments.length;
-            const done = visibleAssignments.filter(a => a.isCompleted).length;
-            const pending = total - done;
 
-            totalCard.update(total);
-            doneCard.update(done);
-            pendingCard.update(pending);
 
             // Filter
             let filtered = [...visibleAssignments];
@@ -7098,49 +7215,36 @@ if (!isHomePage) {
         // Messages Section (Switch View 2 ではお知らせの代わりにメッセージを表示)
         const messageSection = document.createElement('section');
         messageSection.id = 'ux-messages-section';
-        messageSection.className = 'ux-dashboard-v2-section ux-dashboard-v2-messages ux-home-message-panel';
+        messageSection.className = 'ux-dashboard-v2-section ux-dashboard-v2-messages';
         messageSection.style.display = 'none';
+        messageSection.style.flexDirection = 'column';
+        messageSection.style.gap = '14px';
+        messageSection.style.padding = '0';
+        messageSection.style.background = 'transparent';
+        messageSection.style.border = '0';
+        messageSection.style.boxShadow = 'none';
+        messageSection.style.overflow = 'hidden';
         messageSection.setAttribute('aria-hidden', 'true');
 
-        const messageHeader = document.createElement('div');
-        messageHeader.className = 'ux-dashboard-v2-section-header';
-        messageHeader.style.display = 'flex';
-        messageHeader.style.alignItems = 'center';
-        messageHeader.style.gap = '12px';
-
-        const messageTitle = document.createElement('h2');
-        messageTitle.textContent = 'メッセージ';
-        messageHeader.appendChild(messageTitle);
-
-        const unreadBadge = document.createElement('span');
-        unreadBadge.style.backgroundColor = 'var(--ux-home-danger)';
-        unreadBadge.style.color = '#fff';
-        unreadBadge.style.padding = '4px 10px';
-        unreadBadge.style.borderRadius = '12px';
-        unreadBadge.style.fontSize = '0.85em';
-        unreadBadge.style.marginLeft = 'auto';
-        unreadBadge.style.display = 'none';
-        messageHeader.appendChild(unreadBadge);
-
-        const closeMessagePanelBtn = document.createElement('button');
-        closeMessagePanelBtn.type = 'button';
-        closeMessagePanelBtn.className = 'ux-home-message-close';
-        closeMessagePanelBtn.innerHTML = '&times;';
-        closeMessagePanelBtn.title = '閉じる';
-        closeMessagePanelBtn.setAttribute('aria-label', 'メッセージを閉じる');
-        messageHeader.appendChild(closeMessagePanelBtn);
-
-        messageSection.appendChild(messageHeader);
-
         const messageActions = document.createElement('div');
+        messageActions.className = 'ux-message-toolbar';
         messageActions.style.display = 'flex';
         messageActions.style.gap = '8px';
         messageActions.style.flexWrap = 'wrap';
         messageActions.style.alignItems = 'center';
-        messageActions.style.marginBottom = '8px';
+        messageActions.style.width = '100%';
+        messageActions.style.boxSizing = 'border-box';
+        messageActions.style.marginBottom = '0';
+        messageActions.style.padding = '10px 12px';
+        messageActions.style.border = '1px solid var(--ux-home-separator)';
+        messageActions.style.borderRadius = '12px';
+        messageActions.style.background = 'rgba(255, 255, 255, 0.86)';
 
         const refreshMsgBtn = document.createElement('button');
-        refreshMsgBtn.className = 'ux-refresh-btn';
+        refreshMsgBtn.className = 'ux-refresh-btn ux-message-toolbar-btn';
+        refreshMsgBtn.type = 'button';
+        refreshMsgBtn.title = 'メッセージを更新';
+        refreshMsgBtn.setAttribute('aria-label', 'メッセージを更新');
         refreshMsgBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
         refreshMsgBtn.style.padding = '6px';
         refreshMsgBtn.style.border = 'none';
@@ -7149,7 +7253,10 @@ if (!isHomePage) {
         refreshMsgBtn.style.cursor = 'pointer';
 
         const markAllReadBtn = document.createElement('button');
-        markAllReadBtn.className = 'ux-refresh-btn ux-check-btn';
+        markAllReadBtn.className = 'ux-refresh-btn ux-check-btn ux-message-toolbar-btn';
+        markAllReadBtn.type = 'button';
+        markAllReadBtn.title = '未読をすべて既読にする';
+        markAllReadBtn.setAttribute('aria-label', '未読をすべて既読にする');
         markAllReadBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 12l6 6L20 6"/></svg>';
         markAllReadBtn.style.padding = '6px';
         markAllReadBtn.style.border = 'none';
@@ -7158,6 +7265,7 @@ if (!isHomePage) {
         markAllReadBtn.style.cursor = 'pointer';
 
         const messageStatus = document.createElement('div');
+        messageStatus.className = 'ux-message-status';
         messageStatus.style.fontSize = '0.85em';
         messageStatus.style.color = 'var(--ux-home-secondary-label)';
 
@@ -7173,11 +7281,12 @@ if (!isHomePage) {
         messageContent.style.flex = '1';
         messageContent.style.minHeight = '0';
         messageContent.style.overflowY = 'auto';
+        messageContent.style.width = '100%';
+        messageContent.style.boxSizing = 'border-box';
+        messageContent.style.padding = '4px 2px 10px';
         messageContent.innerHTML = '<p class="loading" style="padding:12px;">メッセージを読み込み中...</p>';
         messageSection.appendChild(messageContent);
-
-        const homeMessageDock = document.createElement('div');
-        homeMessageDock.className = 'ux-home-message-dock';
+        centerColumn.appendChild(messageSection);
 
         const debugReceiveBtn = document.createElement('button');
         debugReceiveBtn.className = 'ux-message-debug-btn';
@@ -7187,31 +7296,10 @@ if (!isHomePage) {
         debugReceiveBtn.style.display = uxIsDebugModeEnabled() ? 'inline-flex' : 'none';
         debugMessageActions.appendChild(debugReceiveBtn);
 
-        const messageFab = document.createElement('button');
-        messageFab.type = 'button';
-        messageFab.className = 'ux-home-message-fab';
-        messageFab.title = 'メッセージ';
-        messageFab.setAttribute('aria-label', 'メッセージ');
-        messageFab.setAttribute('aria-controls', 'ux-messages-section');
-        messageFab.setAttribute('aria-expanded', 'false');
-        messageFab.style.display = 'none';
-        messageFab.innerHTML = `
-            <svg class="ux-home-message-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="currentColor" d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25zm2.2-.75 6.8 5.07L18.8 6zM19 7.25l-6.4 4.77a1 1 0 0 1-1.2 0L5 7.25v10c0 .41.34.75.75.75h12.5c.41 0 .75-.34.75-.75z"/>
-            </svg>
-        `;
-        const messageFabUnreadBadge = document.createElement('span');
-        messageFabUnreadBadge.className = 'ux-home-message-fab-badge';
-        messageFabUnreadBadge.style.display = 'none';
-        messageFab.appendChild(messageFabUnreadBadge);
-        homeMessageDock.appendChild(messageFab);
-
         // Assemble columns (Left removed)
         mainContent.appendChild(centerColumn);
         mainContent.appendChild(rightColumn);
         dashboardContainer.appendChild(mainContent);
-        dashboardContainer.appendChild(messageSection);
-        dashboardContainer.appendChild(homeMessageDock);
 
         // Remove original content completely (after all scraping is done)
         // Hide all direct children of body except our dashboard
@@ -7378,54 +7466,26 @@ if (!isHomePage) {
 
         // Initialize Messages (Switch View 2)
         let currentMessageData = null;
-        let isMessagePanelOpen = false;
-
-        const setMessagePanelOpen = (open) => {
-            const shouldOpen = !!open && messageFab.style.display !== 'none';
-            isMessagePanelOpen = shouldOpen;
-            messageSection.style.display = shouldOpen ? 'flex' : 'none';
-            messageSection.setAttribute('aria-hidden', shouldOpen ? 'false' : 'true');
-            messageFab.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-        };
-
-        closeMessagePanelBtn.onclick = () => {
-            setMessagePanelOpen(false);
-        };
-        messageFab.onclick = () => {
-            setMessagePanelOpen(!isMessagePanelOpen);
-        };
-        document.addEventListener('click', (event) => {
-            if (!isMessagePanelOpen) return;
-            const target = event.target;
-            if (messageSection.contains(target) || homeMessageDock.contains(target)) {
-                return;
-            }
-            setMessagePanelOpen(false);
-        });
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && isMessagePanelOpen) {
-                setMessagePanelOpen(false);
-            }
-        });
+        const messageTab = document.getElementById('tab-messages');
+        const messageTabBadge = messageTab?.querySelector('.ux-dashboard-v2-tab-badge');
 
         const updateUnreadBadge = () => {
             if (currentMessageData && currentMessageData.unreadCount > 0) {
-                unreadBadge.textContent = `未読 ${currentMessageData.unreadCount}`;
-                unreadBadge.style.display = 'inline-block';
-                messageFabUnreadBadge.textContent = currentMessageData.unreadCount > 99
-                    ? '99+'
-                    : String(currentMessageData.unreadCount);
-                messageFabUnreadBadge.style.display = 'inline-flex';
-                messageFab.style.display = 'inline-flex';
-                messageFab.classList.add('has-unread');
-                messageFab.setAttribute('aria-label', `メッセージ 未読 ${currentMessageData.unreadCount}件`);
+                if (messageTabBadge) {
+                    messageTabBadge.textContent = currentMessageData.unreadCount > 99
+                        ? '99+'
+                        : String(currentMessageData.unreadCount);
+                    messageTabBadge.hidden = false;
+                }
+                messageTab?.classList.add('has-unread');
+                messageTab?.setAttribute('aria-label', `メッセージ 未読 ${currentMessageData.unreadCount}件`);
             } else {
-                unreadBadge.style.display = 'none';
-                messageFabUnreadBadge.style.display = 'none';
-                messageFab.style.display = 'none';
-                messageFab.classList.remove('has-unread');
-                messageFab.setAttribute('aria-label', 'メッセージ 未読なし');
-                setMessagePanelOpen(false);
+                if (messageTabBadge) {
+                    messageTabBadge.textContent = '';
+                    messageTabBadge.hidden = true;
+                }
+                messageTab?.classList.remove('has-unread');
+                messageTab?.setAttribute('aria-label', 'メッセージ 未読なし');
             }
         };
 
@@ -7526,7 +7586,7 @@ if (!isHomePage) {
             updateUnreadBadge();
             messageStatus.textContent = `総件数: ${currentMessageData.totalCount}`;
             await persistMessageBadgeState();
-            setMessagePanelOpen(true);
+            activateDashboardMainTab('tab-messages');
         };
 
         markAllReadBtn.onclick = async () => {
@@ -7579,8 +7639,12 @@ if (!isHomePage) {
 
     async function initHome() {
         uxDebugLog("WebClass UX Improver: Initializing Home");
-        const globalSettings = await chrome.storage.local.get({ [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true });
+        const globalSettings = await chrome.storage.local.get({
+            [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true,
+            [STORAGE_KEY_DASHBOARD_DANGER_TODO_OUTLINE_ENABLED]: true
+        });
         uxSetExtensionVisualEnabled(globalSettings[STORAGE_KEY_EXTENSION_VISUAL_ENABLED] !== false);
+        dashboardDangerTodoOutlineEnabled = globalSettings[STORAGE_KEY_DASHBOARD_DANGER_TODO_OUTLINE_ENABLED] !== false;
 
         if (!uxIsExtensionVisualEnabled()) {
             uxDebugLog("WebClass UX: Global visual modification is disabled");

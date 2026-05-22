@@ -154,10 +154,9 @@
 
     function shortcutFromKeyboardEvent(event) {
         if (!event) return '';
-        let keyToken = canonicalizeShortcutKeyToken(event.key || '');
-        if (!keyToken) {
-            keyToken = shortcutTokenFromCode(event.code || '');
-        }
+        const codeToken = shortcutTokenFromCode(event.code || '');
+        const keyTokenFromEvent = canonicalizeShortcutKeyToken(event.key || '');
+        const keyToken = codeToken || keyTokenFromEvent;
         if (!keyToken || SHORTCUT_MODIFIER_ORDER.includes(keyToken)) return '';
 
         const pressedModifiers = [];
@@ -189,6 +188,32 @@
         window.location.reload();
     }
 
+    function isCourseContentPath(pathname = '') {
+        return /\/webclass\/(?:course\.php|do_contents\.php|txtbk_frame\.php|txtbk_show_chapter\.php|txtbk_show_text\.php|title_simple\.php|qstn_frame\.php|dqstn_button\.php|dqstn_question\.php|dqstn_answer\.php|dqstn_answer_all\.php|reslt_description\.php|loadit\.php|file_down\.php)$/i.test(pathname || '');
+    }
+
+    function shouldToggleDisplayModeWithoutReload() {
+        try {
+            if (isCourseContentPath(window.location.pathname)) return true;
+        } catch {
+            // ignore
+        }
+
+        try {
+            if (window.top?.location && isCourseContentPath(window.top.location.pathname)) return true;
+        } catch {
+            // ignore inaccessible top frame
+        }
+
+        try {
+            if (window.parent?.location && isCourseContentPath(window.parent.location.pathname)) return true;
+        } catch {
+            // ignore inaccessible parent frame
+        }
+
+        return false;
+    }
+
     async function toggleDisplayModeByShortcut() {
         if (shortcutState.isHandling) return;
         shortcutState.isHandling = true;
@@ -205,7 +230,9 @@
                 defaultViewVersion: nextDefaultViewVersion,
                 currentView: nextCurrentView,
             });
-            reloadTopPage();
+            if (!shouldToggleDisplayModeWithoutReload()) {
+                reloadTopPage();
+            }
         } finally {
             shortcutState.isHandling = false;
         }

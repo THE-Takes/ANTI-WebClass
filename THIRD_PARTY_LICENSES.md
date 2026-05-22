@@ -1,22 +1,89 @@
 # Third-Party Licenses
 
-This repository bundles third-party files under their own licenses.
+This repository bundles third-party files under their own licenses. Project-authored files outside `Extension/lib/` are covered by the repository [`LICENSE`](./LICENSE).
 
-Included bundled files:
+Bundled files:
 
-- `Extension/lib/flatpickr.min.js`
-- `Extension/lib/flatpickr.min.css`
-- `Extension/lib/ja.js`
-- `Extension/lib/mobile-select.js`
-- `Extension/lib/mobile-select.css`
-- `Extension/lib/mux-mp4.min.js`
-- `Extension/lib/mp4box.all.js`
+| Library | Version | Bundled files | License |
+| --- | --- | --- | --- |
+| flatpickr | 4.6.13 | `Extension/lib/flatpickr.min.js`, `Extension/lib/flatpickr.min.css`, `Extension/lib/ja.js` | MIT |
+| mobile-select | 1.4.0 | `Extension/lib/mobile-select.js`, `Extension/lib/mobile-select.css` | MIT |
+| mux.js | 6.3.0 | `Extension/lib/mux-mp4.min.js` | Apache-2.0 |
+| mp4box.js / mp4box | 2.3.0 | `Extension/lib/mp4box.all.js` | BSD-3-Clause |
+
+## flatpickr
+
+- Project: https://github.com/flatpickr/flatpickr
+- Bundled files:
+  - `Extension/lib/flatpickr.min.js`
+  - `Extension/lib/flatpickr.min.css`
+  - `Extension/lib/ja.js`
+- Version: 4.6.13
+- License: MIT
+
+```text
+The MIT License (MIT)
+Copyright (c) 2017 Gregory Petrosyan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## mobile-select
+
+- Project: https://github.com/onlyhom/mobile-select
+- Bundled files:
+  - `Extension/lib/mobile-select.js`
+  - `Extension/lib/mobile-select.css`
+- Version: 1.4.0
+- License: MIT
+
+```text
+MIT License
+
+Copyright (c) 2017-present, LIHONG OU(onlyhom)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## mux.js
 
 - Project: https://github.com/videojs/mux.js
 - Bundled file: `Extension/lib/mux-mp4.min.js`
+- Version: 6.3.0
 - License: Apache License 2.0
+- Notice: Copyright Brightcove, Inc.
 
 ```text
 Apache License
@@ -181,16 +248,19 @@ accepting any such warranty or additional liability.
 END OF TERMS AND CONDITIONS
 ```
 
-## mp4box.js
+## mp4box.js / mp4box
 
 - Project: https://github.com/gpac/mp4box.js
+- npm package: https://www.npmjs.com/package/mp4box
 - Bundled file: `Extension/lib/mp4box.all.js`
+- Version: 2.3.0
 - License: BSD 3-Clause License
+- Note: the bundled file is derived from `mp4box@2.3.0/dist/mp4box.all.js`; the upstream source map comment is not bundled.
 
 ```text
 BSD 3-Clause License
 
-Copyright (c) 2012-2024, Telecom Paris
+Copyright (c) 2012. Telecom ParisTech/TSI/MM/GPAC Cyril Concolato
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

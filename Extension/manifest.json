@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "ANTI-WebClass-dev",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
     "downloads",
     "tabs",
-    "scripting",
     "identity",
     "alarms",
     "notifications"
@@ -24,7 +23,9 @@
     "https://tasks.googleapis.com/*",
     "https://api.todoist.com/*",
     "https://ticktick.com/*",
-    "https://api.ticktick.com/*"
+    "https://api.ticktick.com/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -33,7 +34,11 @@
     {
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/webclass/login.php*",
-        "https://kulms.kanagawa-u.ac.jp/webclass/?acs_=*"
+        "https://kulms.kanagawa-u.ac.jp/webclass/?acs_=*",
+        "http://127.0.0.1/webclass/login.php*",
+        "http://localhost/webclass/login.php*",
+        "http://127.0.0.1/webclass/?acs_=*",
+        "http://localhost/webclass/?acs_=*"
       ],
       "js": [
         "src/login.js"
@@ -41,7 +46,9 @@
     },
     {
       "matches": [
-        "https://kulms.kanagawa-u.ac.jp/webclass/*"
+        "https://kulms.kanagawa-u.ac.jp/webclass/*",
+        "http://127.0.0.1/webclass/*",
+        "http://localhost/webclass/*"
       ],
       "js": [
         "src/shared.js",
@@ -53,7 +60,11 @@
     {
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/webclass/index.php*",
-        "https://kulms.kanagawa-u.ac.jp/webclass/*"
+        "https://kulms.kanagawa-u.ac.jp/webclass/*",
+        "http://127.0.0.1/webclass/index.php*",
+        "http://localhost/webclass/index.php*",
+        "http://127.0.0.1/webclass/*",
+        "http://localhost/webclass/*"
       ],
       "js": [
         "src/shared.js",
@@ -81,9 +92,40 @@
         "https://kulms.kanagawa-u.ac.jp/webclass/title_simple.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/qstn_frame.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_button.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_question.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_answer.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/dqstn_answer_all.php*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/reslt_description.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/loadit.php*",
-        "https://kulms.kanagawa-u.ac.jp/webclass/file_down.php*"
+        "https://kulms.kanagawa-u.ac.jp/webclass/file_down.php*",
+        "http://127.0.0.1/webclass/course.php*",
+        "http://localhost/webclass/course.php*",
+        "http://127.0.0.1/webclass/do_contents.php*",
+        "http://localhost/webclass/do_contents.php*",
+        "http://127.0.0.1/webclass/txtbk_frame.php*",
+        "http://localhost/webclass/txtbk_frame.php*",
+        "http://127.0.0.1/webclass/txtbk_show_chapter.php*",
+        "http://localhost/webclass/txtbk_show_chapter.php*",
+        "http://127.0.0.1/webclass/txtbk_show_text.php*",
+        "http://localhost/webclass/txtbk_show_text.php*",
+        "http://127.0.0.1/webclass/title_simple.php*",
+        "http://localhost/webclass/title_simple.php*",
+        "http://127.0.0.1/webclass/qstn_frame.php*",
+        "http://localhost/webclass/qstn_frame.php*",
+        "http://127.0.0.1/webclass/dqstn_button.php*",
+        "http://localhost/webclass/dqstn_button.php*",
+        "http://127.0.0.1/webclass/dqstn_question.php*",
+        "http://localhost/webclass/dqstn_question.php*",
+        "http://127.0.0.1/webclass/dqstn_answer.php*",
+        "http://localhost/webclass/dqstn_answer.php*",
+        "http://127.0.0.1/webclass/dqstn_answer_all.php*",
+        "http://localhost/webclass/dqstn_answer_all.php*",
+        "http://127.0.0.1/webclass/reslt_description.php*",
+        "http://localhost/webclass/reslt_description.php*",
+        "http://127.0.0.1/webclass/loadit.php*",
+        "http://localhost/webclass/loadit.php*",
+        "http://127.0.0.1/webclass/file_down.php*",
+        "http://localhost/webclass/file_down.php*"
       ],
       "js": [
         "src/shared.js",
@@ -102,7 +144,17 @@
         "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_chapter.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/txtbk_show_text.php*",
         "https://kulms.kanagawa-u.ac.jp/webclass/title_simple.php*",
-        "https://kulms.kanagawa-u.ac.jp/webclass/loadit.php*"
+        "https://kulms.kanagawa-u.ac.jp/webclass/loadit.php*",
+        "http://127.0.0.1/webclass/txtbk_frame.php*",
+        "http://localhost/webclass/txtbk_frame.php*",
+        "http://127.0.0.1/webclass/txtbk_show_chapter.php*",
+        "http://localhost/webclass/txtbk_show_chapter.php*",
+        "http://127.0.0.1/webclass/txtbk_show_text.php*",
+        "http://localhost/webclass/txtbk_show_text.php*",
+        "http://127.0.0.1/webclass/title_simple.php*",
+        "http://localhost/webclass/title_simple.php*",
+        "http://127.0.0.1/webclass/loadit.php*",
+        "http://localhost/webclass/loadit.php*"
       ],
       "js": [
         "src/beforeunload-blocker.js"
@@ -119,7 +171,9 @@
         "lib/mp4box.all.js"
       ],
       "matches": [
-        "https://kulms.kanagawa-u.ac.jp/*"
+        "https://kulms.kanagawa-u.ac.jp/*",
+        "http://127.0.0.1/*",
+        "http://localhost/*"
       ]
     }
   ],

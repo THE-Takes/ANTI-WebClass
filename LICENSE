@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2025 THE_Takes
+Copyright (c) 2025-2026 THE_Takes
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,37 @@ SOFTWARE.
 
 Third-Party Notices
 
+This MIT License applies to the project-authored files in this repository.
 This repository also bundles third-party files under their own licenses.
 
 Included files in `Extension/lib/`:
 
 - `flatpickr.min.js`, `flatpickr.min.css`, `ja.js`
   - Project: flatpickr
+  - Version: 4.6.13
   - License: MIT
+  - Copyright: Copyright (c) 2017 Gregory Petrosyan
   - Upstream: https://github.com/flatpickr/flatpickr
 
 - `mobile-select.js`, `mobile-select.css`
   - Project: mobile-select
+  - Version: 1.4.0
   - License: MIT
-  - Copyright: Copyright (c) 2017-present, LIHONG OU (onlyhom)
+  - Copyright: Copyright (c) 2017-present, LIHONG OU(onlyhom)
   - Upstream: https://github.com/onlyhom/mobile-select
 
 - `mux-mp4.min.js`
   - Project: mux.js
+  - Version: 6.3.0
   - License: Apache-2.0
+  - Copyright: Copyright Brightcove, Inc.
   - Upstream: https://github.com/videojs/mux.js
 
 - `mp4box.all.js`
-  - Project: mp4box.js
+  - Project: mp4box.js / mp4box
+  - Version: 2.3.0
   - License: BSD-3-Clause
+  - Copyright: Copyright (c) 2012. Telecom ParisTech/TSI/MM/GPAC Cyril Concolato
   - Upstream: https://github.com/gpac/mp4box.js
 
 The full text for bundled third-party licenses is provided in
