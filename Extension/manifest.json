@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "ANTI-WebClass",
-  "version": "0.2.2",
+  "name": "ANTI-WebClass-dev",
+  "version": "0.2.4",
   "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
@@ -87,6 +87,7 @@
       ],
       "js": [
         "src/shared.js",
+        "lib/mux-mp4.min.js",
         "src/course.js"
       ],
       "css": [
@@ -114,7 +115,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/beforeunload-blocker.js"
+        "src/beforeunload-blocker.js",
+        "lib/mp4box.all.js"
       ],
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/*"

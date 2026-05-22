@@ -129,3 +129,7 @@
 
 - `flatpickr` v4.6.13 (`Extension/lib/flatpickr.min.js`, `Extension/lib/flatpickr.min.css`, `Extension/lib/ja.js`) - MIT
 - `mobile-select` (`Extension/lib/mobile-select.js`, `Extension/lib/mobile-select.css`) - MIT
+- `mux.js` (`Extension/lib/mux-mp4.min.js`) - Apache-2.0
+- `mp4box.js` (`Extension/lib/mp4box.all.js`) - BSD-3-Clause
+
+Bundled third-party license texts are available in [`THIRD_PARTY_LICENSES.md`](./THIRD_PARTY_LICENSES.md).

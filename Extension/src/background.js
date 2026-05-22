@@ -28,6 +28,12 @@ const TODO_SYNC_NOTE_ID_PREFIX = todoSyncIdentityApi.NOTE_ID_PREFIX;
 const TODO_SYNC_NOTE_URL_PREFIX = todoSyncIdentityApi.NOTE_URL_PREFIX;
 const TODO_SYNC_NOTE_DEADLINE_PREFIX = 'WC_DEADLINE_TEXT:';
 const getAssignmentSyncIdentity = todoSyncIdentityApi.getAssignmentSyncIdentity;
+const getAssignmentSyncIdentityCandidates = typeof todoSyncIdentityApi.getAssignmentSyncIdentityCandidates === 'function'
+    ? todoSyncIdentityApi.getAssignmentSyncIdentityCandidates
+    : ((assignment) => {
+        const identity = getAssignmentSyncIdentity(assignment);
+        return identity?.stableId ? [identity] : [];
+    });
 const parseSyncMetadataFromTask = todoSyncIdentityApi.parseSyncMetadataFromTask;
 
 const uxDebugModeState = { enabled: false };
@@ -1311,6 +1317,110 @@ function buildDesiredTickTickTaskState(projectId, assignment, syncSettings, forc
     };
 }
 
+function normalizeTodoSemanticText(value) {
+    return typeof value === 'string'
+        ? value.replace(/\s+/g, ' ').trim()
+        : '';
+}
+
+function parseLabeledValueFromBody(bodyContent, label) {
+    if (typeof bodyContent !== 'string' || !bodyContent || typeof label !== 'string' || !label) {
+        return '';
+    }
+    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = bodyContent.match(new RegExp(`(?:^|\\n)\\s*${escapedLabel}\\s*:\\s*([^\\r\\n]*)`, 'i'));
+    return match?.[1] ? match[1].trim() : '';
+}
+
+function getTickTickAssignmentSyncCandidates(assignment) {
+    return getAssignmentSyncIdentityCandidates(assignment, { preferFallbackUrl: true });
+}
+
+function getTickTickAssignmentSyncIdentity(assignment) {
+    const candidates = getTickTickAssignmentSyncCandidates(assignment);
+    if (candidates.length > 0) {
+        return {
+            stableId: candidates[0].stableId,
+            normalizedUrl: candidates[0].normalizedUrl
+        };
+    }
+    return { stableId: '', normalizedUrl: '' };
+}
+
+function buildTickTickAssignmentSemanticKey(assignment) {
+    if (!assignment || typeof assignment !== 'object') return '';
+
+    const courseFullName = normalizeTodoSemanticText(
+        assignment.courseFullName || assignment.course || ''
+    );
+    const originalTaskTitle = normalizeTodoSemanticText(
+        assignment.sourceTitle || assignment.title || ''
+    );
+    const originalDeadline = normalizeTodoSemanticText(
+        assignment.originalDeadline || NO_DEADLINE_TEXT
+    ) || NO_DEADLINE_TEXT;
+
+    if (!courseFullName || !originalTaskTitle) return '';
+    return `${courseFullName}\n${originalTaskTitle}\n${originalDeadline}`;
+}
+
+function buildTickTickRemoteSemanticKey(remoteTask) {
+    if (!remoteTask || typeof remoteTask !== 'object') return '';
+
+    const remoteContent = typeof remoteTask.content === 'string' ? remoteTask.content : '';
+    const courseFullName = normalizeTodoSemanticText(parseLabeledValueFromBody(remoteContent, 'Course'));
+    const originalTaskTitle = normalizeTodoSemanticText(
+        parseLabeledValueFromBody(remoteContent, 'Original Task') || remoteTask.title || ''
+    );
+    const originalDeadline = normalizeTodoSemanticText(
+        parseLabeledValueFromBody(remoteContent, 'Original Deadline') || NO_DEADLINE_TEXT
+    ) || NO_DEADLINE_TEXT;
+
+    if (!courseFullName || !originalTaskTitle) return '';
+    return `${courseFullName}\n${originalTaskTitle}\n${originalDeadline}`;
+}
+
+function buildTickTickAssignmentLookup(entry) {
+    const assignment = entry?.assignment;
+    const syncIdentity = entry?.syncIdentity;
+    const candidates = getTickTickAssignmentSyncCandidates(assignment);
+    const stableIds = new Set();
+    const normalizedUrls = new Set();
+
+    candidates.forEach((candidate) => {
+        if (candidate?.stableId) stableIds.add(candidate.stableId);
+        if (candidate?.normalizedUrl) normalizedUrls.add(candidate.normalizedUrl);
+    });
+
+    if (syncIdentity?.stableId) stableIds.add(syncIdentity.stableId);
+    if (syncIdentity?.normalizedUrl) normalizedUrls.add(syncIdentity.normalizedUrl);
+
+    return {
+        stableIds,
+        normalizedUrls,
+        semanticKey: buildTickTickAssignmentSemanticKey(assignment),
+        storedTaskId: getAssignmentTickTickTaskId(assignment)
+    };
+}
+
+function buildTickTickRemoteLookup(task) {
+    const metadata = parseSyncMetadataFromTask(task);
+    return {
+        stableId: typeof metadata?.stableId === 'string' ? metadata.stableId.trim() : '',
+        normalizedUrl: typeof metadata?.normalizedUrl === 'string' ? metadata.normalizedUrl.trim() : '',
+        semanticKey: buildTickTickRemoteSemanticKey(task)
+    };
+}
+
+function pickPreferredTickTickTask(first, second) {
+    const firstCompleted = isTickTickTaskCompleted(first);
+    const secondCompleted = isTickTickTaskCompleted(second);
+    if (firstCompleted !== secondCompleted) {
+        return firstCompleted ? first : second;
+    }
+    return pickPreferredRemoteTask(first, second);
+}
+
 function applyRemoteTaskToAssignment(assignment, remoteTask) {
     if (!assignment || typeof assignment !== 'object' || !remoteTask || typeof remoteTask !== 'object') {
         return false;
@@ -1606,11 +1716,7 @@ function buildTickTickTaskPatchFromAssignment(
     }
 
     const shouldComplete = desired.status === 2 && !remoteCompleted;
-    const shouldReopen = desired.status !== 2 && remoteCompleted;
-    if (shouldReopen) {
-        payload.status = 0;
-        hasPayloadDiff = true;
-    }
+    const shouldReopen = false;
 
     return {
         payload: hasPayloadDiff ? payload : null,
@@ -3474,6 +3580,23 @@ async function fetchAllTickTickTasks(projectId) {
     });
 }
 
+async function fetchTickTickCompletedTasks(projectId) {
+    const normalizedProjectId = normalizeTickTickTaskId(projectId);
+    if (!normalizedProjectId) return [];
+
+    const data = await tickTickApiRequest('/task/completed', {
+        method: 'POST',
+        body: {
+            projectIds: [normalizedProjectId]
+        }
+    });
+    const tasks = Array.isArray(data) ? data : [];
+    return tasks.map((task) => {
+        const taskId = normalizeTickTickTaskId(task?.id);
+        return taskId ? { ...task, id: taskId } : task;
+    });
+}
+
 async function fetchTickTickTaskById(projectId, taskId) {
     const normalizedProjectId = normalizeTickTickTaskId(projectId);
     const normalizedTaskId = normalizeTickTickTaskId(taskId);
@@ -3597,7 +3720,7 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
 
         const assignmentMap = new Map();
         assignments.forEach((assignment) => {
-            const syncIdentity = getAssignmentSyncIdentity(assignment);
+            const syncIdentity = getTickTickAssignmentSyncIdentity(assignment);
             if (!syncIdentity.stableId) return;
 
             const existingEntry = assignmentMap.get(syncIdentity.stableId);
@@ -3626,37 +3749,123 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
 
         const listInfo = await ensureTickTickDedicatedProject();
         const remoteTasks = await fetchAllTickTickTasks(listInfo.id);
+        const remoteCompletedTasks = await fetchTickTickCompletedTasks(listInfo.id).catch((error) => {
+            uxDebugWarn('[WebClass UX] failed to fetch TickTick completed tasks', error);
+            return [];
+        });
         const remoteById = new Map();
         const remoteByStableId = new Map();
+        const remoteByNormalizedUrl = new Map();
+        const remoteBySemanticKey = new Map();
+        const remoteLookupById = new Map();
         const remoteTaskDeleteReasons = new Map();
+        const remoteTaskSources = [
+            ...remoteTasks.map((task) => ({ task, allowLegacyDelete: true })),
+            ...remoteCompletedTasks.map((task) => ({ task, allowLegacyDelete: false }))
+        ];
 
-        remoteTasks.forEach((task) => {
-            const taskId = typeof task?.id === 'string' ? task.id : String(task?.id || '');
-            if (!taskId) return;
+        const rememberTickTickRemoteTask = (task, fallbackSyncIdentity = null) => {
+            const taskId = normalizeTickTickTaskId(task?.id);
+            if (!taskId) return null;
+
             const normalizedTask = { ...task, id: taskId };
-            const metadata = parseSyncMetadataFromTask(normalizedTask);
-            if (!metadata.stableId) {
-                remoteTaskDeleteReasons.set(taskId, 'legacy');
-                return;
+            const lookup = buildTickTickRemoteLookup(normalizedTask);
+            const storedLookup = {
+                stableId: lookup.stableId || fallbackSyncIdentity?.stableId || '',
+                normalizedUrl: lookup.normalizedUrl || fallbackSyncIdentity?.normalizedUrl || '',
+                semanticKey: lookup.semanticKey || ''
+            };
+
+            remoteLookupById.set(taskId, storedLookup);
+            remoteById.set(taskId, normalizedTask);
+
+            if (storedLookup.stableId) {
+                remoteByStableId.set(storedLookup.stableId, normalizedTask);
+            }
+            if (fallbackSyncIdentity?.stableId) {
+                remoteByStableId.set(fallbackSyncIdentity.stableId, normalizedTask);
+            }
+            if (storedLookup.normalizedUrl) {
+                remoteByNormalizedUrl.set(storedLookup.normalizedUrl, normalizedTask);
+            }
+            if (fallbackSyncIdentity?.normalizedUrl) {
+                remoteByNormalizedUrl.set(fallbackSyncIdentity.normalizedUrl, normalizedTask);
+            }
+            if (storedLookup.semanticKey) {
+                remoteBySemanticKey.set(storedLookup.semanticKey, normalizedTask);
             }
 
-            const existingTask = remoteByStableId.get(metadata.stableId);
-            if (!existingTask) {
-                remoteByStableId.set(metadata.stableId, normalizedTask);
-                remoteById.set(taskId, normalizedTask);
-                return;
-            }
+            return normalizedTask;
+        };
 
-            const keepTask = pickPreferredRemoteTask(existingTask, normalizedTask);
-            const removeTask = keepTask === existingTask ? normalizedTask : existingTask;
-            const removeTaskId = typeof removeTask?.id === 'string' ? removeTask.id : String(removeTask?.id || '');
-            remoteByStableId.set(metadata.stableId, keepTask);
-            remoteById.set(keepTask.id, keepTask);
-            if (removeTaskId) {
-                remoteById.delete(removeTaskId);
-                if (!remoteTaskDeleteReasons.has(removeTaskId)) {
-                    remoteTaskDeleteReasons.set(removeTaskId, 'duplicate');
+        remoteTaskSources.forEach(({ task, allowLegacyDelete }) => {
+            const taskId = normalizeTickTickTaskId(task?.id);
+            if (!taskId) return;
+
+            const normalizedTask = { ...task, id: taskId };
+            const lookup = buildTickTickRemoteLookup(normalizedTask);
+            if (!lookup.stableId) {
+                if (allowLegacyDelete) {
+                    remoteTaskDeleteReasons.set(taskId, 'legacy');
                 }
+                return;
+            }
+
+            const relatedTasksById = new Map();
+            const rememberRelatedTask = (candidate) => {
+                const candidateId = normalizeTickTickTaskId(candidate?.id);
+                if (!candidateId) return;
+                relatedTasksById.set(candidateId, candidate);
+            };
+
+            rememberRelatedTask(remoteByStableId.get(lookup.stableId));
+            if (lookup.normalizedUrl) {
+                rememberRelatedTask(remoteByNormalizedUrl.get(lookup.normalizedUrl));
+            }
+            if (lookup.semanticKey) {
+                rememberRelatedTask(remoteBySemanticKey.get(lookup.semanticKey));
+            }
+
+            let keepTask = normalizedTask;
+            for (const relatedTask of relatedTasksById.values()) {
+                keepTask = pickPreferredTickTickTask(keepTask, relatedTask);
+            }
+
+            const keepTaskId = normalizeTickTickTaskId(keepTask?.id);
+            const tasksToReindex = new Map();
+            tasksToReindex.set(taskId, { task: normalizedTask, lookup });
+            for (const relatedTask of relatedTasksById.values()) {
+                const relatedTaskId = normalizeTickTickTaskId(relatedTask?.id);
+                if (!relatedTaskId) continue;
+                const relatedLookup = remoteLookupById.get(relatedTaskId) || buildTickTickRemoteLookup(relatedTask);
+                remoteLookupById.set(relatedTaskId, relatedLookup);
+                tasksToReindex.set(relatedTaskId, { task: relatedTask, lookup: relatedLookup });
+            }
+
+            for (const [candidateTaskId, descriptor] of tasksToReindex.entries()) {
+                const candidateLookup = descriptor.lookup || {};
+                if (candidateLookup.stableId) {
+                    remoteByStableId.set(candidateLookup.stableId, keepTask);
+                }
+                if (candidateLookup.normalizedUrl) {
+                    remoteByNormalizedUrl.set(candidateLookup.normalizedUrl, keepTask);
+                }
+                if (candidateLookup.semanticKey) {
+                    remoteBySemanticKey.set(candidateLookup.semanticKey, keepTask);
+                }
+                if (candidateTaskId !== keepTaskId) {
+                    remoteById.delete(candidateTaskId);
+                    if (
+                        !remoteTaskDeleteReasons.has(candidateTaskId)
+                        && !isTickTickTaskCompleted(descriptor.task)
+                    ) {
+                        remoteTaskDeleteReasons.set(candidateTaskId, 'duplicate');
+                    }
+                }
+            }
+
+            if (keepTaskId) {
+                remoteById.set(keepTaskId, keepTask);
             }
         });
 
@@ -3672,6 +3881,31 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             }
         }
 
+        const findMatchingTickTickRemoteTask = (entry) => {
+            const assignmentLookup = buildTickTickAssignmentLookup(entry);
+
+            for (const stableId of assignmentLookup.stableIds) {
+                const remoteTask = remoteByStableId.get(stableId);
+                if (remoteTask) return remoteTask;
+            }
+
+            for (const normalizedUrl of assignmentLookup.normalizedUrls) {
+                const remoteTask = remoteByNormalizedUrl.get(normalizedUrl);
+                if (remoteTask) return remoteTask;
+            }
+
+            if (assignmentLookup.semanticKey) {
+                const remoteTask = remoteBySemanticKey.get(assignmentLookup.semanticKey);
+                if (remoteTask) return remoteTask;
+            }
+
+            if (assignmentLookup.storedTaskId) {
+                return remoteById.get(assignmentLookup.storedTaskId) || null;
+            }
+
+            return null;
+        };
+
         let mutationStableId = '';
         if (normalizedMode === 'local_mutation' && typeof localMutation?.localKey === 'string' && localMutation.localKey) {
             const mutationKey = localMutation.localKey;
@@ -3680,7 +3914,7 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             } else {
                 for (const assignment of assignments) {
                     if (assignment?.url === mutationKey || assignment?.fallbackUrl === mutationKey) {
-                        mutationStableId = getAssignmentSyncIdentity(assignment).stableId;
+                        mutationStableId = getTickTickAssignmentSyncIdentity(assignment).stableId;
                         if (mutationStableId) break;
                     }
                 }
@@ -3692,13 +3926,17 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             const syncIdentity = entry?.syncIdentity;
             if (!assignment || !syncIdentity?.stableId) return null;
 
+            const matchedRemoteTask = findMatchingTickTickRemoteTask(entry);
+            if (matchedRemoteTask) {
+                return matchedRemoteTask;
+            }
+
             const storedTaskId = getAssignmentTickTickTaskId(assignment);
             if (!storedTaskId) return null;
 
             const cachedById = remoteById.get(storedTaskId);
             if (cachedById) {
-                remoteByStableId.set(syncIdentity.stableId, cachedById);
-                return cachedById;
+                return rememberTickTickRemoteTask(cachedById, syncIdentity);
             }
 
             let fetchedTask = null;
@@ -3713,21 +3951,14 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             }
             if (!fetchedTask) return null;
 
-            const fetchedMetadata = parseSyncMetadataFromTask(fetchedTask);
-            const fetchedStableId = fetchedMetadata.stableId || syncIdentity.stableId;
-            remoteById.set(storedTaskId, fetchedTask);
-            remoteByStableId.set(fetchedStableId, fetchedTask);
-            if (fetchedStableId !== syncIdentity.stableId) {
-                remoteByStableId.set(syncIdentity.stableId, fetchedTask);
-            }
-            return fetchedTask;
+            return rememberTickTickRemoteTask(fetchedTask, syncIdentity);
         };
 
         for (const [stableId, entry] of assignmentMap.entries()) {
             if (normalizedMode === 'local_mutation' && mutationStableId && stableId === mutationStableId) {
                 continue;
             }
-            let remoteTask = remoteByStableId.get(stableId);
+            let remoteTask = findMatchingTickTickRemoteTask(entry);
             if (!remoteTask) {
                 remoteTask = await hydrateTickTickRemoteTaskFromStoredId(entry);
             }
@@ -3747,7 +3978,7 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             if (!assignment || !syncIdentity?.stableId) return;
             if (isLocalOnlyAssignment(assignment)) return;
 
-            let remoteTask = remoteByStableId.get(syncIdentity.stableId);
+            let remoteTask = findMatchingTickTickRemoteTask(entry);
             if (!remoteTask) {
                 remoteTask = await hydrateTickTickRemoteTaskFromStoredId(entry);
                 if (remoteTask && normalizedMode !== 'local_mutation') {
@@ -3787,11 +4018,8 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
                     latest = { ...latest, status: 2, completedTime: new Date().toISOString() };
                 }
 
-                const latestMetadata = parseSyncMetadataFromTask(latest);
-                const stableId = latestMetadata.stableId || syncIdentity.stableId;
-                const latestTaskId = normalizeTickTickTaskId(latest?.id) || taskId;
-                remoteById.set(latestTaskId, latest);
-                remoteByStableId.set(stableId, latest);
+                const latestTask = rememberTickTickRemoteTask(latest, syncIdentity);
+                const latestTaskId = normalizeTickTickTaskId(latestTask?.id) || taskId;
                 if (setAssignmentTickTickTaskId(assignment, latestTaskId)) {
                     assignmentsChanged = true;
                 }
@@ -3803,12 +4031,11 @@ async function runTickTickTodoSync({ mode = 'full', trigger = 'manual', localMut
             const created = await createTickTickTask(listInfo.id, assignment, taskNameSettings, false, syncIdentity);
             const createdTaskId = normalizeTickTickTaskId(created?.id);
             if (createdTaskId) {
-                const createdTask = { ...(created || {}), id: createdTaskId };
-                const metadata = parseSyncMetadataFromTask(createdTask);
-                const stableId = metadata.stableId || syncIdentity.stableId;
-                remoteById.set(createdTaskId, createdTask);
-                remoteByStableId.set(stableId, createdTask);
-                if (setAssignmentTickTickTaskId(assignment, createdTaskId)) {
+                const createdTask = rememberTickTickRemoteTask(
+                    { ...(created || {}), id: createdTaskId },
+                    syncIdentity
+                );
+                if (setAssignmentTickTickTaskId(assignment, createdTask?.id || createdTaskId)) {
                     assignmentsChanged = true;
                 }
             }

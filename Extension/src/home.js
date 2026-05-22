@@ -5048,6 +5048,8 @@ if (!isHomePage) {
         let dashboardTimetableLongPressTimer = 0;
         let dashboardTimetableLongPressOrigin = null;
         let dashboardTimetableSuppressClickUntil = 0;
+        let dashboardTimetableInlineEditReferenceBottom = 0;
+        let dashboardTimetableInlineEditReferenceReleaseTimer = 0;
 
         const getDashboardTimetableEditableCells = () => {
             if (!dashboardTimetableElement) return [];
@@ -5068,6 +5070,32 @@ if (!isHomePage) {
                 dashboardTimetableLongPressTimer = 0;
             }
             dashboardTimetableLongPressOrigin = null;
+        };
+
+        const clearDashboardTimetableInlineEditReferenceReleaseTimer = () => {
+            if (dashboardTimetableInlineEditReferenceReleaseTimer) {
+                clearTimeout(dashboardTimetableInlineEditReferenceReleaseTimer);
+                dashboardTimetableInlineEditReferenceReleaseTimer = 0;
+            }
+        };
+
+        const captureDashboardTimetableInlineEditReferenceBottom = () => {
+            clearDashboardTimetableInlineEditReferenceReleaseTimer();
+            if (!todoSection) return;
+            const rect = todoSection.getBoundingClientRect();
+            const absoluteBottom = rect.bottom + window.scrollY;
+            if (!Number.isFinite(absoluteBottom) || absoluteBottom <= 0) return;
+            dashboardTimetableInlineEditReferenceBottom = absoluteBottom;
+        };
+
+        const releaseDashboardTimetableInlineEditReferenceBottom = (delayMs = 180) => {
+            if (!dashboardTimetableInlineEditReferenceBottom) return;
+            clearDashboardTimetableInlineEditReferenceReleaseTimer();
+            dashboardTimetableInlineEditReferenceReleaseTimer = window.setTimeout(() => {
+                dashboardTimetableInlineEditReferenceReleaseTimer = 0;
+                dashboardTimetableInlineEditReferenceBottom = 0;
+                requestCourseLayoutSync();
+            }, delayMs);
         };
 
         const updateDashboardTimetableInlineEditControls = () => {
@@ -5120,7 +5148,7 @@ if (!isHomePage) {
                 link.removeAttribute('tabindex');
             });
             dashboardTimetableElement.querySelectorAll('.ux-inline-editable-cell').forEach((cell) => {
-                cell.classList.remove('ux-inline-editable-cell', 'ux-inline-edit-dirty');
+                cell.classList.remove('ux-inline-editable-cell', 'ux-inline-edit-dirty', 'ux-inline-edit-focus');
                 cell.removeAttribute('data-editable-course');
                 cell.style.removeProperty('--ux-inline-edit-delay');
             });
@@ -5137,6 +5165,7 @@ if (!isHomePage) {
             }
             updateDashboardTimetableInlineEditControls();
             requestCourseLayoutSync();
+            releaseDashboardTimetableInlineEditReferenceBottom();
         };
 
         const focusNextDashboardTimetableInlineInput = (currentInput) => {
@@ -5221,6 +5250,7 @@ if (!isHomePage) {
             if (!editableCells.length) return;
 
             clearDashboardTimetableLongPress();
+            captureDashboardTimetableInlineEditReferenceBottom();
             dashboardTimetableInlineEditActive = true;
             dashboardTimetableInlineEditDirty = false;
 
@@ -6421,8 +6451,7 @@ if (!isHomePage) {
                 toggleSlider.style.backgroundColor = 'var(--ux-home-quaternary-label)';
                 toggleKnob.style.transform = 'translateX(0)';
             }
-            await renderDashboardTodos(dashboardAssignments);
-            requestStabilizedCourseLayoutSync();
+            await renderDashboardTodos(dashboardAssignments, { syncLayout: false });
         });
 
         toggleContainer.appendChild(toggleLabel);
@@ -6517,7 +6546,11 @@ if (!isHomePage) {
 
             const timetableSectionRect = timetableSection.getBoundingClientRect();
             const todoSectionRect = todoSection.getBoundingClientRect();
-            const totalAvailableHeight = Math.floor(todoSectionRect.bottom - timetableSectionRect.top);
+            const timetableSectionTop = timetableSectionRect.top + window.scrollY;
+            const liveReferenceBottom = todoSectionRect.bottom + window.scrollY;
+            // Keep the sibling-bottom baseline stable across inline-edit transitions to avoid fit-height feedback.
+            const referenceBottom = dashboardTimetableInlineEditReferenceBottom || liveReferenceBottom;
+            const totalAvailableHeight = Math.floor(referenceBottom - timetableSectionTop);
             const outOfScheduleTargetHeight = getDashboardOutOfScheduleTargetHeight();
             const sectionGap = getDashboardCenterColumnSectionGap();
             const targetHeight = outOfScheduleTargetHeight > 0
@@ -6699,7 +6732,7 @@ if (!isHomePage) {
             }
         });
 
-        const renderDashboardTodos = async (assignments) => {
+        const renderDashboardTodos = async (assignments, { syncLayout = true } = {}) => {
             dashboardAssignments = assignments || [];
             const visibleAssignments = debugModeEnabled
                 ? dashboardAssignments
@@ -6743,7 +6776,9 @@ if (!isHomePage) {
                 }
             });
             applyTimetableColorsFromTodo(filtered);
-            scheduleCourseLayoutSync();
+            if (syncLayout) {
+                scheduleCourseLayoutSync();
+            }
 
             todoStatus.textContent = '';
         };

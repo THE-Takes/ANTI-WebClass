@@ -36,3 +36,16 @@ Included files in `Extension/lib/`:
   - License: MIT
   - Copyright: Copyright (c) 2017-present, LIHONG OU (onlyhom)
   - Upstream: https://github.com/onlyhom/mobile-select
+
+- `mux-mp4.min.js`
+  - Project: mux.js
+  - License: Apache-2.0
+  - Upstream: https://github.com/videojs/mux.js
+
+- `mp4box.all.js`
+  - Project: mp4box.js
+  - License: BSD-3-Clause
+  - Upstream: https://github.com/gpac/mp4box.js
+
+The full text for bundled third-party licenses is provided in
+`THIRD_PARTY_LICENSES.md`.

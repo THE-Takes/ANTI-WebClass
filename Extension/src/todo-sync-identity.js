@@ -69,27 +69,47 @@
         return `${ID_PREFIX}${hash.toString(16).padStart(16, '0')}`;
     }
 
-    function getAssignmentSyncIdentity(assignment) {
+    function appendSyncIdentityCandidate(candidates, seenNormalizedUrls, rawUrl) {
+        if (typeof rawUrl !== 'string' || !rawUrl.trim()) return;
+        const normalizedUrl = normalizeSyncTaskUrl(rawUrl);
+        if (!normalizedUrl || seenNormalizedUrls.has(normalizedUrl)) return;
+        const stableId = buildStableSyncIdFromNormalizedUrl(normalizedUrl);
+        if (!stableId) return;
+        seenNormalizedUrls.add(normalizedUrl);
+        candidates.push({
+            stableId,
+            normalizedUrl,
+            rawUrl: rawUrl.trim()
+        });
+    }
+
+    function getAssignmentSyncIdentityCandidates(assignment, options = {}) {
         if (!assignment || typeof assignment !== 'object') {
-            return { stableId: '', normalizedUrl: '' };
+            return [];
         }
 
         const candidates = [];
-        if (typeof assignment.url === 'string' && assignment.url.trim()) {
-            candidates.push(assignment.url.trim());
-        }
-        if (typeof assignment.fallbackUrl === 'string' && assignment.fallbackUrl.trim()) {
-            candidates.push(assignment.fallbackUrl.trim());
+        const seenNormalizedUrls = new Set();
+        const preferFallbackUrl = options?.preferFallbackUrl === true;
+        const rawCandidates = preferFallbackUrl
+            ? [assignment.fallbackUrl, assignment.url]
+            : [assignment.url, assignment.fallbackUrl];
+
+        for (const rawCandidate of rawCandidates) {
+            appendSyncIdentityCandidate(candidates, seenNormalizedUrls, rawCandidate);
         }
 
-        for (const candidate of candidates) {
-            const normalizedUrl = normalizeSyncTaskUrl(candidate);
-            if (!normalizedUrl) continue;
-            const stableId = buildStableSyncIdFromNormalizedUrl(normalizedUrl);
-            if (!stableId) continue;
-            return { stableId, normalizedUrl };
-        }
+        return candidates;
+    }
 
+    function getAssignmentSyncIdentity(assignment) {
+        const candidates = getAssignmentSyncIdentityCandidates(assignment);
+        if (candidates.length > 0) {
+            return {
+                stableId: candidates[0].stableId,
+                normalizedUrl: candidates[0].normalizedUrl
+            };
+        }
         return { stableId: '', normalizedUrl: '' };
     }
 
@@ -134,6 +154,7 @@
         ID_PREFIX,
         normalizeSyncTaskUrl,
         buildStableSyncIdFromNormalizedUrl,
+        getAssignmentSyncIdentityCandidates,
         getAssignmentSyncIdentity,
         parseSyncMetadataFromBody,
         parseSyncMetadataFromTask
