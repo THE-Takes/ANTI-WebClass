@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ANTI-WebClass-dev",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
@@ -40,9 +40,7 @@
         "http://127.0.0.1/webclass/?acs_=*",
         "http://localhost/webclass/?acs_=*"
       ],
-      "js": [
-        "src/login.js"
-      ]
+      "js": ["src/login.js"]
     },
     {
       "matches": [
@@ -50,10 +48,7 @@
         "http://127.0.0.1/webclass/*",
         "http://localhost/webclass/*"
       ],
-      "js": [
-        "src/shared.js",
-        "src/shortcuts.js"
-      ],
+      "js": ["src/shared.js", "src/shortcuts.js"],
       "all_frames": true,
       "run_at": "document_start"
     },
@@ -127,14 +122,8 @@
         "http://127.0.0.1/webclass/file_down.php*",
         "http://localhost/webclass/file_down.php*"
       ],
-      "js": [
-        "src/shared.js",
-        "lib/mux-mp4.min.js",
-        "src/course.js"
-      ],
-      "css": [
-        "src/styles/download.css"
-      ],
+      "js": ["src/shared.js", "lib/mux-mp4.min.js", "src/course.js"],
+      "css": ["src/styles/download.css"],
       "all_frames": true,
       "run_at": "document_start"
     },
@@ -156,9 +145,7 @@
         "http://127.0.0.1/webclass/loadit.php*",
         "http://localhost/webclass/loadit.php*"
       ],
-      "js": [
-        "src/beforeunload-blocker.js"
-      ],
+      "js": ["src/beforeunload-blocker.js"],
       "all_frames": true,
       "run_at": "document_start",
       "world": "MAIN"
@@ -166,10 +153,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "src/beforeunload-blocker.js",
-        "lib/mp4box.all.js"
-      ],
+      "resources": ["src/beforeunload-blocker.js", "lib/mp4box.all.js"],
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/*",
         "http://127.0.0.1/*",

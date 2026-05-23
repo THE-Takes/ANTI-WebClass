@@ -108,6 +108,12 @@ if (typeof globalThis.syncUxMasterStateToPage !== "function") {
           }
         }
       }
+      if (changes[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]) {
+        materialDownloadFilenameSeparator =
+          normalizeMaterialDownloadFilenameSeparator(
+            changes[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY].newValue,
+          );
+      }
     });
   } catch {
     uxDebugModeState.enabled = false;
@@ -675,6 +681,17 @@ const CONFIG = {
   debug: false,
 };
 
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY =
+  "materialDownloadFilenameSeparator";
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT = "hyphen";
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS = {
+  hyphen: "-",
+  space: " ",
+  underscore: "_",
+};
+let materialDownloadFilenameSeparator =
+  MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT;
+
 const UX_COURSE_COLOR_TOKEN_STYLE_ID = "ux-course-color-tokens";
 const UX_SHIRYOU_TOC_WIDTH_STORAGE_KEY = "shiryouTocWidthPx";
 const UX_SHIRYOU_TOC_DEFAULT_WIDTH = 350;
@@ -861,23 +878,8 @@ function getCourseName() {
  * @returns {number | null}
  */
 function getSectionNumber(element) {
-  // 親要素を遡って節番号を探す
-  let parent = element.closest("tr");
-  if (parent) {
-    // "第N節" パターンを探す
-    const sectionText = parent.textContent;
-    const sectionMatch = sectionText.match(/第(\d+)節/);
-    if (sectionMatch) {
-      return parseInt(sectionMatch[1], 10);
-    }
-
-    // "問 N" パターンを探す (試験タイプ)
-    const questionMatch = sectionText.match(/問\s*(\d+)/);
-    if (questionMatch) {
-      return parseInt(questionMatch[1], 10);
-    }
-  }
-  return null;
+  const sectionNumber = getSectionNumberText(element);
+  return sectionNumber ? parseInt(sectionNumber, 10) : null;
 }
 
 /**
@@ -951,6 +953,177 @@ function getOriginalFileName(url) {
  */
 function sanitizeFileName(name) {
   return name.replace(CONFIG.invalidChars, "_").trim();
+}
+
+function normalizeMaterialDownloadFilenameSeparator(value) {
+  if (
+    Object.prototype.hasOwnProperty.call(
+      MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS,
+      value,
+    )
+  ) {
+    return value;
+  }
+  if (value === "-") return "hyphen";
+  if (value === " ") return "space";
+  if (value === "_") return "underscore";
+  return MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT;
+}
+
+function getMaterialDownloadFilenameSeparatorChar() {
+  const normalized = normalizeMaterialDownloadFilenameSeparator(
+    materialDownloadFilenameSeparator,
+  );
+  return (
+    MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS[normalized] ||
+    MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS[
+      MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT
+    ]
+  );
+}
+
+function normalizeDownloadNamePart(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSectionNumberTextFromText(text) {
+  const sectionMatch = normalizeDownloadNamePart(text).match(
+    /第\s*([0-9０-９一二三四五六七八九十百〇零]+)\s*[節章部]/u,
+  );
+  if (sectionMatch) {
+    return uxJapaneseNumberToInt(sectionMatch[1]);
+  }
+
+  const questionMatch = normalizeDownloadNamePart(text).match(/問\s*(\d+)/);
+  return questionMatch ? questionMatch[1] : null;
+}
+
+function getSectionLabelTextFromRow(row) {
+  if (!row) return null;
+
+  const badge = row.querySelector(".ux-section-number-badge");
+  if (badge) {
+    const label =
+      normalizeDownloadNamePart(badge.getAttribute("title")) ||
+      normalizeDownloadNamePart(badge.getAttribute("aria-label"));
+    if (label) return label;
+  }
+
+  const sectionLabel = Array.from(row.querySelectorAll("span")).find((span) =>
+    getSectionNumberTextFromText(span.textContent || ""),
+  );
+  if (sectionLabel) {
+    return normalizeDownloadNamePart(sectionLabel.textContent);
+  }
+
+  return null;
+}
+
+function getSectionNumberText(element) {
+  const row = element?.closest?.("tr");
+  if (!row) return null;
+
+  const label = getSectionLabelTextFromRow(row);
+  const fromLabel = getSectionNumberTextFromText(label || "");
+  if (fromLabel) return fromLabel;
+
+  const fromRow = getSectionNumberTextFromText(row.textContent || "");
+  if (fromRow) return fromRow;
+
+  const pageButton = row.querySelector('input[name="clickpage"]');
+  const pageValue = normalizeDownloadNamePart(pageButton?.value);
+  if (/^\d+$/.test(pageValue)) return pageValue;
+
+  const onclick = pageButton?.getAttribute("onclick") || "";
+  const pageMatch = onclick.match(/gopage\(['"]?(\d+)['"]?\)/);
+  return pageMatch ? pageMatch[1] : null;
+}
+
+function getAttachmentSectionTitle(element) {
+  const row = element?.closest?.("tr");
+  if (!row) return null;
+
+  const hadCompactBadge = !!row.querySelector(".ux-section-number-badge");
+  const sectionLabel = getSectionLabelTextFromRow(row);
+  const sectionNumber = getSectionNumberText(element);
+  const clone = row.cloneNode(true);
+
+  clone
+    .querySelectorAll(
+      [
+        ".ux-inline-download-options",
+        ".ux-download-group",
+        ".ux-download-btn",
+        'a[href*="file_down.php"]',
+        'input[name="clickpage"]',
+        'button[name="clickpage"]',
+        'input[value="添付資料"]',
+      ].join(","),
+    )
+    .forEach((node) => node.remove());
+
+  clone.querySelectorAll(".ux-section-number-badge").forEach((node) => {
+    node.remove();
+  });
+
+  clone.querySelectorAll("span").forEach((span) => {
+    if (getSectionNumberTextFromText(span.textContent || "")) {
+      span.remove();
+    }
+  });
+
+  let title = normalizeDownloadNamePart(clone.textContent)
+    .replace(/添付資料/g, "")
+    .trim();
+
+  if (sectionLabel) {
+    title = title.replace(sectionLabel, "").trim();
+  }
+
+  title = title.replace(
+    /^第\s*[0-9０-９一二三四五六七八九十百〇零]+\s*[節章部]\s*/u,
+    "",
+  );
+
+  if (hadCompactBadge && sectionNumber) {
+    title = title
+      .replace(new RegExp(`^${escapeRegExp(sectionNumber)}\\s*`), "")
+      .trim();
+  }
+
+  return title || null;
+}
+
+function getAttachmentSectionFallbackLabel(element) {
+  const row = element?.closest?.("tr");
+  const label = getSectionLabelTextFromRow(row);
+  if (label) return label;
+
+  const sectionNumber = getSectionNumberText(element);
+  return sectionNumber ? `第${sectionNumber}節` : null;
+}
+
+function buildMaterialDownloadBaseName(contentName, attachmentLink) {
+  const baseName = normalizeDownloadNamePart(contentName) || "download";
+  const sectionTitle = getAttachmentSectionTitle(attachmentLink);
+  const sectionLabel = getAttachmentSectionFallbackLabel(attachmentLink);
+  const suffix = normalizeDownloadNamePart(sectionTitle || sectionLabel);
+
+  return suffix
+    ? `${baseName}${getMaterialDownloadFilenameSeparatorChar()}${suffix}`
+    : baseName;
+}
+
+function buildMaterialDownloadFileName(contentName, attachmentLink, extension) {
+  return sanitizeFileName(
+    buildMaterialDownloadBaseName(contentName, attachmentLink),
+  ) + extension;
 }
 
 function setDownloadButtonLabel(button, label, fileName, maxLength) {
@@ -1029,6 +1202,85 @@ function setDownloadIconButton(button, type, label, fileName = "") {
   button.appendChild(createUxIconSvg(doc, getDownloadOptionIconPaths(type)));
 }
 
+function getInlineDownloadButtonLabel(type) {
+  return type === "rename"
+    ? "リネームしてダウンロード"
+    : "元のファイル名でダウンロード";
+}
+
+function getInlineDownloadButtonFileName(
+  type,
+  renamedFileName,
+  originalFileName,
+) {
+  return type === "rename" ? renamedFileName : originalFileName;
+}
+
+function prepareInlineDownloadButton(
+  button,
+  type,
+  fileDownUrl,
+  renamedFileName,
+  originalFileName,
+) {
+  button.dataset.uxDownloadType = type;
+  button.dataset.uxFileDownUrl = fileDownUrl;
+  button.dataset.uxRenamedFileName = renamedFileName || "";
+  button.dataset.uxOriginalFileName = originalFileName || "";
+
+  setDownloadIconButton(
+    button,
+    type,
+    getInlineDownloadButtonLabel(type),
+    getInlineDownloadButtonFileName(type, renamedFileName, originalFileName),
+  );
+}
+
+function bindInlineDownloadButton(button) {
+  if (!button || button.__uxInlineDownloadBound) return false;
+
+  const type = button.dataset.uxDownloadType;
+  const fileDownUrl = button.dataset.uxFileDownUrl;
+  if (!fileDownUrl || (type !== "rename" && type !== "original")) return false;
+
+  const renamedFileName = button.dataset.uxRenamedFileName || "";
+  const originalFileName = button.dataset.uxOriginalFileName || "";
+  const label = getInlineDownloadButtonLabel(type);
+  const displayFileName = getInlineDownloadButtonFileName(
+    type,
+    renamedFileName,
+    originalFileName,
+  );
+
+  const resetButton = () => {
+    setDownloadIconButton(button, type, label, displayFileName);
+    button.disabled = false;
+  };
+
+  setDownloadIconButton(button, type, label, displayFileName);
+  button.__uxInlineDownloadBound = true;
+  button.addEventListener("click", async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    button.disabled = true;
+    button.innerHTML = "⏳";
+    try {
+      await downloadFromFileDownUrl(
+        fileDownUrl,
+        type === "rename" ? renamedFileName : null,
+      );
+      button.innerHTML = "完了";
+      setTimeout(resetButton, 2000);
+    } catch (error) {
+      log("Download error:", error);
+      button.innerHTML = "失敗";
+      setTimeout(resetButton, 2000);
+    }
+  });
+
+  return true;
+}
+
 // ============================================================
 // Download Button Enhancement
 // ============================================================
@@ -1097,8 +1349,11 @@ function enhanceAttachmentLinks(contentName) {
     const extension = getExtensionFromUrl(fileDownUrl);
 
     // リネーム後のファイル名を生成
-    const renamedFileName =
-      sanitizeFileName(contentName || "download") + extension;
+    const renamedFileName = buildMaterialDownloadFileName(
+      contentName,
+      link,
+      extension,
+    );
 
     log("Attachment link:", { fileDownUrl, originalFileName, renamedFileName });
 
@@ -1152,93 +1407,37 @@ function createInlineDownloadOptions(
   renamedFileName,
   originalFileName,
 ) {
+  const doc = originalLink.ownerDocument || document;
+
   // コンテナを作成
-  const container = document.createElement("span");
+  const container = doc.createElement("span");
   container.className = "ux-inline-download-options";
 
   // リネームダウンロードボタン
-  const renameBtn = document.createElement("button");
+  const renameBtn = doc.createElement("button");
   renameBtn.type = "button";
   renameBtn.className = "ux-download-btn ux-download-rename";
-  setDownloadIconButton(
+  prepareInlineDownloadButton(
     renameBtn,
     "rename",
-    "リネームしてダウンロード",
+    fileDownUrl,
     renamedFileName,
-  );
-  renameBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    renameBtn.disabled = true;
-    renameBtn.innerHTML = "⏳";
-    try {
-      await downloadFromFileDownUrl(fileDownUrl, renamedFileName);
-      renameBtn.innerHTML = "完了";
-      setTimeout(() => {
-        setDownloadIconButton(
-          renameBtn,
-          "rename",
-          "リネームしてダウンロード",
-          renamedFileName,
-        );
-        renameBtn.disabled = false;
-      }, 2000);
-    } catch (error) {
-      log("Download error:", error);
-      renameBtn.innerHTML = "失敗";
-      setTimeout(() => {
-        setDownloadIconButton(
-          renameBtn,
-          "rename",
-          "リネームしてダウンロード",
-          renamedFileName,
-        );
-        renameBtn.disabled = false;
-      }, 2000);
-    }
-  });
-
-  // 元のファイル名でダウンロードボタン
-  const originalBtn = document.createElement("button");
-  originalBtn.type = "button";
-  originalBtn.className = "ux-download-btn ux-download-original";
-  setDownloadIconButton(
-    originalBtn,
-    "original",
-    "元のファイル名でダウンロード",
     originalFileName,
   );
-  originalBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    originalBtn.disabled = true;
-    originalBtn.innerHTML = "⏳";
-    try {
-      await downloadFromFileDownUrl(fileDownUrl, null);
-      originalBtn.innerHTML = "完了";
-      setTimeout(() => {
-        setDownloadIconButton(
-          originalBtn,
-          "original",
-          "元のファイル名でダウンロード",
-          originalFileName,
-        );
-        originalBtn.disabled = false;
-      }, 2000);
-    } catch (error) {
-      log("Download error:", error);
-      originalBtn.innerHTML = "失敗";
-      setTimeout(() => {
-        setDownloadIconButton(
-          originalBtn,
-          "original",
-          "元のファイル名でダウンロード",
-          originalFileName,
-        );
-        originalBtn.disabled = false;
-      }, 2000);
-    }
-  });
+  bindInlineDownloadButton(renameBtn);
+
+  // 元のファイル名でダウンロードボタン
+  const originalBtn = doc.createElement("button");
+  originalBtn.type = "button";
+  originalBtn.className = "ux-download-btn ux-download-original";
+  prepareInlineDownloadButton(
+    originalBtn,
+    "original",
+    fileDownUrl,
+    renamedFileName,
+    originalFileName,
+  );
+  bindInlineDownloadButton(originalBtn);
 
   container.appendChild(renameBtn);
   container.appendChild(originalBtn);
@@ -11828,21 +12027,7 @@ function createModernHeaderInFrame(
             const downloadBtns =
               tocContent.querySelectorAll(".ux-download-btn");
             downloadBtns.forEach((btn) => {
-              const title = btn.getAttribute("title") || "";
-              const isRename = btn.classList.contains("ux-download-rename");
-
-              // 元のボタンからdata属性を取得
-              const originalBtn = chapterFrame.document.querySelector(
-                `.ux-download-btn[title="${title}"]`,
-              );
-              if (originalBtn) {
-                btn.onclick = (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // 元のボタンのクリックをトリガー
-                  originalBtn.click();
-                };
-              }
+              bindInlineDownloadButton(btn);
             });
 
             // ページ移動ボタンを行全体のクリック領域へ置き換える
@@ -15680,11 +15865,17 @@ function init() {
 chrome.storage.local.get(
   {
     [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true,
+    [MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]:
+      MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT,
   },
   (items) => {
     setUxExtensionVisualEnabled(
       items[STORAGE_KEY_EXTENSION_VISUAL_ENABLED] !== false,
     );
+    materialDownloadFilenameSeparator =
+      normalizeMaterialDownloadFilenameSeparator(
+        items[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY],
+      );
     if (!isUxExtensionVisualEnabled()) {
       log("Global visual modification is disabled. Skipping course.js init.");
       return;

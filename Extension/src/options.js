@@ -93,6 +93,9 @@ const DASHBOARD_VISIBLE_START_PERIOD_KEY = 'dashboardVisibleStartPeriod';
 const DASHBOARD_VISIBLE_END_PERIOD_KEY = 'dashboardVisibleEndPeriod';
 const DASHBOARD_VISIBLE_START_WEEKDAY_KEY = 'dashboardVisibleStartWeekday';
 const DASHBOARD_VISIBLE_END_WEEKDAY_KEY = 'dashboardVisibleEndWeekday';
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY = 'materialDownloadFilenameSeparator';
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT = 'hyphen';
+const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_VALUES = new Set(['hyphen', 'space', 'underscore']);
 const DASHBOARD_VISIBLE_RANGE_MIN = 1;
 const DASHBOARD_VISIBLE_RANGE_MAX = 6;
 const DASHBOARD_VISIBLE_WEEKDAY_LABELS = ['月', '火', '水', '木', '金', '土'];
@@ -119,6 +122,9 @@ const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
     'tocAutoHide',
     'tocAutoHideDelay',
     'tocShowSectionTitles',
+    'materialDownloadFilenameSeparatorHyphen',
+    'materialDownloadFilenameSeparatorSpace',
+    'materialDownloadFilenameSeparatorUnderscore',
     'tocHoverReveal',
     'shikenSelectVisibleCount'
 ]);
@@ -780,6 +786,12 @@ const renderDashboardVisibleRangeGrid = () => {
     }
 };
 
+const normalizeMaterialDownloadFilenameSeparator = (value) => {
+    return MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_VALUES.has(value)
+        ? value
+        : MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT;
+};
+
 const updateDashboardVisibleRangeDuringDrag = (targetCell) => {
     if (!dashboardRangeDragState) return null;
     const targetPosition = getDashboardRangePositionFromCell(targetCell);
@@ -1033,6 +1045,9 @@ const saveOptions = async ({
     const tocAutoHide = document.getElementById('tocAutoHide').checked;
     const tocAutoHideDelay = document.getElementById('tocAutoHideDelay').value;
     const tocShowSectionTitles = document.getElementById('tocShowSectionTitles').checked;
+    const materialDownloadFilenameSeparator = normalizeMaterialDownloadFilenameSeparator(
+        document.querySelector('input[name="materialDownloadFilenameSeparator"]:checked')?.value
+    );
     const tocHoverReveal = document.getElementById('tocHoverReveal').checked;
     const dashboardVisibleRange = getDashboardVisibleRangeFromInputs();
 
@@ -1084,6 +1099,7 @@ const saveOptions = async ({
             tocAutoHide,
             tocAutoHideDelay,
             tocShowSectionTitles,
+            [MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]: materialDownloadFilenameSeparator,
             tocHoverReveal,
             [DASHBOARD_VISIBLE_START_PERIOD_KEY]: dashboardVisibleRange.startPeriod,
             [DASHBOARD_VISIBLE_END_PERIOD_KEY]: dashboardVisibleRange.endPeriod,
@@ -1178,6 +1194,7 @@ const restoreOptions = () => {
             tocAutoHide: false,
             tocAutoHideDelay: '10',
             tocShowSectionTitles: true,
+            [MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]: MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT,
             tocHoverReveal: true,
             [DASHBOARD_VISIBLE_START_PERIOD_KEY]: 1,
             [DASHBOARD_VISIBLE_END_PERIOD_KEY]: 6,
@@ -1466,6 +1483,15 @@ const restoreOptions = () => {
             document.getElementById('tocAutoHide').checked = items.tocAutoHide;
             document.getElementById('tocAutoHideDelay').value = items.tocAutoHideDelay;
             document.getElementById('tocShowSectionTitles').checked = items.tocShowSectionTitles;
+            const materialDownloadFilenameSeparator = normalizeMaterialDownloadFilenameSeparator(
+                items[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]
+            );
+            const materialDownloadFilenameSeparatorRadio = document.querySelector(
+                `input[name="materialDownloadFilenameSeparator"][value="${materialDownloadFilenameSeparator}"]`
+            );
+            if (materialDownloadFilenameSeparatorRadio) {
+                materialDownloadFilenameSeparatorRadio.checked = true;
+            }
             document.getElementById('tocHoverReveal').checked = items.tocHoverReveal;
             setDashboardVisibleRangeInputs({
                 startPeriod: items[DASHBOARD_VISIBLE_START_PERIOD_KEY],
