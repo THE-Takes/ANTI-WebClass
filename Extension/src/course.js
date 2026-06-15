@@ -5381,6 +5381,79 @@ function enhanceShikenAnswerSelectControls(form) {
       };
       wrap.__uxSelectState = state;
 
+      // ドロップダウンは祖先の overflow (table.qstnoptions など) でクリップ
+      // されないよう position:fixed にし、開くたびに表示ボタンの位置から
+      // 座標と高さを計算する。下に空きが無ければ上方向に開く。
+      const positionList = () => {
+        const rect = display.getBoundingClientRect();
+        const gap = 6;
+        const vh = window.innerHeight;
+
+        // ドロップダウンは回答カード (.ux-shiken-answer-card) の表示領域内に
+        // 収め、採点ボタンのバー (.ux-answer-actions) には重ならないよう、
+        // 上下の表示可能範囲 (clipTop〜clipBottom) を求める。スクロールしても
+        // この範囲を超えないようにする。
+        let clipTop = 0;
+        let clipBottom = vh;
+        const answerCard = wrap.closest(
+          ".ux-shiken-answer-card, .ux-shiken-upload-answer-card",
+        );
+        if (answerCard) {
+          const cr = answerCard.getBoundingClientRect();
+          clipTop = Math.max(clipTop, cr.top);
+          clipBottom = Math.min(clipBottom, cr.bottom);
+        }
+        document.querySelectorAll(".ux-answer-actions").forEach((bar) => {
+          const br = bar.getBoundingClientRect();
+          if (br.height > 0 && br.top > clipTop && br.top < clipBottom) {
+            clipBottom = br.top;
+          }
+        });
+
+        list.style.position = "fixed";
+        list.style.left = `${Math.round(rect.left)}px`;
+        list.style.right = "auto";
+        list.style.width = `${Math.round(rect.width)}px`;
+
+        // scrollHeight は maxHeight/overflow に関係なく内容全体の高さを返すため、
+        // 高さ測定のために maxHeight を一時解除する必要はない。解除すると開いた
+        // 状態でのスクロール位置がリセットされ、スクロールがガクつく原因になる。
+        const contentHeight = list.scrollHeight;
+        let desired = contentHeight;
+        if (visibleCount !== 0) {
+          desired = Math.min(desired, visibleCount * itemHeight);
+        }
+
+        // ドロップダウンは clipTop〜clipBottom の範囲を超えないようにする。
+        const clipHeight = clipBottom - clipTop;
+        const finalHeight = Math.min(desired, Math.max(80, clipHeight - 4));
+
+        // 開く方向: 範囲内で下に収まれば下、無理で上に収まれば上、どちらも
+        // 無理ならより広い側に開く。選択ボタンがスクロールで範囲外に出ても、
+        // 最終的な上端/下端を範囲内へクランプして採点ボタンへの侵入を防ぐ。
+        const fitsDown = rect.bottom + gap + finalHeight <= clipBottom;
+        const fitsUp = rect.top - gap - finalHeight >= clipTop;
+        let openUp;
+        if (fitsDown) {
+          openUp = false;
+        } else if (fitsUp) {
+          openUp = true;
+        } else {
+          openUp = rect.top - clipTop > clipBottom - rect.bottom;
+        }
+
+        let listTop = openUp
+          ? rect.top - gap - finalHeight
+          : rect.bottom + gap;
+        listTop = Math.max(clipTop, Math.min(listTop, clipBottom - finalHeight));
+
+        list.style.maxHeight = `${finalHeight}px`;
+        list.style.overflowY = "auto";
+        list.style.bottom = "auto";
+        list.style.top = `${Math.round(listTop)}px`;
+      };
+      state.positionList = positionList;
+
       const updatePending = (newIndex) => {
         if (newIndex < 0 || newIndex >= select.options.length) return;
         state.pendingIndex = newIndex;
@@ -5456,6 +5529,7 @@ function enhanceShikenAnswerSelectControls(form) {
           state.pendingIndex = select.selectedIndex;
           updatePending(state.pendingIndex);
           wrap.classList.add("ux-open");
+          positionList();
         }
       });
 
@@ -5465,6 +5539,7 @@ function enhanceShikenAnswerSelectControls(form) {
           if (!wrap.classList.contains("ux-open")) {
             closeAll();
             wrap.classList.add("ux-open");
+            positionList();
           }
           const step = e.key === "ArrowDown" ? 1 : -1;
           updatePending(findNextEnabled(state.pendingIndex, step));
@@ -5475,6 +5550,7 @@ function enhanceShikenAnswerSelectControls(form) {
             state.pendingIndex = select.selectedIndex;
             updatePending(state.pendingIndex);
             wrap.classList.add("ux-open");
+            positionList();
           } else {
             commitIndex(state.pendingIndex);
             wrap.classList.remove("ux-open");
@@ -5504,6 +5580,20 @@ function enhanceShikenAnswerSelectControls(form) {
       closeAll();
     }
   });
+
+  // position:fixed のドロップダウンはスクロールに追従しないため、
+  // 開いている間はスクロール/リサイズで座標を再計算する。
+  const repositionOpen = (e) => {
+    // リスト内部のスクロールでは再配置しない（再配置するとスクロール位置が
+    // 揺れてガクつくため）。ページ/フレーム側のスクロール時のみ追従する。
+    if (e && e.target && e.target.closest && e.target.closest(".ux-select-list"))
+      return;
+    const openWrap = document.querySelector(".ux-select-wrap.ux-open");
+    const state = openWrap && openWrap.__uxSelectState;
+    if (state && state.positionList) state.positionList();
+  };
+  window.addEventListener("scroll", repositionOpen, true);
+  window.addEventListener("resize", repositionOpen);
 }
 
 function prepareShikenAnswerSurface(form) {
@@ -8349,8 +8439,9 @@ function enhanceShikenAnswerFrame() {
             box-shadow: var(--ux-home-shadow-md);
             max-height: 220px;
             overflow-y: auto;
+            overscroll-behavior: contain;
             display: none;
-            z-index: 5;
+            z-index: 2147483000;
             padding: 4px;
             box-sizing: border-box;
         }

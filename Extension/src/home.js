@@ -385,6 +385,9 @@ if (!isHomePage) {
     const STORAGE_KEY_MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE = 'msTodoDefaultReminderDaysBefore';
     const STORAGE_KEY_MS_TODO_DEFAULT_REMINDER_TIME_MODE = 'msTodoDefaultReminderTimeMode';
     const STORAGE_KEY_MS_TODO_LAST_MANUAL_RELOAD = 'msTodoLastManualReloadAt';
+    // background.js の MS_TODO_LAST_AUTO_SYNC_AT_KEY / TODO_AUTO_SYNC_INTERVAL_MINUTES と揃えること
+    const STORAGE_KEY_MS_TODO_LAST_AUTO_SYNC = 'msTodoLastAutoSyncAt';
+    const TODO_AUTO_SYNC_STALE_MS = 5 * 60 * 1000;
     const MS_TODO_REMINDER_TIME_MODE_AT_9AM = 'at_9am';
     const MS_TODO_REMINDER_TIME_MODE_EXACT_OFFSET = 'exact_offset';
     const MS_TODO_DEFAULT_REMINDER_DAYS_BEFORE = 1;
@@ -6489,6 +6492,7 @@ if (!isHomePage) {
 
         let dashboardAssignments = [];
         let viewCompleted = false;
+        let activeTodoApiSyncPipelinePromise = null;
 
 
 
@@ -6569,17 +6573,25 @@ if (!isHomePage) {
         todoListContainer.style.maxHeight = 'none';
         todoListContainer.style.overflowY = 'auto';
 
+        const clearDashboardTimetableInlineSizing = () => {
+            if (!dashboardTimetableElement) return;
+            dashboardTimetableElement.style.height = '';
+            dashboardTimetableElement.querySelectorAll('tbody tr').forEach((row) => {
+                row.style.height = '';
+                Array.from(row.children).forEach((cell) => {
+                    cell.style.height = '';
+                    cell.style.maxHeight = '';
+                });
+            });
+        };
+
         const clearDashboardInlineLayoutSizing = () => {
             timetableSection.style.height = '';
             todoSection.style.height = '';
             if (dashboardOutOfScheduleSectionElement) {
                 dashboardOutOfScheduleSectionElement.style.height = '';
             }
-            if (!dashboardTimetableElement) return;
-            dashboardTimetableElement.style.height = '';
-            dashboardTimetableElement.querySelectorAll('tbody tr > *').forEach((cell) => {
-                cell.style.height = '';
-            });
+            clearDashboardTimetableInlineSizing();
         };
 
         const getDashboardOutOfScheduleMinimumHeight = () => {
@@ -6661,10 +6673,12 @@ if (!isHomePage) {
                 : getDashboardTimetableViewportAvailableHeight();
             const outOfScheduleTargetHeight = getDashboardOutOfScheduleTargetHeight();
             const sectionGap = getDashboardCenterColumnSectionGap();
-            const targetHeight = outOfScheduleTargetHeight > 0
+            const rawTargetHeight = outOfScheduleTargetHeight > 0
                 ? Math.floor(totalAvailableHeight - outOfScheduleTargetHeight - sectionGap)
                 : Math.floor(totalAvailableHeight);
-            if (!Number.isFinite(targetHeight) || targetHeight <= 0) return;
+            if (!Number.isFinite(rawTargetHeight)) return;
+            // 極端に低いウィンドウでも時間割が操作可能な高さを確保する
+            const targetHeight = Math.max(rawTargetHeight, 240);
 
             const nextHeight = `${targetHeight}px`;
             if (timetableSection.style.height !== nextHeight) {
@@ -6726,11 +6740,18 @@ if (!isHomePage) {
             if (dashboardTimetableElement.style.height !== nextTableHeight) {
                 dashboardTimetableElement.style.height = nextTableHeight;
             }
+            // CSS側のtr高さ・td max-heightは最小値として効くため、inlineで両方上書きする
             const nextCellHeight = `${computedRowHeight}px`;
             bodyRows.forEach((row) => {
+                if (row.style.height !== nextCellHeight) {
+                    row.style.height = nextCellHeight;
+                }
                 Array.from(row.children).forEach((cell) => {
                     if (cell.style.height !== nextCellHeight) {
                         cell.style.height = nextCellHeight;
+                    }
+                    if (cell.style.maxHeight !== nextCellHeight) {
+                        cell.style.maxHeight = nextCellHeight;
                     }
                 });
             });
@@ -6761,17 +6782,19 @@ if (!isHomePage) {
             };
         };
 
-        const isDashboardTimetableBottomClipped = () => {
-            if (!dashboardTimetableElement || !timetableBody) return false;
+        const getDashboardTimetableClipAmount = () => {
+            if (!dashboardTimetableElement || !timetableBody) return 0;
 
             const tableRect = dashboardTimetableElement.getBoundingClientRect();
             const bodyRect = timetableBody.getBoundingClientRect();
-            if (!tableRect.height || !bodyRect.height) return false;
+            if (!tableRect.height || !bodyRect.height) return 0;
 
-            return tableRect.bottom > (bodyRect.bottom + 2);
+            return tableRect.bottom - bodyRect.bottom;
         };
 
         let courseLayoutSyncRafId = 0;
+
+        const TIMETABLE_DENSITY_CLASSES = ['ux-compact-density', 'ux-ultra-compact-density'];
 
         const scheduleCourseLayoutSync = () => {
             if (courseLayoutSyncRafId && typeof window.cancelAnimationFrame === 'function') {
@@ -6786,7 +6809,7 @@ if (!isHomePage) {
                     timetableBody.classList.remove('ux-scroll-managed-fit', 'ux-scroll-managed-fit-safe', 'ux-scroll-managed-natural');
                 }
                 if (dashboardTimetableElement) {
-                    dashboardTimetableElement.classList.remove('ux-compact-density');
+                    dashboardTimetableElement.classList.remove(...TIMETABLE_DENSITY_CLASSES);
                 }
                 if (isDashboardStackedLayout()) {
                     return;
@@ -6796,11 +6819,8 @@ if (!isHomePage) {
                 syncDashboardTimetableSectionHeight();
                 const targetHeight = parseFloat(timetableSection.style.height || '0') || 0;
                 const naturalHeight = getDashboardTimetableNaturalSectionHeight();
-                const fitMetrics = getDashboardTimetableFitMetrics();
-                const fitRowHeight = fitMetrics?.computedRowHeight || 0;
-                const canUseCompactFit = fitRowHeight >= 68;
 
-                if (!targetHeight || !naturalHeight || (!canUseCompactFit && naturalHeight > targetHeight)) {
+                if (!targetHeight || !naturalHeight || !dashboardTimetableElement || !timetableBody) {
                     timetableSection.style.height = '';
                     if (timetableBody) {
                         timetableBody.classList.add('ux-scroll-managed-natural');
@@ -6808,19 +6828,49 @@ if (!isHomePage) {
                     return;
                 }
 
-                if (dashboardTimetableElement && (naturalHeight > targetHeight || fitRowHeight < 90)) {
-                    dashboardTimetableElement.classList.add('ux-compact-density');
+                const fitMetrics = getDashboardTimetableFitMetrics();
+                const fitRowHeight = fitMetrics?.computedRowHeight || 0;
+
+                // 各密度には内容(コース名のクランプ高+padding)による最小行高があり、
+                // 計算行高がそれを下回ると表が溢れる。緩い密度から順に試し、
+                // 実際のクリップ有無で判定して詰めていく。
+                const densityAttempts = [];
+                if (naturalHeight <= targetHeight && fitRowHeight >= 90) {
+                    densityAttempts.push(null);
                 }
-                if (timetableBody) {
-                    timetableBody.classList.add('ux-scroll-managed-fit');
+                if (fitRowHeight >= 62) {
+                    densityAttempts.push('ux-compact-density');
                 }
-                stretchDashboardTimetableToBody();
-                if (timetableBody && isDashboardTimetableBottomClipped()) {
-                    stretchDashboardTimetableToBody({ bottomInset: 6 });
-                    if (isDashboardTimetableBottomClipped()) {
-                        timetableBody.classList.remove('ux-scroll-managed-fit');
-                        timetableBody.classList.add('ux-scroll-managed-fit-safe');
+                densityAttempts.push('ux-ultra-compact-density');
+
+                timetableBody.classList.add('ux-scroll-managed-fit');
+
+                let fitted = false;
+                for (const densityClass of densityAttempts) {
+                    dashboardTimetableElement.classList.remove(...TIMETABLE_DENSITY_CLASSES);
+                    if (densityClass) {
+                        dashboardTimetableElement.classList.add(densityClass);
                     }
+                    stretchDashboardTimetableToBody();
+                    // テーブルは指定高さ通りに描画されないことがあるため、
+                    // 実測したはみ出し量をインセットにして一度だけ再調整する
+                    let clipAmount = getDashboardTimetableClipAmount();
+                    if (clipAmount > 2) {
+                        stretchDashboardTimetableToBody({ bottomInset: Math.ceil(clipAmount) + 1 });
+                        clipAmount = getDashboardTimetableClipAmount();
+                    }
+                    if (clipAmount <= 2) {
+                        fitted = true;
+                        break;
+                    }
+                }
+
+                if (!fitted) {
+                    // 最小密度でも収まらない場合はセクション高さを保ったまま
+                    // 時間割内部をスクロールさせる(時間外科目パネルは押し出さない)
+                    clearDashboardTimetableInlineSizing();
+                    timetableBody.classList.remove('ux-scroll-managed-fit');
+                    timetableBody.classList.add('ux-scroll-managed-fit-safe');
                 }
                 syncDashboardOutOfScheduleSectionHeight();
             };
@@ -6929,6 +6979,17 @@ if (!isHomePage) {
                 await dashboardTimetableLlmApplyPromise;
                 await renderDashboardTodos(assignments);
             } catch (error) {
+                if (error && error.isSessionDropped) {
+                    // セッション切れ: 保存済みの既存データを保持して再描画し、ユーザーに再読込を促す
+                    try {
+                        const preserved = await loadAssignments();
+                        await renderDashboardTodos(preserved);
+                    } catch (renderErr) {
+                        console.error('[WebClass UX] preserved render failed', renderErr);
+                    }
+                    todoStatus.textContent = 'セッションが切れました。ページを再読み込みしてください。';
+                    return;
+                }
                 console.error('[WebClass UX] Dashboard ToDo update failed', error);
             } finally {
                 refreshBtn.disabled = false;
@@ -6942,46 +7003,65 @@ if (!isHomePage) {
             forceRemoteReload = false,
             markManualReload = false
         } = {}) => {
-            const syncErrors = [];
-            if (forceRemoteReload) {
-                try {
-                    await runTodoApiSync({ mode: 'pull_only', trigger: `${trigger}_api_pull` });
-                } catch (error) {
-                    uxDebugWarn('[WebClass UX] todo api pull phase failed', error);
-                    syncErrors.push(error);
+            if (activeTodoApiSyncPipelinePromise) {
+                if (!markManualReload) {
+                    return activeTodoApiSyncPipelinePromise;
                 }
-
-                await updateAssignments({ forceRemote: true });
-
-                if (markManualReload) {
+                return activeTodoApiSyncPipelinePromise.then(async (result) => {
                     await chrome.storage.local.set({
                         [STORAGE_KEY_MS_TODO_LAST_MANUAL_RELOAD]: new Date().toISOString()
                     });
+                    return result;
+                });
+            }
+
+            activeTodoApiSyncPipelinePromise = (async () => {
+                const syncErrors = [];
+                if (forceRemoteReload) {
+                    try {
+                        await runTodoApiSync({ mode: 'pull_only', trigger: `${trigger}_api_pull` });
+                    } catch (error) {
+                        uxDebugWarn('[WebClass UX] todo api pull phase failed', error);
+                        syncErrors.push(error);
+                    }
+
+                    await updateAssignments({ forceRemote: true });
+
+                    if (markManualReload) {
+                        await chrome.storage.local.set({
+                            [STORAGE_KEY_MS_TODO_LAST_MANUAL_RELOAD]: new Date().toISOString()
+                        });
+                    }
+
+                    try {
+                        await runTodoApiSync({ mode, trigger: `${trigger}_api_push` });
+                    } catch (error) {
+                        uxDebugWarn('[WebClass UX] todo api push phase failed', error);
+                        syncErrors.push(error);
+                    }
+
+                    await updateAssignments({ forceRemote: false });
+                    if (syncErrors.length > 0) {
+                        throw syncErrors[0];
+                    }
+                    return;
                 }
 
                 try {
-                    await runTodoApiSync({ mode, trigger: `${trigger}_api_push` });
+                    await runTodoApiSync({ mode, trigger });
                 } catch (error) {
-                    uxDebugWarn('[WebClass UX] todo api push phase failed', error);
+                    uxDebugWarn('[WebClass UX] todo api sync failed', error);
                     syncErrors.push(error);
                 }
-
                 await updateAssignments({ forceRemote: false });
                 if (syncErrors.length > 0) {
                     throw syncErrors[0];
                 }
-                return;
-            }
-
+            })();
             try {
-                await runTodoApiSync({ mode, trigger });
-            } catch (error) {
-                uxDebugWarn('[WebClass UX] todo api sync failed', error);
-                syncErrors.push(error);
-            }
-            await updateAssignments({ forceRemote: false });
-            if (syncErrors.length > 0) {
-                throw syncErrors[0];
+                return await activeTodoApiSyncPipelinePromise;
+            } finally {
+                activeTodoApiSyncPipelinePromise = null;
             }
         };
 
@@ -7073,6 +7153,8 @@ if (!isHomePage) {
         outOfScheduleSection.style.flex = '0 0 auto';
         outOfScheduleSection.style.minHeight = '0';
         outOfScheduleSection.style.overflow = 'hidden';
+        // 高さ計算(getDashboardOutOfScheduleMinimumHeight)はborder-box前提
+        outOfScheduleSection.style.boxSizing = 'border-box';
 
         const outOfScheduleHeader = document.createElement('div');
         outOfScheduleHeader.className = 'ux-dashboard-v2-section-header';
@@ -7463,6 +7545,38 @@ if (!isHomePage) {
         todoStatus.textContent = '課題を読み込み中...';
         await updateAssignments({ fallbackRemoteWhenEmpty: true });
         scheduleCourseLayoutSync();
+
+        // ページを開いた時点で前回同期が古ければ、バックグラウンドの定期同期を待たずに即同期する。
+        // 表示自体はキャッシュ済みリストで先に済ませてあるため、ここは非同期で走らせる。
+        void (async () => {
+            try {
+                if (!(await isTodoApiSyncEnabled())) return;
+                const syncTimes = await chrome.storage.local.get({
+                    [STORAGE_KEY_MS_TODO_LAST_AUTO_SYNC]: '',
+                    [STORAGE_KEY_MS_TODO_LAST_MANUAL_RELOAD]: ''
+                });
+                const lastSyncTime = Math.max(
+                    0,
+                    ...[
+                        syncTimes[STORAGE_KEY_MS_TODO_LAST_AUTO_SYNC],
+                        syncTimes[STORAGE_KEY_MS_TODO_LAST_MANUAL_RELOAD]
+                    ]
+                        .map((raw) => (raw ? new Date(raw).getTime() : NaN))
+                        .filter((time) => Number.isFinite(time))
+                );
+                if (Date.now() - lastSyncTime < TODO_AUTO_SYNC_STALE_MS) return;
+                await runTodoApiSyncPipeline({
+                    trigger: 'page_load',
+                    mode: 'full',
+                    forceRemoteReload: true
+                });
+                await chrome.storage.local.set({
+                    [STORAGE_KEY_MS_TODO_LAST_AUTO_SYNC]: new Date().toISOString()
+                });
+            } catch (error) {
+                uxDebugWarn('[WebClass UX] page load todo sync failed', error);
+            }
+        })();
 
         // Initialize Messages (Switch View 2)
         let currentMessageData = null;

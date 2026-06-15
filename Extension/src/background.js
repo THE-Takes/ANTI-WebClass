@@ -547,6 +547,7 @@ const MS_TODO_LIST_ID_KEY = 'msTodoListId';
 const MS_TODO_LINKS_KEY = 'msTodoTaskLinks';
 const MS_TODO_LAST_MANUAL_RELOAD_KEY = 'msTodoLastManualReloadAt';
 const MS_TODO_LAST_MORNING_SYNC_DATE_KEY = 'msTodoLastMorningSyncDate';
+const MS_TODO_LAST_AUTO_SYNC_AT_KEY = 'msTodoLastAutoSyncAt';
 const GOOGLE_TODO_CLIENT_ID_KEY = 'googleTodoClientId';
 const GOOGLE_TODO_CLIENT_SECRET_KEY = 'googleTodoClientSecret';
 const GOOGLE_TODO_LIST_NAME_KEY = 'googleTodoListName';
@@ -570,6 +571,9 @@ const ASSIGNMENTS_STORAGE_KEY = 'assignments';
 const TODO_TRASH_STORAGE_KEY = 'webclass_todo_trash';
 const TODO_SYNC_ALARM_NAME = 'todoApiPeriodicSync';
 const TODO_SYNC_ALARM_PERIOD_MINUTES = 1;
+const TODO_AUTO_SYNC_INTERVAL_MINUTES = 5;
+const TODO_AUTO_SYNC_START_HOUR = 7;
+const TODO_AUTO_SYNC_END_HOUR = 23;
 const TODO_SYNC_TIME_ZONE = 'Asia/Tokyo';
 const MS_GRAPH_BASE_URL = 'https://graph.microsoft.com/v1.0';
 const MS_TODO_OAUTH_SCOPE = 'offline_access openid profile Tasks.ReadWrite';
@@ -4893,17 +4897,13 @@ async function handleTodoSyncAlarmTick() {
     const settings = await storageGet({
         [TODO_API_PROVIDER_KEY]: 'none',
         [MS_TODO_LAST_MANUAL_RELOAD_KEY]: '',
-        [MS_TODO_LAST_MORNING_SYNC_DATE_KEY]: ''
+        [MS_TODO_LAST_MORNING_SYNC_DATE_KEY]: '',
+        [MS_TODO_LAST_AUTO_SYNC_AT_KEY]: ''
     });
     if (settings[TODO_API_PROVIDER_KEY] === 'none') return;
 
     const now = new Date();
     const tokyo = getTokyoDateParts(now);
-    const isWeekday = tokyo.weekday !== 'Sat' && tokyo.weekday !== 'Sun';
-    const inWorkHourRange = isWeekday
-        && tokyo.hour >= 9
-        && tokyo.hour < 19
-        && tokyo.minute % 10 === 0;
 
     const sevenAmTokyoUtc = buildTokyoDateUtc(tokyo.year, tokyo.month, tokyo.day, 7, 0, 0);
     const lastManualReloadRaw = settings[MS_TODO_LAST_MANUAL_RELOAD_KEY];
@@ -4916,16 +4916,31 @@ async function handleTodoSyncAlarmTick() {
         && !hasManualReloadSinceSeven
         && !morningSyncDoneToday;
 
-    if (!shouldMorningSync && !inWorkHourRange) return;
+    // 定期同期は「分のジャスト一致」ではなく前回同期からの経過時間で判定する。
+    // alarm発火がMV3のSW休止などで遅延しても、次のtickで必ず同期できる。
+    // 手動リロードも前回同期として扱い、直後の二重同期を避ける。
+    const lastSyncCandidates = [settings[MS_TODO_LAST_AUTO_SYNC_AT_KEY], lastManualReloadRaw]
+        .map((raw) => (raw ? new Date(raw).getTime() : NaN))
+        .filter((time) => Number.isFinite(time));
+    const lastSyncTime = lastSyncCandidates.length > 0 ? Math.max(...lastSyncCandidates) : 0;
+    const autoSyncDue = now.getTime() - lastSyncTime >= TODO_AUTO_SYNC_INTERVAL_MINUTES * 60 * 1000;
+    const inAutoSyncWindow = tokyo.hour >= TODO_AUTO_SYNC_START_HOUR && tokyo.hour < TODO_AUTO_SYNC_END_HOUR;
+    const shouldPeriodicSync = inAutoSyncWindow && autoSyncDue;
 
-    const trigger = shouldMorningSync ? 'morning_7am' : 'workhour_10min';
+    if (!shouldMorningSync && !shouldPeriodicSync) return;
+
+    const trigger = shouldMorningSync ? 'morning_7am' : `periodic_${TODO_AUTO_SYNC_INTERVAL_MINUTES}min`;
     const response = await requestTodoSyncOnOpenHomeTab({
         trigger,
         mode: 'full',
         forceRemoteReload: true
     });
-    if (response.success && shouldMorningSync) {
-        await storageSet({ [MS_TODO_LAST_MORNING_SYNC_DATE_KEY]: tokyo.key });
+    if (response.success) {
+        const updates = { [MS_TODO_LAST_AUTO_SYNC_AT_KEY]: new Date().toISOString() };
+        if (shouldMorningSync) {
+            updates[MS_TODO_LAST_MORNING_SYNC_DATE_KEY] = tokyo.key;
+        }
+        await storageSet(updates);
     }
 }
 

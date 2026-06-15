@@ -86,12 +86,53 @@ if (typeof globalThis.syncUxMasterStateToPage !== 'function') {
 
 const STORAGE_KEY_CUSTOM_COURSE_NAMES = 'webclass_custom_course_names';
 
+function stableStringifyForScraper(value) {
+    if (Array.isArray(value)) {
+        return `[${value.map(stableStringifyForScraper).join(',')}]`;
+    }
+    if (value && typeof value === 'object') {
+        const entries = Object.keys(value)
+            .sort()
+            .filter((key) => value[key] !== undefined)
+            .map((key) => `${JSON.stringify(key)}:${stableStringifyForScraper(value[key])}`);
+        return `{${entries.join(',')}}`;
+    }
+    const serialized = JSON.stringify(value);
+    return serialized === undefined ? 'null' : serialized;
+}
+
+function areAssignmentListsEquivalent(first, second) {
+    return stableStringifyForScraper(first || []) === stableStringifyForScraper(second || []);
+}
+
+class SessionDroppedError extends Error {
+    constructor(courseName) {
+        super(`[Scraper] セッション切れを検知: ${courseName}`);
+        this.name = 'SessionDroppedError';
+        this.isSessionDropped = true;
+    }
+}
+globalThis.WebClassSessionDroppedError = SessionDroppedError;
+
+// ログイン/セッションページを「陽性マーカー」で判定する。
+// 課題0件の正常コース（コンテンツページだがリストが空）を誤検知しないよう、
+// 0件では判定せず、ログイン特有の要素が存在する場合のみ true を返す。
+function looksLikeLoginOrSessionPage(html) {
+    if (typeof html !== 'string') return false;
+    return /<input[^>]+type=["']password/i.test(html)
+        || /name=["'](?:username|userid|usr|j_username)/i.test(html)
+        || /ユーザID|User ID/.test(html)
+        || /\blogin\.php\b/i.test(html)
+        || html.includes('再度ログイン') || html.includes('ログインしなおし');
+}
+
 const Scraper = {
 
     /**
      * カスタムコース名のキャッシュ（非同期読み込み用）
      */
     _customNamesCache: null,
+    _updateAllAssignmentsPromise: null,
 
     /**
      * カスタムコース名を読み込む
@@ -286,8 +327,16 @@ const Scraper = {
             uxDebugLog(`[Scraper] HTMLを取得しました (サイズ: ${text.length} bytes)`);
             uxDebugLog(`[Scraper] HTML冒頭サンプル:`, text.substring(0, 200));
 
+            // セッション切れ検知: ログイン/セッションページを陽性検知したら throw する。
+            // 正常な PageJump 中間ページはパスワード欄等を含まないため throw されない。
+            if (looksLikeLoginOrSessionPage(text)) {
+                throw new SessionDroppedError(courseName);
+            }
+
             // JavaScriptリダイレクトを検出
-            const redirectMatch = text.match(/window\.location\.href\s*=\s*["']([^"']+)["']/);
+            // 実機のPageJumpは `location.href=`（window.接頭辞なし）を使うため許容化。
+            // 回帰の根本原因ではない副次ハードニング。
+            const redirectMatch = text.match(/(?:window\.)?location\.href\s*=\s*["']([^"']+)["']/);
             if (redirectMatch) {
                 const redirectPath = redirectMatch[1];
                 const redirectUrl = new URL(redirectPath, courseUrl).href;
@@ -302,6 +351,11 @@ const Scraper = {
                 }
                 text = await redirectResponse.text();
                 uxDebugLog(`[Scraper] リダイレクト先HTMLを取得 (サイズ: ${text.length} bytes)`);
+
+                // セッション切れ検知: リダイレクト先がログインページの場合
+                if (looksLikeLoginOrSessionPage(text)) {
+                    throw new SessionDroppedError(courseName);
+                }
             }
 
             const parser = new DOMParser();
@@ -324,6 +378,12 @@ const Scraper = {
                             return [];
                         }
                         const frameText = await frameResponse.text();
+
+                        // セッション切れ検知: フレーム内容がログインページの場合
+                        if (looksLikeLoginOrSessionPage(frameText)) {
+                            throw new SessionDroppedError(courseName);
+                        }
+
                         doc = parser.parseFromString(frameText, 'text/html');
                         uxDebugLog(`[Scraper] フレームHTMLを解析しました (サイズ: ${frameText.length} bytes)`);
                     }
@@ -482,6 +542,7 @@ const Scraper = {
             return assignments;
 
         } catch (error) {
+            if (error instanceof SessionDroppedError) throw error; // 呼び出し側（取得ループ）で処理する
             console.error(`[Scraper] ${courseName} の課題取得に失敗:`, error);
             console.error(`[Scraper] エラー詳細:`, error.message);
             console.error(`[Scraper] スタックトレース:`, error.stack);
@@ -523,6 +584,20 @@ const Scraper = {
      * 全コースの課題を一括取得して保存する
      */
     updateAllAssignments: async () => {
+        if (Scraper._updateAllAssignmentsPromise) {
+            uxDebugLog('[Scraper] 既存の課題取得処理を再利用します。');
+            return Scraper._updateAllAssignmentsPromise;
+        }
+
+        Scraper._updateAllAssignmentsPromise = Scraper._updateAllAssignmentsInternal();
+        try {
+            return await Scraper._updateAllAssignmentsPromise;
+        } finally {
+            Scraper._updateAllAssignmentsPromise = null;
+        }
+    },
+
+    _updateAllAssignmentsInternal: async () => {
         // カスタムコース名を先に読み込む
         await Scraper.loadCustomCourseNames();
 
@@ -581,13 +656,33 @@ const Scraper = {
             }
         });
         const courses = Scraper.getCourses();
-        let allAssignments = [];
 
-        for (const course of courses) {
-            // 少しウェイトを入れる
-            await new Promise(r => setTimeout(r, 500));
-            const assignments = await Scraper.fetchAssignments(course.url, course.name, course.fullName);
-            allAssignments = allAssignments.concat(assignments);
+        // コース横断の並列化は WebClass のセッション制約上行えない（同時アクセスで
+        // セッションが落ちログインページが返る）。同時実行数=1の直列に固定する。
+        const INTER_FETCH_DELAY_MS = 250; // チューニング可（同時=1のため安全）
+        let allAssignments = [];
+        let sessionDropped = false;
+        for (let i = 0; i < courses.length; i++) {
+            const course = courses[i];
+            if (i > 0) await new Promise(r => setTimeout(r, INTER_FETCH_DELAY_MS)); // 先頭はwaitしない
+            try {
+                const items = await Scraper.fetchAssignments(course.url, course.name, course.fullName);
+                allAssignments = allAssignments.concat(items || []);
+            } catch (error) {
+                if (error && error.isSessionDropped) {
+                    // セッション切れ: 短いバックオフ後に当該コースを1回だけ再取得
+                    await new Promise(r => setTimeout(r, 800));
+                    try {
+                        const retry = await Scraper.fetchAssignments(course.url, course.name, course.fullName);
+                        allAssignments = allAssignments.concat(retry || []);
+                    } catch (retryErr) {
+                        if (retryErr && retryErr.isSessionDropped) { sessionDropped = true; break; }
+                        uxDebugWarn(`[Scraper] ${course.name} リトライ失敗`, retryErr);
+                    }
+                } else {
+                    uxDebugWarn(`[Scraper] ${course.name} の課題取得に失敗`, error);
+                }
+            }
         }
 
         // 既存の状態をマージ
@@ -671,13 +766,28 @@ const Scraper = {
         uxDebugLog('[Scraper] 全ての課題を取得しました:', allAssignments);
         uxDebugLog(`[Scraper] 合計 ${allAssignments.length} 件の課題`);
 
-        // 保存
-        chrome.storage.local.set({
-            'assignments': allAssignments,
-            'lastUpdated': new Date().toISOString()
-        }, () => {
+        const newRealCount = allAssignments.filter(a => !a.localOnly).length;
+        const existingRealCount = existingData.filter(a => !a.localOnly).length;
+        const massEmptyFailure = newRealCount === 0 && existingRealCount > 0;
+
+        if (sessionDropped || massEmptyFailure) {
+            uxDebugWarn('[Scraper] 取得失敗を検知。保存をスキップし既存データを保持します。');
+            if (sessionDropped) {
+                // UI通知のため呼び出し側へ伝播（既存データは保存済みのまま温存される）
+                throw new SessionDroppedError('all');
+            }
+            return existingData; // massEmptyのみ: 既存維持
+        }
+
+        if (areAssignmentListsEquivalent(existingData, allAssignments)) {
+            uxDebugLog('[Scraper] 課題リストに変更はありません。保存をスキップしました。');
+        } else {
+            await chrome.storage.local.set({
+                'assignments': allAssignments,
+                'lastUpdated': new Date().toISOString()
+            });
             uxDebugLog('[Scraper] 課題をストレージに保存しました。');
-        });
+        }
 
         return allAssignments;
     },

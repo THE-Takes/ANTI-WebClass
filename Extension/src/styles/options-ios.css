@@ -462,6 +462,45 @@ button:disabled {
   color: #1c1c1e;
 }
 
+.copy-input-wrap {
+  position: relative;
+}
+
+.copy-input-wrap input[type="text"] {
+  padding-right: 36px;
+}
+
+.btn-copy-icon {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  min-height: unset;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  color: var(--ios-secondary-label, #8e8e93);
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.btn-copy-icon:hover {
+  color: var(--ios-blue, #007aff);
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.btn-copy-icon:active {
+  transform: translateY(-50%);
+}
+
+.btn-copy-icon.copied {
+  color: #34c759;
+}
+
 .btn-block {
   width: 100%;
 }

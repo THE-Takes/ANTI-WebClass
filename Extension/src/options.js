@@ -1407,6 +1407,12 @@ const restoreOptions = () => {
             if (ticktickClientIdInput) ticktickClientIdInput.value = items[TICKTICK_TODO_CLIENT_ID_KEY] || '';
             const ticktickClientSecretInput = document.getElementById('ticktickTodoClientSecret');
             if (ticktickClientSecretInput) ticktickClientSecretInput.value = items[TICKTICK_TODO_CLIENT_SECRET_KEY] || '';
+            const ticktickRedirectUriInput = document.getElementById('ticktickTodoRedirectUri');
+            if (ticktickRedirectUriInput) {
+                ticktickRedirectUriInput.value = chrome?.identity?.getRedirectURL
+                    ? chrome.identity.getRedirectURL('ticktick')
+                    : `https://${chrome.runtime.id}.chromiumapp.org/ticktick`;
+            }
             const ticktickProjectName = sanitizeTodoName(items[TICKTICK_TODO_PROJECT_NAME_KEY], TODO_DEFAULT_LIST_NAME);
             const ticktickProjectInput = document.getElementById('ticktickTodoProjectName');
             if (ticktickProjectInput) ticktickProjectInput.value = ticktickProjectName;
@@ -2488,6 +2494,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     initDashboardVisibleRangeControls();
     restoreOptions();
     initAutoSave();
+
+    const ticktickCopyBtn = document.getElementById('ticktickTodoCopyRedirectUriBtn');
+    if (ticktickCopyBtn) {
+        ticktickCopyBtn.addEventListener('click', () => {
+            const uriInput = document.getElementById('ticktickTodoRedirectUri');
+            if (!uriInput?.value) return;
+            navigator.clipboard.writeText(uriInput.value).then(() => {
+                const originalHTML = ticktickCopyBtn.innerHTML;
+                ticktickCopyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                ticktickCopyBtn.classList.add('copied');
+                ticktickCopyBtn.disabled = true;
+                setTimeout(() => {
+                    ticktickCopyBtn.innerHTML = originalHTML;
+                    ticktickCopyBtn.classList.remove('copied');
+                    ticktickCopyBtn.disabled = false;
+                }, 2000);
+            }).catch(() => {
+                ticktickCopyBtn.classList.remove('copied');
+                ticktickCopyBtn.disabled = false;
+                const originalTitle = ticktickCopyBtn.title;
+                ticktickCopyBtn.title = 'コピーに失敗しました';
+                setTimeout(() => {
+                    ticktickCopyBtn.title = originalTitle;
+                }, 2000);
+            });
+        });
+    }
 
     document.getElementById('goToWebClassHome').addEventListener('click', () => {
         chrome.tabs.query({ url: WEBCLASS_TAB_URL_PATTERNS }, (tabs) => {

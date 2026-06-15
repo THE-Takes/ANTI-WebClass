@@ -1723,6 +1723,43 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   font-size: 0.88rem;
 }
 
+/* Ultra compact density - 低いウィンドウ向けの最終ティア(2行クランプ) */
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density {
+  border-spacing: 5px;
+  font-size: 0.85rem;
+  line-height: 1.25;
+}
+
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density th,
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density td {
+  padding: 5px 8px;
+}
+
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density tbody tr,
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density tbody td {
+  height: 56px;
+  max-height: 56px;
+}
+
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density th {
+  height: auto;
+  font-size: 0.82rem;
+}
+
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density td a {
+  font-size: 0.85rem;
+  line-height: 1.25;
+  max-height: 34px;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density td:first-child,
+.ux-dashboard-v2-schedule-table.ux-ultra-compact-density th:first-child {
+  width: 44px;
+  font-size: 0.82rem;
+}
+
 /* Right Column */
 .ux-dashboard-v2-right {
   display: flex;
