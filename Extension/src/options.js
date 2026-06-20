@@ -93,6 +93,64 @@ const DASHBOARD_VISIBLE_START_PERIOD_KEY = 'dashboardVisibleStartPeriod';
 const DASHBOARD_VISIBLE_END_PERIOD_KEY = 'dashboardVisibleEndPeriod';
 const DASHBOARD_VISIBLE_START_WEEKDAY_KEY = 'dashboardVisibleStartWeekday';
 const DASHBOARD_VISIBLE_END_WEEKDAY_KEY = 'dashboardVisibleEndWeekday';
+const CUSTOM_USER_ICON_KEY = 'customUserIconDataUrl';
+const CUSTOM_USER_ICON_MAX_SOURCE_BYTES = 10 * 1024 * 1024;
+const CUSTOM_USER_ICON_SIZE = 512;
+const SETTINGS_BACKUP_FORMAT = 'anti-webclass-settings';
+const SETTINGS_BACKUP_VERSION = 1;
+const SETTINGS_BACKUP_MAX_FILE_BYTES = 25 * 1024 * 1024;
+const SETTINGS_BACKUP_TODO_DATA_KEYS = new Set([
+    'assignments',
+    'webclass_todo_list',
+    'webclass_todo_trash',
+    'msTodoTaskLinks',
+    'msTodoLastManualReloadAt',
+    'msTodoLastMorningSyncDate',
+    'msTodoLastAutoSyncAt'
+]);
+const SETTINGS_BACKUP_PRIVATE_KEYS = new Set([
+    'username',
+    'password',
+    'openaiApiKey',
+    'groqApiKey',
+    GOOGLE_TODO_CLIENT_SECRET_KEY,
+    TODOIST_TODO_API_TOKEN_KEY,
+    TICKTICK_TODO_CLIENT_SECRET_KEY,
+    'msTodoAuth',
+    'msTodoAuthSession',
+    'msTodoRefreshToken',
+    'googleTodoAuth',
+    'googleTodoAuthSession',
+    'googleTodoRefreshToken',
+    'ticktickTodoAuth',
+    'ticktickTodoAuthSession',
+    'ticktickTodoAuthLocal',
+    'ticktickTodoRefreshToken',
+    'ticktickTodoGatewayApiKey',
+    'ticktickTodoGatewayApiKeySession',
+    'ticktickTodoGatewaySigningKeySession',
+    'msTodoRefreshVaultId',
+    'msTodoVaultSessionToken',
+    'ticktickTodoRefreshVaultId',
+    'ticktickTodoVaultSessionToken'
+]);
+const SETTINGS_BACKUP_RUNTIME_KEYS = new Set([
+    'webclass_messages',
+    'openaiCourseNameCache',
+    'webclass_course_short_name_cache',
+    'msTodoListId',
+    'googleTodoListId',
+    'todoistTodoProjectId',
+    'ticktickTodoProjectId',
+    'extensionUpdateLastCheckedAt',
+    'extensionUpdateLastError',
+    'extensionUpdateLatestVersion',
+    'extensionUpdateLatestReleaseName',
+    'extensionUpdateReleaseUrl',
+    'extensionUpdateReleasePublishedAt',
+    'extensionUpdateAvailable',
+    'extensionUpdateLastNotifiedVersion'
+]);
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY = 'materialDownloadFilenameSeparator';
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT = 'hyphen';
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_VALUES = new Set(['hyphen', 'space', 'underscore']);
@@ -365,6 +423,290 @@ const storageLocalSetAsync = (values = {}) => new Promise((resolve, reject) => {
         reject(error);
     }
 });
+
+const storageLocalGetAsync = (keys = null) => new Promise((resolve, reject) => {
+    try {
+        chrome.storage.local.get(keys, (items) => {
+            const lastError = chrome.runtime?.lastError;
+            if (lastError) {
+                reject(new Error(lastError.message));
+                return;
+            }
+            resolve(items || {});
+        });
+    } catch (error) {
+        reject(error);
+    }
+});
+
+const isPlainBackupObject = (value) => (
+    !!value
+    && typeof value === 'object'
+    && !Array.isArray(value)
+    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
+);
+
+const isPrivateBackupKey = (key) => (
+    SETTINGS_BACKUP_PRIVATE_KEYS.has(key)
+    || /(?:password|secret|token|auth|vault|api[_-]?key)/i.test(key)
+);
+
+const sanitizeBackupEntries = (value, allowedKeys = null) => {
+    if (!isPlainBackupObject(value)) return {};
+    const safeEntries = {};
+    Object.entries(value).forEach(([key, entryValue]) => {
+        if (key === '__proto__' || key === 'prototype' || key === 'constructor') return;
+        if (allowedKeys && !allowedKeys.has(key)) return;
+        safeEntries[key] = entryValue;
+    });
+    return safeEntries;
+};
+
+const buildSettingsBackup = (storedItems, includeTodoData) => {
+    const settings = {};
+    const todoData = {};
+    Object.entries(storedItems || {}).forEach(([key, value]) => {
+        if (isPrivateBackupKey(key) || SETTINGS_BACKUP_RUNTIME_KEYS.has(key)) return;
+        if (SETTINGS_BACKUP_TODO_DATA_KEYS.has(key)) {
+            if (includeTodoData) todoData[key] = value;
+            return;
+        }
+        settings[key] = value;
+    });
+
+    return {
+        format: SETTINGS_BACKUP_FORMAT,
+        version: SETTINGS_BACKUP_VERSION,
+        createdAt: new Date().toISOString(),
+        extensionVersion: chrome.runtime?.getManifest?.().version || '',
+        includesTodoData: includeTodoData,
+        settings,
+        ...(includeTodoData ? { todoData } : {})
+    };
+};
+
+const parseSettingsBackup = (text) => {
+    let backup;
+    try {
+        backup = JSON.parse(text);
+    } catch {
+        throw new Error('JSONファイルの形式が正しくありません。');
+    }
+    if (!isPlainBackupObject(backup) || backup.format !== SETTINGS_BACKUP_FORMAT) {
+        throw new Error('ANTI-WebClassの設定ファイルではありません。');
+    }
+    if (backup.version !== SETTINGS_BACKUP_VERSION) {
+        throw new Error(`対応していないバックアップ形式です（version: ${String(backup.version)}）。`);
+    }
+    if (!isPlainBackupObject(backup.settings)) {
+        throw new Error('設定データが見つかりません。');
+    }
+
+    const settings = sanitizeBackupEntries(backup.settings);
+    Object.keys(settings).forEach((key) => {
+        if (isPrivateBackupKey(key)) delete settings[key];
+    });
+    SETTINGS_BACKUP_RUNTIME_KEYS.forEach((key) => delete settings[key]);
+    SETTINGS_BACKUP_TODO_DATA_KEYS.forEach((key) => delete settings[key]);
+    const todoData = sanitizeBackupEntries(backup.todoData, SETTINGS_BACKUP_TODO_DATA_KEYS);
+    return { settings, todoData };
+};
+
+const setSettingsBackupStatus = (message, isError = false) => {
+    const status = document.getElementById('settingsBackupStatus');
+    if (!status) return;
+    status.style.color = isError ? '#c62828' : '#2e7d32';
+    status.textContent = message;
+};
+
+const exportSettingsBackup = async () => {
+    const exportButton = document.getElementById('exportSettingsButton');
+    const includeTodoData = !!document.getElementById('backupIncludeTodoData')?.checked;
+    if (exportButton) exportButton.disabled = true;
+    try {
+        const storedItems = await storageLocalGetAsync(null);
+        const backup = buildSettingsBackup(storedItems, includeTodoData);
+        const blob = new Blob([`${JSON.stringify(backup, null, 2)}\n`], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const date = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.download = `anti-webclass-settings-${date}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setSettingsBackupStatus(includeTodoData
+            ? '設定とToDoデータをエクスポートしました。'
+            : '設定をエクスポートしました。');
+    } catch (error) {
+        setSettingsBackupStatus(error instanceof Error ? error.message : 'エクスポートに失敗しました。', true);
+    } finally {
+        if (exportButton) exportButton.disabled = false;
+    }
+};
+
+const importSettingsBackup = async (file) => {
+    if (!file) return;
+    if (file.size > SETTINGS_BACKUP_MAX_FILE_BYTES) {
+        throw new Error('設定ファイルは25MB以下にしてください。');
+    }
+    const parsedBackup = parseSettingsBackup(await file.text());
+    const includeTodoData = !!document.getElementById('backupIncludeTodoData')?.checked;
+    const todoKeys = Object.keys(parsedBackup.todoData);
+    const willImportTodoData = includeTodoData && todoKeys.length > 0;
+    const confirmed = window.confirm(willImportTodoData
+        ? '現在の設定とToDoデータを、選択したファイルの内容で上書きします。よろしいですか？'
+        : '現在の設定を、選択したファイルの内容で上書きします。よろしいですか？');
+    if (!confirmed) {
+        setSettingsBackupStatus('インポートをキャンセルしました。');
+        return;
+    }
+
+    await storageLocalSetAsync({
+        ...parsedBackup.settings,
+        ...(willImportTodoData ? parsedBackup.todoData : {})
+    });
+    restoreOptions();
+    reloadOpenWebClassTabs();
+    setSettingsBackupStatus(willImportTodoData
+        ? '設定とToDoデータをインポートしました。'
+        : '設定をインポートしました。');
+};
+
+const initSettingsBackupControls = () => {
+    const exportButton = document.getElementById('exportSettingsButton');
+    const chooseImportButton = document.getElementById('chooseSettingsImportButton');
+    const importFileInput = document.getElementById('settingsImportFile');
+    if (!exportButton || !chooseImportButton || !importFileInput) return;
+
+    exportButton.addEventListener('click', exportSettingsBackup);
+    chooseImportButton.addEventListener('click', () => importFileInput.click());
+    importFileInput.addEventListener('change', async () => {
+        const file = importFileInput.files?.[0];
+        if (!file) return;
+        chooseImportButton.disabled = true;
+        try {
+            await importSettingsBackup(file);
+        } catch (error) {
+            setSettingsBackupStatus(error instanceof Error ? error.message : 'インポートに失敗しました。', true);
+        } finally {
+            importFileInput.value = '';
+            chooseImportButton.disabled = false;
+        }
+    });
+};
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(reader.error || new Error('画像を読み込めませんでした。'));
+    reader.readAsDataURL(file);
+});
+
+const loadImageFromUrl = (url) => new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('この画像形式は読み込めません。'));
+    image.src = url;
+});
+
+const createCustomUserIconDataUrl = async (file) => {
+    if (!file?.type?.startsWith('image/')) {
+        throw new Error('画像ファイルを選択してください。');
+    }
+    if (file.size > CUSTOM_USER_ICON_MAX_SOURCE_BYTES) {
+        throw new Error('10MB以下の画像を選択してください。');
+    }
+
+    const sourceUrl = await readFileAsDataUrl(file);
+    const image = await loadImageFromUrl(sourceUrl);
+    const sourceWidth = image.naturalWidth;
+    const sourceHeight = image.naturalHeight;
+    if (!sourceWidth || !sourceHeight) {
+        throw new Error('画像のサイズを取得できませんでした。');
+    }
+
+    const cropSize = Math.min(sourceWidth, sourceHeight);
+    const sourceX = Math.floor((sourceWidth - cropSize) / 2);
+    const sourceY = Math.floor((sourceHeight - cropSize) / 2);
+    const canvas = document.createElement('canvas');
+    canvas.width = CUSTOM_USER_ICON_SIZE;
+    canvas.height = CUSTOM_USER_ICON_SIZE;
+    const context = canvas.getContext('2d');
+    if (!context) {
+        throw new Error('画像を加工できませんでした。');
+    }
+    context.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        cropSize,
+        cropSize,
+        0,
+        0,
+        CUSTOM_USER_ICON_SIZE,
+        CUSTOM_USER_ICON_SIZE
+    );
+    return canvas.toDataURL('image/webp', 0.9);
+};
+
+const renderCustomUserIconSetting = (dataUrl = '') => {
+    const preview = document.getElementById('customUserIconPreview');
+    const resetButton = document.getElementById('resetCustomUserIcon');
+    const hasCustomIcon = typeof dataUrl === 'string' && dataUrl.startsWith('data:image/');
+    if (preview) {
+        preview.hidden = !hasCustomIcon;
+        if (hasCustomIcon) {
+            preview.src = dataUrl;
+        } else {
+            preview.removeAttribute('src');
+        }
+    }
+    if (resetButton) {
+        resetButton.disabled = !hasCustomIcon;
+    }
+};
+
+const initCustomUserIconControls = () => {
+    const chooseButton = document.getElementById('chooseCustomUserIcon');
+    const fileInput = document.getElementById('customUserIconFile');
+    const resetButton = document.getElementById('resetCustomUserIcon');
+    const status = document.getElementById('customUserIconStatus');
+    if (!chooseButton || !fileInput || !resetButton) return;
+
+    chooseButton.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        try {
+            if (status) status.textContent = '画像を処理しています...';
+            const dataUrl = await createCustomUserIconDataUrl(file);
+            await storageLocalSetAsync({ [CUSTOM_USER_ICON_KEY]: dataUrl });
+            renderCustomUserIconSetting(dataUrl);
+            if (status) status.textContent = '右上のアイコンを変更しました。';
+            reloadOpenWebClassTabs();
+        } catch (error) {
+            if (status) {
+                status.textContent = error instanceof Error ? error.message : '画像の保存に失敗しました。';
+            }
+        } finally {
+            fileInput.value = '';
+        }
+    });
+
+    resetButton.addEventListener('click', async () => {
+        try {
+            await storageLocalSetAsync({ [CUSTOM_USER_ICON_KEY]: '' });
+            renderCustomUserIconSetting('');
+            if (status) status.textContent = 'WebClass標準のアイコンに戻しました。';
+            reloadOpenWebClassTabs();
+        } catch {
+            if (status) status.textContent = 'アイコン設定の削除に失敗しました。';
+        }
+    });
+};
 
 const secureStorageApi = globalThis.WebClassSecureStorage || null;
 let autoLoginPasswordStored = false;
@@ -1199,7 +1541,8 @@ const restoreOptions = () => {
             [DASHBOARD_VISIBLE_START_PERIOD_KEY]: 1,
             [DASHBOARD_VISIBLE_END_PERIOD_KEY]: 6,
             [DASHBOARD_VISIBLE_START_WEEKDAY_KEY]: 1,
-            [DASHBOARD_VISIBLE_END_WEEKDAY_KEY]: 6
+            [DASHBOARD_VISIBLE_END_WEEKDAY_KEY]: 6,
+            [CUSTOM_USER_ICON_KEY]: ''
         },
         async (localItems) => {
             try {
@@ -1557,6 +1900,7 @@ const restoreOptions = () => {
             if (dashboardDangerTodoOutlineToggle) {
                 dashboardDangerTodoOutlineToggle.checked = items[DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY] !== false;
             }
+            renderCustomUserIconSetting(items[CUSTOM_USER_ICON_KEY]);
             const courseQuickNavRadio = document.getElementById(
                 items[COURSE_QUICK_NAV_COLLAPSED_KEY] === true
                     ? 'courseQuickNavDefaultCollapsed'
@@ -2492,6 +2836,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initRuntimePlatform();
     initSettingsNavigation();
     initDashboardVisibleRangeControls();
+    initCustomUserIconControls();
+    initSettingsBackupControls();
     restoreOptions();
     initAutoSave();
 

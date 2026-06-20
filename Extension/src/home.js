@@ -253,6 +253,10 @@ if (!isHomePage) {
             60% { stroke-dashoffset: 15.5; }
             100% { stroke-dashoffset: 0; }
         }
+        @keyframes ux-icon-swap-in {
+            0% { opacity: 0; transform: scale(0.72) rotate(-18deg); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
         .ux-refresh-btn {
             display: inline-flex;
             align-items: center;
@@ -266,6 +270,9 @@ if (!isHomePage) {
         }
         .ux-refresh-btn.ux-loading svg {
             animation: ux-spin 1s linear infinite;
+        }
+        .ux-refresh-btn.ux-success svg {
+            animation: ux-icon-swap-in 0.18s ease-out forwards;
         }
         .ux-check-btn svg {
             fill: none;
@@ -4918,7 +4925,7 @@ if (!isHomePage) {
             ? accountMenuElement.parentElement?.querySelector('ul.dropdown-menu')
             : null;
         const accountIconElement = accountMenuElement ? accountMenuElement.querySelector('img') : null;
-        const displayUserIconSrc = accountIconElement ? (accountIconElement.currentSrc || accountIconElement.src || '') : '';
+        const originalUserIconSrc = accountIconElement ? (accountIconElement.currentSrc || accountIconElement.src || '') : '';
 
         // Create Dashboard Container
         const dashboardContainer = document.createElement('div');
@@ -4943,9 +4950,15 @@ if (!isHomePage) {
                 useRuleCourseNameEnabled: null,
                 useShortCourseNameEnabled: null,
                 openaiCourseNameEnabled: false,
-                debugModeEnabled: false
+                debugModeEnabled: false,
+                customUserIconDataUrl: ''
             }, resolve);
         });
+        const customUserIconDataUrl = typeof dashboardViewSettings.customUserIconDataUrl === 'string'
+            && dashboardViewSettings.customUserIconDataUrl.startsWith('data:image/')
+            ? dashboardViewSettings.customUserIconDataUrl
+            : '';
+        const displayUserIconSrc = customUserIconDataUrl || originalUserIconSrc;
         const autoRunCourseNameConversion = !!dashboardViewSettings[STORAGE_KEY_AUTO_RUN_COURSE_NAME_CONVERSION];
         const debugModeEnabled = !!dashboardViewSettings.debugModeEnabled;
         const dashboardVisibleRange = normalizeDashboardVisibleRange(dashboardViewSettings);
@@ -6474,6 +6487,7 @@ if (!isHomePage) {
         // Refresh Button (Icon only style) - Updated to UI1 style
         const refreshBtn = document.createElement('button');
         refreshBtn.className = 'ux-dashboard-v2-todo-refresh ux-refresh-btn';
+        refreshBtn.type = 'button';
         refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
         refreshBtn.style.padding = '6px';
         refreshBtn.style.border = 'none';
@@ -6484,6 +6498,7 @@ if (!isHomePage) {
         refreshBtn.style.alignItems = 'center';
         refreshBtn.style.justifyContent = 'center';
         refreshBtn.title = '更新';
+        refreshBtn.setAttribute('aria-label', 'ToDoを更新');
         actionsContainer.appendChild(refreshBtn);
 
         todoHeader.appendChild(actionsContainer);
@@ -6493,6 +6508,48 @@ if (!isHomePage) {
         let dashboardAssignments = [];
         let viewCompleted = false;
         let activeTodoApiSyncPipelinePromise = null;
+        let isManualTodoReloadRunning = false;
+        let todoReloadAnimationToken = 0;
+        const TODO_RELOAD_SUCCESS_VISIBLE_MS = 5000;
+        const TODO_RELOAD_ICON_REFRESH = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
+        const TODO_RELOAD_ICON_CHECK = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path d="M4 12l6 6L20 6"/></svg>';
+
+        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+        const setTodoRefreshButtonLoading = () => {
+            refreshBtn.innerHTML = TODO_RELOAD_ICON_REFRESH;
+            refreshBtn.classList.remove('ux-check-btn', 'ux-drawing', 'ux-success');
+            refreshBtn.classList.add('ux-loading');
+            refreshBtn.style.color = 'var(--ux-home-secondary-label)';
+            refreshBtn.title = '更新中';
+            refreshBtn.setAttribute('aria-label', 'ToDoを更新中');
+            refreshBtn.disabled = true;
+        };
+
+        const setTodoRefreshButtonIdle = () => {
+            refreshBtn.innerHTML = TODO_RELOAD_ICON_REFRESH;
+            refreshBtn.classList.remove('ux-loading', 'ux-check-btn', 'ux-drawing', 'ux-success');
+            refreshBtn.style.color = 'var(--ux-home-secondary-label)';
+            refreshBtn.title = '更新';
+            refreshBtn.setAttribute('aria-label', 'ToDoを更新');
+            refreshBtn.disabled = false;
+        };
+
+        const playTodoRefreshCompleteAnimation = () => {
+            todoReloadAnimationToken += 1;
+            refreshBtn.innerHTML = TODO_RELOAD_ICON_CHECK;
+            refreshBtn.classList.remove('ux-loading');
+            refreshBtn.classList.add('ux-check-btn', 'ux-success');
+            refreshBtn.style.color = 'var(--ux-home-success-foreground)';
+            refreshBtn.title = '更新完了';
+            refreshBtn.setAttribute('aria-label', 'ToDoの更新が完了しました');
+
+            requestAnimationFrame(() => {
+                refreshBtn.classList.add('ux-drawing');
+            });
+
+            return todoReloadAnimationToken;
+        };
 
 
 
@@ -6957,8 +7014,12 @@ if (!isHomePage) {
         };
 
         const updateAssignments = async ({ forceRemote = false, fallbackRemoteWhenEmpty = false } = {}) => {
-            refreshBtn.disabled = true;
-            refreshBtn.classList.add('ux-loading');
+            if (isManualTodoReloadRunning) {
+                setTodoRefreshButtonLoading();
+            } else {
+                refreshBtn.disabled = true;
+                refreshBtn.classList.add('ux-loading');
+            }
             todoStatus.textContent = forceRemote ? '課題を取得中...' : '課題を読み込み中...';
             try {
                 let assignments = [];
@@ -6988,12 +7049,17 @@ if (!isHomePage) {
                         console.error('[WebClass UX] preserved render failed', renderErr);
                     }
                     todoStatus.textContent = 'セッションが切れました。ページを再読み込みしてください。';
+                    if (typeof globalThis.showUxSessionExpiredPopup === 'function') {
+                        globalThis.showUxSessionExpiredPopup();
+                    }
                     return;
                 }
                 console.error('[WebClass UX] Dashboard ToDo update failed', error);
             } finally {
-                refreshBtn.disabled = false;
-                refreshBtn.classList.remove('ux-loading');
+                if (!isManualTodoReloadRunning) {
+                    refreshBtn.disabled = false;
+                    refreshBtn.classList.remove('ux-loading');
+                }
             }
         };
 
@@ -7077,16 +7143,36 @@ if (!isHomePage) {
             });
         };
 
-        refreshBtn.onclick = () => {
-            runTodoApiSyncPipeline({
-                trigger: 'manual_reload',
-                mode: 'full',
-                forceRemoteReload: true,
-                markManualReload: true
-            }).catch((error) => {
+        refreshBtn.onclick = async () => {
+            if (isManualTodoReloadRunning) return;
+
+            isManualTodoReloadRunning = true;
+            todoReloadAnimationToken += 1;
+            setTodoRefreshButtonLoading();
+
+            try {
+                await runTodoApiSyncPipeline({
+                    trigger: 'manual_reload',
+                    mode: 'full',
+                    forceRemoteReload: true,
+                    markManualReload: true
+                });
+
+                const animationToken = playTodoRefreshCompleteAnimation();
+                await delay(TODO_RELOAD_SUCCESS_VISIBLE_MS);
+                if (animationToken === todoReloadAnimationToken) {
+                    setTodoRefreshButtonIdle();
+                }
+            } catch (error) {
                 uxDebugWarn('[WebClass UX] manual reload sync failed', error);
                 alert(`ToDo同期に失敗しました: ${error?.message || 'Unknown error'}`);
-            });
+                setTodoRefreshButtonIdle();
+            } finally {
+                isManualTodoReloadRunning = false;
+                if (!refreshBtn.classList.contains('ux-success')) {
+                    setTodoRefreshButtonIdle();
+                }
+            }
         };
 
         todoSection.appendChild(todoListContainer);

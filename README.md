@@ -2,7 +2,7 @@
 
 `ANTI-WebClass-dev` は、神奈川大学の WebClass (`https://kulms.kanagawa-u.ac.jp/webclass/*`) を対象にした Google Chrome / Chromium 向け Manifest V3 拡張機能です。
 
-現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.3.0` です。
+現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.3.2` です。
 
 ## 現在の実装内容
 
@@ -15,6 +15,8 @@
 - 課題の期限、状態、リマインダー、削除状態などのローカル編集
 - 未読メッセージの取得、表示、既読化補助
 - GitHub Releases の更新確認、バッジ表示、通知表示
+- WebClass 右上のユーザーアイコンのカスタマイズ
+- セッション切れ検知時の再読み込み案内
 
 ### 2. コース名の短縮・表示調整
 
@@ -55,6 +57,8 @@
 
 - コースページの左ジャンプリンク表示設定
 - 試験フレームの UI 調整
+- 試験画面の表示モード切り替え、フレームサイズ調整
+- PDF 表示時のスクロール連携とサイズ変更操作
 - セレクトボックスの表示件数調整
 - 試験アップロード/回答ページ周辺の表示補助
 
@@ -62,6 +66,8 @@
 
 - 自動ログイン
 - デバッグモード
+- 秘密情報を除外した設定・ToDo データのエクスポート/インポート
+- OAuth Redirect URL のコピー補助
 - ローカル専用の安全な保存補助
   - 一部の機密値は `chrome.storage.session` を優先
   - 一部のローカル保存値は `IndexedDB + Web Crypto (AES-GCM)` を利用して暗号化

@@ -114,6 +114,14 @@ if (typeof globalThis.syncUxMasterStateToPage !== "function") {
             changes[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY].newValue,
           );
       }
+      if (changes[CUSTOM_USER_ICON_KEY]) {
+        setCustomUserIconDataUrl(changes[CUSTOM_USER_ICON_KEY].newValue);
+        if (isUxExtensionVisualEnabled()) {
+          scheduleCustomUserIconApply(document);
+        } else {
+          restoreCourseUserIcon(document);
+        }
+      }
     });
   } catch {
     uxDebugModeState.enabled = false;
@@ -527,6 +535,7 @@ function restoreUxCourseHiddenSourceElements(doc = document) {
     "ux-video-frame-fullscreen-active",
     "ux-video-fullscreen-root",
     "ux-video-fullscreen-target",
+    "ux-course-list-button-hidden",
   ];
 
   try {
@@ -592,6 +601,8 @@ function disconnectUxCourseObservers(doc = document) {
     "__uxCourseContentsObserver",
     "__uxShikenVerticalResizePersistenceObserver",
     "__uxShikenButtonTocCompactionObserver",
+    "__uxCustomUserIconObserver",
+    "__uxCourseHeaderActionsObserver",
   ].forEach((key) => {
     try {
       if (doc[key] && typeof doc[key].disconnect === "function") {
@@ -622,6 +633,7 @@ function deactivateUxCourseVisuals(rootDoc = document) {
     disconnectUxCourseObservers(doc);
     restoreUxOriginalFrameStructure(doc);
     restoreUxOriginalBodyState(doc);
+    restoreCourseUserIcon(doc);
     removeUxCourseInjectedElements(doc);
     restoreUxCourseHiddenSourceElements(doc);
     removeUxCourseStyleElements(doc);
@@ -683,6 +695,7 @@ const CONFIG = {
 
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY =
   "materialDownloadFilenameSeparator";
+const CUSTOM_USER_ICON_KEY = "customUserIconDataUrl";
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT = "hyphen";
 const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS = {
   hyphen: "-",
@@ -691,6 +704,232 @@ const MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_CHARS = {
 };
 let materialDownloadFilenameSeparator =
   MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT;
+let customUserIconDataUrl = "";
+
+function setCustomUserIconDataUrl(value) {
+  customUserIconDataUrl =
+    typeof value === "string" && value.startsWith("data:image/") ? value : "";
+}
+
+function getCourseUserIcon(doc = document) {
+  try {
+    return doc.querySelector(
+      [
+        'a.dropdown-toggle[title="アカウントメニュー"] > img',
+        'a.dropdown-toggle[title*="Account"] > img',
+        'a[title="アカウントメニュー"] img',
+        'a[title*="Account"] img',
+      ].join(","),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function restoreCourseUserIcon(doc = document) {
+  const icon = getCourseUserIcon(doc);
+  if (!icon || !icon.hasAttribute("data-ux-original-user-icon-src")) {
+    return false;
+  }
+
+  const originalSrc = icon.getAttribute("data-ux-original-user-icon-src") || "";
+  if (originalSrc) {
+    icon.setAttribute("src", originalSrc);
+  } else {
+    icon.removeAttribute("src");
+  }
+  const originalSrcset = icon.getAttribute(
+    "data-ux-original-user-icon-srcset",
+  );
+  if (originalSrcset === UX_ORIGINAL_ATTR_MISSING) {
+    icon.removeAttribute("srcset");
+  } else if (originalSrcset !== null) {
+    icon.setAttribute("srcset", originalSrcset);
+  }
+  return true;
+}
+
+function applyCustomUserIcon(doc = document) {
+  const icon = getCourseUserIcon(doc);
+  if (!icon) return false;
+
+  if (!icon.hasAttribute("data-ux-original-user-icon-src")) {
+    icon.setAttribute(
+      "data-ux-original-user-icon-src",
+      icon.getAttribute("src") || "",
+    );
+    icon.setAttribute(
+      "data-ux-original-user-icon-srcset",
+      icon.hasAttribute("srcset")
+        ? icon.getAttribute("srcset") || ""
+        : UX_ORIGINAL_ATTR_MISSING,
+    );
+  }
+
+  if (!customUserIconDataUrl) {
+    restoreCourseUserIcon(doc);
+    return true;
+  }
+  if (icon.getAttribute("src") !== customUserIconDataUrl) {
+    icon.setAttribute("src", customUserIconDataUrl);
+  }
+  icon.removeAttribute("srcset");
+  return true;
+}
+
+function scheduleCustomUserIconApply(doc = document) {
+  try {
+    doc.__uxCustomUserIconObserver?.disconnect();
+    doc.__uxCustomUserIconObserver = null;
+  } catch {
+    // ignore
+  }
+
+  if (!customUserIconDataUrl) {
+    restoreCourseUserIcon(doc);
+    return;
+  }
+
+  const apply = () => applyCustomUserIcon(doc);
+  apply();
+  if (doc.readyState === "loading") {
+    doc.addEventListener("DOMContentLoaded", apply, { once: true });
+  }
+
+  const observer = new MutationObserver(apply);
+  if (
+    safeObserveUxMutation(observer, doc.documentElement, {
+      attributes: true,
+      attributeFilter: ["src"],
+      childList: true,
+      subtree: true,
+    })
+  ) {
+    doc.__uxCustomUserIconObserver = observer;
+    window.setTimeout(() => {
+      observer.disconnect();
+      if (doc.__uxCustomUserIconObserver === observer) {
+        doc.__uxCustomUserIconObserver = null;
+      }
+    }, 10000);
+  }
+}
+
+function markCourseHeaderUtilityControls(doc = document) {
+  const redundantCourseListHidden = hideRedundantCourseListButton(doc);
+  let nav;
+  try {
+    nav = doc.querySelector(".navbar-default .navbar-nav.navbar-right");
+  } catch {
+    return redundantCourseListHidden;
+  }
+  if (!nav) return redundantCourseListHidden;
+
+  let markedCount = 0;
+  Array.from(nav.children).forEach((item) => {
+    const link = item.querySelector(":scope > a");
+    if (!link) return;
+
+    const title = [
+      link.getAttribute("title"),
+      link.getAttribute("aria-label"),
+      link.textContent,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    const href = (link.getAttribute("href") || "").toLowerCase();
+    const isAccount =
+      title.includes("アカウントメニュー") || title.includes("account");
+    const isMailbox =
+      item.id === "notification-dropdown-area" ||
+      (href.includes("msg_editor.php") && href.includes("msgappmode=inbox")) ||
+      title.includes("受信箱") ||
+      title.includes("mailbox") ||
+      title.includes("inbox");
+    const isLanguage =
+      title.includes("言語") ||
+      title.includes("language") ||
+      href.includes("language") ||
+      href.includes("locale") ||
+      /[?&](?:lang|locale)=/.test(href);
+
+    link.classList.toggle("ux-course-header-account", isAccount);
+    link.classList.toggle("ux-course-header-mailbox", isMailbox);
+    link.classList.toggle("ux-course-header-language", isLanguage);
+    const isUtilityControl = isAccount || isMailbox || isLanguage;
+    item.classList.toggle("ux-course-header-action-item", isUtilityControl);
+    if (isUtilityControl) markedCount += 1;
+  });
+
+  nav.classList.toggle("ux-course-header-actions", markedCount > 0);
+  return markedCount > 0;
+}
+
+function hideRedundantCourseListButton(doc = document) {
+  try {
+    const link = Array.from(
+      doc.querySelectorAll('a[href*="logout"]'),
+    ).find((candidate) => {
+      const label = [
+        candidate.getAttribute("title"),
+        candidate.getAttribute("aria-label"),
+        candidate.textContent,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+      const href = candidate.href || candidate.getAttribute("href") || "";
+      const isCourseListLabel =
+        label.includes("コースリスト") || label.includes("course list");
+      const isCourseLogoutLink =
+        /\/course\.php\/[^/?#]+\/logout(?:[/?#]|$)/i.test(href);
+      return isCourseLogoutLink && (isCourseListLabel || !label);
+    });
+    if (!link) return false;
+
+    const item = link.closest("li") || link;
+    item.classList.add("ux-course-list-button-hidden");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function scheduleCourseHeaderUtilityControls(doc = document) {
+  try {
+    doc.__uxCourseHeaderActionsObserver?.disconnect();
+    doc.__uxCourseHeaderActionsObserver = null;
+  } catch {
+    // ignore
+  }
+
+  const apply = () => markCourseHeaderUtilityControls(doc);
+  apply();
+  if (doc.readyState === "loading") {
+    doc.addEventListener("DOMContentLoaded", apply, { once: true });
+  }
+
+  const observer = new MutationObserver(apply);
+  if (
+    safeObserveUxMutation(observer, doc.documentElement, {
+      childList: true,
+      subtree: true,
+    })
+  ) {
+    doc.__uxCourseHeaderActionsObserver = observer;
+    window.setTimeout(() => {
+      observer.disconnect();
+      if (doc.__uxCourseHeaderActionsObserver === observer) {
+        doc.__uxCourseHeaderActionsObserver = null;
+      }
+    }, 10000);
+  }
+}
 
 const UX_COURSE_COLOR_TOKEN_STYLE_ID = "ux-course-color-tokens";
 const UX_SHIRYOU_TOC_WIDTH_STORAGE_KEY = "shiryouTocWidthPx";
@@ -1875,6 +2114,7 @@ function getContentNameFromParent() {
  */
 function enhancePdfViewerPage() {
   log("Enhancing PDF viewer page");
+  bindShikenPdfScrollHandoff(document);
 
   // ダウンロードボタンを探す（メインとセカンダリ両方）
   const downloadBtns = document.querySelectorAll(
@@ -3319,10 +3559,14 @@ const UX_SHIKEN_LAYOUT_VERTICAL = "vertical";
 const UX_SHIKEN_LAYOUT_ORIGIN = "origin";
 const UX_SHIKEN_LAYOUT_SESSION_KEY_PREFIX = "uxShikenLayoutMode";
 const UX_SHIKEN_VERTICAL_COLS_SESSION_KEY_PREFIX = "uxShikenVerticalCols";
+const UX_SHIKEN_HORIZONTAL_QUESTION_HEIGHT_SESSION_KEY_PREFIX =
+  "uxShikenHorizontalQuestionHeight";
 const UX_SHIKEN_VISUAL_REINIT_MESSAGE = "UX_SHIKEN_VISUAL_REINIT_REQUEST";
 const UX_SHIKEN_ORIGIN_LAYOUT_STYLE_ID = "ux-shiken-origin-layout-style";
 const UX_SHIKEN_DEFAULT_LEFT_WIDTH = 280;
 const UX_SHIKEN_DEFAULT_RIGHT_WIDTH = 430;
+const UX_SHIKEN_HORIZONTAL_QUESTION_MIN_HEIGHT = 280;
+const UX_SHIKEN_HORIZONTAL_QUESTION_MAX_HEIGHT = 20000;
 
 function normalizeShikenLayoutMode(mode) {
   if (mode === UX_SHIKEN_LAYOUT_ORIGIN) return UX_SHIKEN_LAYOUT_ORIGIN;
@@ -3416,6 +3660,44 @@ function saveShikenVerticalCols(cols, doc = document, splitType = "nested") {
   } catch {}
 }
 
+function getShikenHorizontalQuestionHeightSessionKey(doc = document) {
+  return `${UX_SHIKEN_HORIZONTAL_QUESTION_HEIGHT_SESSION_KEY_PREFIX}:${getShikenLayoutContentId(doc)}`;
+}
+
+function getDefaultShikenHorizontalQuestionHeight(doc = document) {
+  const viewportHeight = doc.defaultView?.innerHeight || 720;
+  return Math.max(420, Math.round(viewportHeight * 0.68));
+}
+
+function readShikenHorizontalQuestionHeight(doc = document) {
+  try {
+    const height = parseInt(
+      sessionStorage.getItem(
+        getShikenHorizontalQuestionHeightSessionKey(doc),
+      ) || "",
+      10,
+    );
+    if (
+      Number.isFinite(height) &&
+      height >= UX_SHIKEN_HORIZONTAL_QUESTION_MIN_HEIGHT &&
+      height <= UX_SHIKEN_HORIZONTAL_QUESTION_MAX_HEIGHT
+    ) {
+      return height;
+    }
+  } catch {}
+  return getDefaultShikenHorizontalQuestionHeight(doc);
+}
+
+function saveShikenHorizontalQuestionHeight(height, doc = document) {
+  if (!Number.isFinite(height)) return;
+  try {
+    sessionStorage.setItem(
+      getShikenHorizontalQuestionHeightSessionKey(doc),
+      String(Math.round(height)),
+    );
+  } catch {}
+}
+
 function getShikenFramesetStructure(doc = document) {
   const outerFrameset =
     doc.querySelector("frameset[rows]") || doc.querySelector("frameset");
@@ -3493,6 +3775,10 @@ function getShikenFramesetStructure(doc = document) {
 
 function getFrameSource(frame) {
   if (!frame) return "";
+  try {
+    const href = frame.contentWindow?.location?.href || "";
+    if (href && href !== "about:blank") return href;
+  } catch {}
   return frame.getAttribute("src") || frame.src || "";
 }
 
@@ -3887,6 +4173,745 @@ function applyOriginShikenLayout(doc = document) {
   return !!doc.querySelector("frameset");
 }
 
+// ---------------------------------------------------------------------------
+// 単一スクロールページ・レイアウト
+// frameset を1つのスクロール文書に作り替え、問題/回答フレームを内容に合わせて
+// 自動高さの iframe にする。これにより (1) 問題枠が本文にフィット、(2)(3) 問題と
+// 回答が一体でスクロール、(4) 左ボタンフレームが常時表示、を実現する。
+// ---------------------------------------------------------------------------
+
+function isShikenSinglePageActive(rootDoc) {
+  try {
+    const doc = rootDoc || getShikenRootDocument();
+    return doc?.documentElement?.dataset?.uxShikenSinglePage === "true";
+  } catch {
+    return false;
+  }
+}
+
+function ensureSinglePageShikenStyle(doc = document) {
+  if (!doc || doc.getElementById("ux-shiken-single-page-style")) return;
+  try {
+    const style = markUxCourseStyle(doc.createElement("style"));
+    style.id = "ux-shiken-single-page-style";
+    style.textContent = `
+            html {
+                min-height: 100%;
+            }
+            body.ux-shiken-single-page {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: flex-start;
+                overflow-y: auto;
+                overflow-x: hidden;
+                background: var(--ux-home-page-bg, #f4f4f6);
+                scrollbar-gutter: stable;
+            }
+            body.ux-shiken-single-page > .ux-shiken-single-button {
+                flex: 0 0 ${UX_SHIKEN_DEFAULT_LEFT_WIDTH}px;
+                width: ${UX_SHIKEN_DEFAULT_LEFT_WIDTH}px;
+                height: 100vh;
+                position: sticky;
+                top: 0;
+                border: 0;
+                background: transparent;
+            }
+            body.ux-shiken-single-page > .ux-shiken-scroll {
+                flex: 1 1 auto;
+                min-width: 0;
+                min-height: 100vh;
+                overflow: visible;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                padding-bottom: 18px;
+                box-sizing: border-box;
+            }
+            body.ux-shiken-single-page .ux-shiken-scroll > iframe {
+                width: 100%;
+                border: 0;
+                display: block;
+                flex: 0 0 auto;
+            }
+            body.ux-shiken-single-page .ux-shiken-question-resize-handle {
+                position: relative;
+                z-index: 5;
+                width: 100%;
+                height: 14px;
+                min-height: 14px;
+                flex: 0 0 14px;
+                padding: 0;
+                border: 0;
+                appearance: none;
+                background: transparent;
+                cursor: ns-resize;
+            }
+            body.ux-shiken-single-page .ux-shiken-question-resize-handle::before {
+                content: "";
+                position: absolute;
+                left: 12px;
+                right: 12px;
+                top: 6px;
+                height: 2px;
+                border-radius: 999px;
+                background: var(--ux-home-separator-strong, rgba(60, 60, 67, 0.29));
+                transition: height 120ms ease, top 120ms ease, background-color 120ms ease;
+            }
+            body.ux-shiken-single-page .ux-shiken-question-resize-handle:hover::before,
+            body.ux-shiken-single-page .ux-shiken-question-resize-handle:focus-visible::before,
+            body.ux-shiken-single-page.ux-shiken-question-resizing .ux-shiken-question-resize-handle::before {
+                top: 5px;
+                height: 4px;
+                background: var(--ux-home-accent, #0071e3);
+            }
+            body.ux-shiken-single-page .ux-shiken-question-resize-handle:focus-visible {
+                outline: 2px solid var(--ux-home-accent, #0071e3);
+                outline-offset: -2px;
+            }
+            body.ux-shiken-single-page.ux-shiken-question-resizing,
+            body.ux-shiken-single-page.ux-shiken-question-resizing * {
+                cursor: ns-resize !important;
+                user-select: none !important;
+            }
+            .ux-shiken-question-resize-shield {
+                position: fixed;
+                inset: 0;
+                z-index: 4;
+                cursor: ns-resize;
+                background: transparent;
+            }
+        `;
+    (doc.head || doc.documentElement).appendChild(style);
+  } catch {
+    // ignore inaccessible documents
+  }
+}
+
+function bindSinglePageShikenParentMessages(doc = document) {
+  const win = doc?.defaultView || window;
+  if (!win || win.__uxShikenSinglePageParentMessagesBound) return;
+  win.__uxShikenSinglePageParentMessagesBound = true;
+
+  win.addEventListener("message", (event) => {
+    const data = event?.data || {};
+    if (
+      data.type !== "UX_SHIKEN_SINGLE_PAGE_FRAME_HEIGHT" &&
+      data.type !== "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL"
+    ) {
+      return;
+    }
+    if (!isShikenSinglePageActive(doc)) return;
+
+    const iframe = Array.from(
+      doc.querySelectorAll(
+        "iframe.ux-shiken-single-question, iframe.ux-shiken-single-answer",
+      ),
+    ).find((candidate) => {
+      try {
+        return candidate.contentWindow === event.source;
+      } catch {
+        return false;
+      }
+    });
+    if (!iframe) return;
+
+    if (data.type === "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL") {
+      const deltaY = Number(data.deltaY) || 0;
+      const deltaX = Number(data.deltaX) || 0;
+      if (!deltaY && !deltaX) return;
+      try {
+        win.scrollBy({ top: deltaY, left: deltaX, behavior: "auto" });
+      } catch {
+        win.scrollBy(deltaX, deltaY);
+      }
+      return;
+    }
+
+    const height = Math.ceil(Number(data.height) || 0);
+    if (height <= 0) return;
+    if (iframe.dataset.uxManualHeight === "true") return;
+    iframe.style.height = `${Math.min(Math.max(height, 40), 20000)}px`;
+  });
+}
+
+function hasShikenSinglePageAncestor() {
+  let current = window;
+  for (let depth = 0; depth < 8; depth += 1) {
+    try {
+      if (
+        current.document?.documentElement?.dataset?.uxShikenSinglePage ===
+        "true"
+      ) {
+        return true;
+      }
+      if (!current.parent || current.parent === current) return false;
+      current = current.parent;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+function bindShikenPdfScrollHandoff(doc = document) {
+  if (!doc || doc.__uxShikenPdfScrollHandoffBound) return;
+  if (!hasShikenSinglePageAncestor()) return;
+  doc.__uxShikenPdfScrollHandoffBound = true;
+
+  const relayToParent = (deltaY, deltaX = 0) => {
+    if (window.parent === window) return;
+    try {
+      window.parent.postMessage(
+        {
+          type: "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL",
+          deltaY: Number(deltaY) || 0,
+          deltaX: Number(deltaX) || 0,
+        },
+        "*",
+      );
+    } catch {}
+  };
+
+  const canScrollWithinPdf = (start, deltaY) => {
+    const candidates = [];
+    let node = start?.nodeType === Node.ELEMENT_NODE ? start : start?.parentElement;
+    while (node && node !== doc.documentElement) {
+      candidates.push(node);
+      node = node.parentElement;
+    }
+    const scrollingElement = doc.scrollingElement;
+    if (scrollingElement) candidates.push(scrollingElement);
+
+    return candidates.some((element) => {
+      if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+      const style = getComputedStyle(element);
+      const canScrollY =
+        /(auto|scroll)/.test(style.overflowY || "") &&
+        element.scrollHeight > element.clientHeight + 1;
+      if (!canScrollY) return false;
+      if (deltaY > 0) {
+        return (
+          element.scrollTop + element.clientHeight < element.scrollHeight - 1
+        );
+      }
+      if (deltaY < 0) return element.scrollTop > 0;
+      return false;
+    });
+  };
+
+  doc.addEventListener(
+    "wheel",
+    (event) => {
+      if (!event.deltaY && !event.deltaX) return;
+      if (canScrollWithinPdf(event.target, event.deltaY)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      relayToParent(event.deltaY, event.deltaX);
+    },
+    { passive: false, capture: true },
+  );
+
+  window.addEventListener("message", (event) => {
+    const data = event?.data || {};
+    if (data.type !== "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL") return;
+    const fromDirectChild = Array.from(
+      doc.querySelectorAll("iframe, frame"),
+    ).some(
+      (iframe) => {
+        try {
+          return iframe.contentWindow === event.source;
+        } catch {
+          return false;
+        }
+      },
+    );
+    if (!fromDirectChild) return;
+    relayToParent(data.deltaY, data.deltaX);
+  });
+}
+
+function bindShikenHorizontalQuestionResize(
+  doc,
+  questionIframe,
+  handle,
+) {
+  if (!doc || !questionIframe || !handle) return;
+
+  const clampHeight = (height) =>
+    Math.min(
+      UX_SHIKEN_HORIZONTAL_QUESTION_MAX_HEIGHT,
+      Math.max(UX_SHIKEN_HORIZONTAL_QUESTION_MIN_HEIGHT, Math.round(height)),
+    );
+  const setHeight = (height, { persist = false } = {}) => {
+    const nextHeight = clampHeight(height);
+    questionIframe.dataset.uxManualHeight = "true";
+    questionIframe.style.height = `${nextHeight}px`;
+    handle.setAttribute("aria-valuenow", String(nextHeight));
+    if (persist) saveShikenHorizontalQuestionHeight(nextHeight, doc);
+    return nextHeight;
+  };
+
+  const activateAttachmentHeight = () => {
+    if (questionIframe.dataset.uxManualHeight === "true") return;
+    if (
+      !isLikelyPdfOrAttachmentUrl(
+        getFrameSource(questionIframe),
+        doc.location?.href || window.location.href,
+      )
+    ) {
+      return;
+    }
+    setHeight(readShikenHorizontalQuestionHeight(doc));
+  };
+
+  if (questionIframe.dataset.uxManualHeight === "true") {
+    setHeight(readShikenHorizontalQuestionHeight(doc));
+  } else {
+    const currentHeight = Math.round(
+      questionIframe.getBoundingClientRect().height || 0,
+    );
+    handle.setAttribute("aria-valuenow", String(currentHeight));
+  }
+  questionIframe.addEventListener("load", activateAttachmentHeight);
+  [0, 120, 500, 1200].forEach((delay) =>
+    setTimeout(activateAttachmentHeight, delay),
+  );
+
+  handle.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    const currentHeight =
+      questionIframe.getBoundingClientRect().height ||
+      readShikenHorizontalQuestionHeight(doc);
+    setHeight(currentHeight + (event.key === "ArrowDown" ? 24 : -24), {
+      persist: true,
+    });
+  });
+
+  handle.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+
+    const startY = event.clientY;
+    const startHeight = questionIframe.getBoundingClientRect().height;
+    let latestHeight = startHeight;
+    const shield = doc.createElement("div");
+    shield.className = "ux-shiken-question-resize-shield";
+    doc.body.appendChild(shield);
+    doc.body.classList.add("ux-shiken-question-resizing");
+
+    const onMove = (moveEvent) => {
+      latestHeight = setHeight(startHeight + moveEvent.clientY - startY);
+    };
+    const onEnd = () => {
+      doc.removeEventListener("mousemove", onMove, true);
+      doc.removeEventListener("mouseup", onEnd, true);
+      shield.remove();
+      doc.body.classList.remove("ux-shiken-question-resizing");
+      saveShikenHorizontalQuestionHeight(latestHeight, doc);
+    };
+
+    doc.addEventListener("mousemove", onMove, true);
+    doc.addEventListener("mouseup", onEnd, true);
+  });
+}
+
+function bindSinglePageShikenChildBridge(doc = document) {
+  if (!isShikenSinglePageActive() || window.parent === window) return;
+  if (doc.__uxShikenSinglePageChildBridgeBound) return;
+  doc.__uxShikenSinglePageChildBridgeBound = true;
+
+  const postToParent = (message) => {
+    try {
+      window.parent.postMessage(message, "*");
+    } catch {}
+  };
+
+  let scheduled = false;
+  const measureAndPostHeight = () => {
+    scheduled = false;
+    const docEl = doc.documentElement;
+    const body = doc.body;
+    const height = Math.max(
+      docEl ? docEl.scrollHeight : 0,
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+    );
+    if (height > 0) {
+      postToParent({
+        type: "UX_SHIKEN_SINGLE_PAGE_FRAME_HEIGHT",
+        frameName: window.name || "",
+        height,
+      });
+    }
+  };
+  const scheduleHeightPost = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(measureAndPostHeight);
+  };
+
+  const canScrollWithinFrame = (start, deltaY) => {
+    let node = start;
+    while (node && node !== doc.documentElement) {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const el = node;
+        const style = getComputedStyle(el);
+        const canScrollY =
+          /(auto|scroll)/.test(style.overflowY || "") &&
+          el.scrollHeight > el.clientHeight + 1;
+        if (canScrollY) {
+          const canDown =
+            deltaY > 0 && el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+          const canUp = deltaY < 0 && el.scrollTop > 0;
+          if (canDown || canUp) return true;
+        }
+      }
+      node = node.parentElement;
+    }
+    return false;
+  };
+
+  doc.addEventListener(
+    "wheel",
+    (event) => {
+      if (!event.deltaY && !event.deltaX) return;
+      if (canScrollWithinFrame(event.target, event.deltaY)) return;
+      event.preventDefault();
+      postToParent({
+        type: "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL",
+        deltaY: event.deltaY,
+        deltaX: event.deltaX,
+      });
+    },
+    { passive: false, capture: true },
+  );
+
+  doc.addEventListener(
+    "keydown",
+    (event) => {
+      const editable = event.target?.closest?.(
+        'textarea, input, select, [contenteditable="true"]',
+      );
+      if (editable) return;
+      const viewport = window.innerHeight || 720;
+      const keyDelta = {
+        PageDown: viewport * 0.86,
+        Space: viewport * (event.shiftKey ? -0.86 : 0.86),
+        PageUp: -viewport * 0.86,
+        Home: -100000,
+        End: 100000,
+      };
+      if (!(event.key in keyDelta)) return;
+      event.preventDefault();
+      postToParent({
+        type: "UX_SHIKEN_SINGLE_PAGE_FRAME_SCROLL",
+        deltaY: keyDelta[event.key],
+        deltaX: 0,
+      });
+    },
+    true,
+  );
+
+  try {
+    const ro = new ResizeObserver(scheduleHeightPost);
+    if (doc.body) ro.observe(doc.body);
+    if (doc.documentElement) ro.observe(doc.documentElement);
+  } catch {}
+  try {
+    const mo = new MutationObserver(scheduleHeightPost);
+    if (doc.body) {
+      mo.observe(doc.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+      });
+    }
+  } catch {}
+  doc.addEventListener("input", scheduleHeightPost, true);
+  doc.addEventListener("load", scheduleHeightPost, true);
+  [0, 120, 350, 800, 1600].forEach((delay) =>
+    setTimeout(scheduleHeightPost, delay),
+  );
+}
+
+// 同一オリジンの iframe の高さを内容(scrollHeight)に追従させる。
+// 問題/回答フレームの内部スクロールを無くし、外側の .ux-shiken-scroll で一体
+// スクロールできるようにする。
+function bindShikenIframeAutoHeight(iframe) {
+  if (
+    !iframe ||
+    iframe.dataset.uxAutoHeightBound === "true" ||
+    iframe.dataset.uxManualHeight === "true"
+  )
+    return;
+  iframe.dataset.uxAutoHeightBound = "true";
+
+  let scheduled = false;
+  let lastSetHeight = null;
+  const heightThreshold = 1; // px: only update if change > threshold
+  const runawayHeightCap = 20000; // px: absolute sanity check
+
+  const measure = () => {
+    scheduled = false;
+    if (iframe.dataset.uxManualHeight === "true") return;
+    let cdoc;
+    try {
+      cdoc = iframe.contentDocument;
+    } catch {
+      cdoc = null;
+    }
+    if (!cdoc) return;
+    const docEl = cdoc.documentElement;
+    const body = cdoc.body;
+    const height = Math.max(
+      docEl ? docEl.scrollHeight : 0,
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+    );
+
+    if (height <= 0) return;
+
+    // Hard cap: never set iframe height beyond sanity limit
+    if (height > runawayHeightCap) {
+      uxDebugWarn(
+        `bindShikenIframeAutoHeight: capping runaway height`,
+        `measured=${height}px, capping at ${runawayHeightCap}px`,
+      );
+      iframe.style.height = `${runawayHeightCap}px`;
+      lastSetHeight = runawayHeightCap;
+      return;
+    }
+
+    // Only update if difference exceeds threshold
+    if (
+      lastSetHeight === null ||
+      Math.abs(height - lastSetHeight) > heightThreshold
+    ) {
+      iframe.style.height = `${height}px`;
+      lastSetHeight = height;
+    }
+  };
+  const scheduleMeasure = () => {
+    if (scheduled) return;
+    scheduled = true;
+    try {
+      (iframe.ownerDocument.defaultView || window).requestAnimationFrame(
+        measure,
+      );
+    } catch {
+      scheduled = false;
+      measure();
+    }
+  };
+
+  const attach = () => {
+    let cdoc;
+    try {
+      cdoc = iframe.contentDocument;
+    } catch {
+      cdoc = null;
+    }
+    if (!cdoc) return;
+    scheduleMeasure();
+    try {
+      const win = cdoc.defaultView;
+      if (win && typeof win.ResizeObserver === "function") {
+        const ro = new win.ResizeObserver(() => scheduleMeasure());
+        if (cdoc.body) ro.observe(cdoc.body);
+        if (cdoc.documentElement) ro.observe(cdoc.documentElement);
+      }
+      cdoc.addEventListener("input", scheduleMeasure, true);
+      cdoc.addEventListener("load", scheduleMeasure, true);
+      if (cdoc.fonts?.ready?.then) {
+        cdoc.fonts.ready.then(scheduleMeasure).catch(() => {});
+      }
+    } catch {}
+    // 画像/数式/非同期描画など遅れて高さが変わる要素への保険
+    [120, 350, 800, 1600].forEach((delay) =>
+      setTimeout(scheduleMeasure, delay),
+    );
+  };
+
+  iframe.addEventListener("load", attach);
+  attach();
+}
+
+function applySinglePageShikenLayout(doc = document) {
+  rememberUxOriginalFrameStructure(doc);
+  rememberUxOriginalShikenFrameStructure(doc);
+
+  const structure = getShikenFramesetStructure(doc);
+  if (!structure.mainFrameset) return false;
+  const { buttonFrame, questionFrame, answerFrame } = structure;
+  if (!answerFrame && !questionFrame) return false;
+
+  const outerFrameset = doc.querySelector("frameset") || structure.outerFrameset;
+  if (!outerFrameset?.parentNode) return false;
+
+  // detach する前に name / src を控える
+  const frameInfo = (frame, fallbackName) =>
+    frame
+      ? {
+          name: frame.getAttribute("name") || fallbackName,
+          src: getFrameSource(frame),
+        }
+      : null;
+  const buttonInfo = frameInfo(buttonFrame, "button");
+  const questionInfo = frameInfo(questionFrame, "question");
+  const answerInfo = frameInfo(answerFrame, "answer");
+
+  // 子フレームが単一ページモードを検出できるよう <html> に印を付ける
+  doc.documentElement.dataset.uxShikenSinglePage = "true";
+
+  try {
+    ensureCourseColorTokens(doc);
+  } catch {}
+  ensureSinglePageShikenStyle(doc);
+  bindSinglePageShikenParentMessages(doc);
+
+  const makeIframe = (info, className) => {
+    if (!info) return null;
+    const iframe = doc.createElement("iframe");
+    if (info.name) iframe.setAttribute("name", info.name);
+    if (info.src) iframe.setAttribute("src", info.src);
+    iframe.setAttribute("frameborder", "0");
+    iframe.className = className;
+    return iframe;
+  };
+
+  const body = doc.createElement("body");
+  body.className = "ux-shiken-single-page";
+
+  const buttonIframe = makeIframe(buttonInfo, "ux-shiken-single-button");
+  if (buttonIframe) body.appendChild(buttonIframe);
+
+  const scroll = doc.createElement("div");
+  scroll.className = "ux-shiken-scroll";
+  const questionIframe = makeIframe(questionInfo, "ux-shiken-single-question");
+  const answerIframe = makeIframe(answerInfo, "ux-shiken-single-answer");
+  const questionInitiallyNeedsFixedHeight =
+    questionIframe &&
+    isLikelyPdfOrAttachmentUrl(
+      questionInfo?.src || "",
+      doc.location?.href || window.location.href,
+    );
+  if (questionIframe) {
+    if (questionInitiallyNeedsFixedHeight) {
+      questionIframe.dataset.uxManualHeight = "true";
+    }
+    scroll.appendChild(questionIframe);
+  }
+  let questionResizeHandle = null;
+  if (questionIframe && answerIframe) {
+    questionResizeHandle = doc.createElement("button");
+    questionResizeHandle.type = "button";
+    questionResizeHandle.className = "ux-shiken-question-resize-handle";
+    questionResizeHandle.setAttribute("role", "separator");
+    questionResizeHandle.setAttribute("aria-orientation", "horizontal");
+    questionResizeHandle.setAttribute(
+      "aria-label",
+      "PDFと回答の表示領域の高さを変更",
+    );
+    questionResizeHandle.setAttribute(
+      "aria-valuemin",
+      String(UX_SHIKEN_HORIZONTAL_QUESTION_MIN_HEIGHT),
+    );
+    questionResizeHandle.setAttribute(
+      "aria-valuemax",
+      String(UX_SHIKEN_HORIZONTAL_QUESTION_MAX_HEIGHT),
+    );
+    questionResizeHandle.title = "ドラッグしてPDFと回答の表示領域を調整";
+    scroll.appendChild(questionResizeHandle);
+  }
+  if (answerIframe) scroll.appendChild(answerIframe);
+  body.appendChild(scroll);
+
+  // frameset を body に置き換え（同一オリジン・同名 iframe なので
+  // frames["answer"] / target="answer" / グローバル関数はそのまま機能する）
+  outerFrameset.parentNode.replaceChild(body, outerFrameset);
+
+  if (questionIframe && questionResizeHandle) {
+    bindShikenHorizontalQuestionResize(
+      doc,
+      questionIframe,
+      questionResizeHandle,
+    );
+  } else if (questionIframe) {
+    bindShikenIframeAutoHeight(questionIframe);
+  }
+  if (answerIframe) bindShikenIframeAutoHeight(answerIframe);
+
+  return true;
+}
+
+function applySinglePageOneByOneShikenLayout(doc = document) {
+  rememberUxOriginalFrameStructure(doc);
+  rememberUxOriginalShikenFrameStructure(doc);
+
+  const outerFrameset =
+    doc.querySelector("frameset[rows]") || doc.querySelector("frameset");
+  const mainFrameset =
+    Array.from(doc.querySelectorAll("frameset[cols]")).find((frameset) =>
+      !!getDirectChildFrame(frameset, "button"),
+    ) || null;
+  if (!outerFrameset?.parentNode || !mainFrameset) return false;
+
+  const frameInfo = (name) => {
+    const frame =
+      getDirectChildFrame(mainFrameset, name) ||
+      mainFrameset.querySelector(`frame[name="${name}"]`) ||
+      doc.querySelector(`frame[name="${name}"]`);
+    if (!frame) return null;
+    return {
+      name: frame.getAttribute("name") || name,
+      src: getFrameSource(frame),
+    };
+  };
+
+  const buttonInfo = frameInfo("button");
+  const contentInfos = ["question", "answer", "description"]
+    .map((name) => frameInfo(name))
+    .filter(Boolean);
+  if (!buttonInfo || contentInfos.length === 0) return false;
+
+  doc.documentElement.dataset.uxShikenSinglePage = "true";
+  doc.documentElement.dataset.uxShikenSinglePageKind = "onebyone";
+
+  try {
+    ensureCourseColorTokens(doc);
+  } catch {}
+  ensureSinglePageShikenStyle(doc);
+  bindSinglePageShikenParentMessages(doc);
+
+  const makeIframe = (info, className) => {
+    const iframe = doc.createElement("iframe");
+    iframe.setAttribute("name", info.name);
+    if (info.src) iframe.setAttribute("src", info.src);
+    iframe.setAttribute("frameborder", "0");
+    iframe.className = className;
+    return iframe;
+  };
+
+  const body = doc.createElement("body");
+  body.className = "ux-shiken-single-page ux-shiken-onebyone-single-page";
+  body.appendChild(makeIframe(buttonInfo, "ux-shiken-single-button"));
+
+  const scroll = doc.createElement("div");
+  scroll.className = "ux-shiken-scroll";
+  contentInfos.forEach((info) => {
+    const iframe = makeIframe(info, `ux-shiken-single-${info.name}`);
+    scroll.appendChild(iframe);
+    bindShikenIframeAutoHeight(iframe);
+  });
+  body.appendChild(scroll);
+
+  outerFrameset.parentNode.replaceChild(body, outerFrameset);
+  return true;
+}
+
 function syncShikenLayoutClasses(
   doc = document,
   mode = UX_SHIKEN_LAYOUT_HORIZONTAL,
@@ -4024,7 +5049,7 @@ function applyShikenLayoutMode(
       ? applyOriginShikenLayout(doc)
       : normalizedMode === UX_SHIKEN_LAYOUT_VERTICAL
         ? applyVerticalShikenLayout(doc)
-        : applyHorizontalShikenLayout(doc);
+        : applySinglePageShikenLayout(doc);
 
   if (!applied) return false;
 
@@ -4051,6 +5076,24 @@ function bindShikenLayoutMessageListener() {
   window.addEventListener("message", (event) => {
     const data = event?.data || {};
     if (data.type !== "UX_SHIKEN_LAYOUT_MODE_REQUEST") return;
+
+    // 単一ページ⇄他モードの遷移はリロードで行う。単一ページ化は frameset を
+    // body+iframe に作り替えるため、ライブ切替だと frame の再取得で未保存の入力が
+    // 消える。モードを永続化してリロードすれば、必ず綺麗な初期ロード上で構築/復元
+    // される（単一ページの DOM 改変は初期ロード時のみ動く）。
+    const targetMode = normalizeShikenLayoutMode(data.mode);
+    const currentlySinglePage = isShikenSinglePageActive(document);
+    if (currentlySinglePage || targetMode === UX_SHIKEN_LAYOUT_HORIZONTAL) {
+      if (currentlySinglePage && targetMode === UX_SHIKEN_LAYOUT_HORIZONTAL) {
+        return; // 既に単一ページ
+      }
+      saveShikenLayoutOverride(targetMode, document);
+      try {
+        window.location.reload();
+      } catch {}
+      return;
+    }
+
     if (!document.querySelector("frameset")) return;
 
     if (normalizeShikenLayoutMode(data.mode) === UX_SHIKEN_LAYOUT_ORIGIN) {
@@ -4115,12 +5158,15 @@ function requestParentShikenLayoutMode(mode) {
 
 function getShikenRootDocument() {
   try {
-    if (
-      window.parent &&
-      window.parent !== window &&
-      window.parent.document?.querySelector("frameset")
-    ) {
-      return window.parent.document;
+    if (window.parent && window.parent !== window && window.parent.document) {
+      const parentDoc = window.parent.document;
+      // 通常の frameset、または単一ページ化後(frameset を破棄済み)の親を認識する
+      if (
+        parentDoc.querySelector("frameset") ||
+        parentDoc.documentElement?.dataset?.uxShikenSinglePage === "true"
+      ) {
+        return parentDoc;
+      }
     }
   } catch {}
   return document;
@@ -4338,6 +5384,24 @@ function ensureShikenLayoutToggleControl(
       const activeRootDoc =
         rootDocOverride ||
         (doc === document ? getShikenRootDocument() : rootDoc);
+      const currentRootMode = getCurrentShikenLayoutMode(activeRootDoc);
+      if (
+        currentRootMode === mode &&
+        isShikenSinglePageActive(activeRootDoc) ===
+          (mode === UX_SHIKEN_LAYOUT_HORIZONTAL)
+      ) {
+        return;
+      }
+      if (
+        isShikenSinglePageActive(activeRootDoc) ||
+        mode === UX_SHIKEN_LAYOUT_HORIZONTAL
+      ) {
+        saveShikenLayoutOverride(mode, activeRootDoc);
+        try {
+          activeRootDoc.defaultView?.location?.reload();
+        } catch {}
+        return;
+      }
       if (mode === UX_SHIKEN_LAYOUT_ORIGIN) {
         applyShikenOriginLayoutOnlyMode(activeRootDoc, { persist: true });
         return;
@@ -4648,6 +5712,7 @@ const UX_SHIKEN_UPLOAD_DEFAULT_QUESTION_LINES = 10;
 const UX_SHIKEN_UPLOAD_DEFAULT_ANSWER_LINES = 18;
 const UX_SHIKEN_UPLOAD_FRAME_ROWS_KEY = "shikenUploadFrameRows";
 const UX_SHIKEN_UPLOAD_FRAME_MIN_HEIGHT = 120;
+const UX_SHIKEN_SINGLE_PAGE_FIELD_MIN_HEIGHT = 120;
 
 function shikenUploadFrameLinesToPixels(lines) {
   return Math.round(lines * UX_SHIKEN_UPLOAD_FRAME_LINE_HEIGHT);
@@ -4749,17 +5814,110 @@ function saveShikenFrameRows(rowsValue) {
   }
 }
 
-function attachShikenFrameResizeHandle(card) {
+function getShikenSinglePageFieldHeightKey(frameName = window.name || "") {
+  return `uxShikenSinglePageFieldHeight:${getShikenLayoutContentId(getShikenRootDocument())}:${frameName || "content"}`;
+}
+
+function restoreShikenSinglePageFieldHeight(card, frameName = window.name || "") {
+  if (!card || !isShikenSinglePageActive()) return;
+  try {
+    const stored = sessionStorage.getItem(
+      getShikenSinglePageFieldHeightKey(frameName),
+    );
+    const height = parseInt(stored || "", 10);
+    if (Number.isFinite(height) && height >= UX_SHIKEN_SINGLE_PAGE_FIELD_MIN_HEIGHT) {
+      card.style.minHeight = `${height}px`;
+    }
+  } catch {}
+}
+
+function saveShikenSinglePageFieldHeight(height, frameName = window.name || "") {
+  if (!Number.isFinite(height)) return;
+  try {
+    sessionStorage.setItem(
+      getShikenSinglePageFieldHeightKey(frameName),
+      String(Math.round(height)),
+    );
+  } catch {}
+}
+
+function postSinglePageShikenFrameHeight() {
+  if (!isShikenSinglePageActive() || window.parent === window) return;
+  try {
+    const docEl = document.documentElement;
+    const body = document.body;
+    const height = Math.max(
+      docEl ? docEl.scrollHeight : 0,
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+    );
+    if (height > 0) {
+      window.parent.postMessage(
+        {
+          type: "UX_SHIKEN_SINGLE_PAGE_FRAME_HEIGHT",
+          frameName: window.name || "",
+          height,
+        },
+        "*",
+      );
+    }
+  } catch {}
+}
+
+function attachShikenSinglePageFieldResizeHandle(card, handle, frameName) {
+  handle.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startHeight = Math.round(card.getBoundingClientRect().height);
+    const startScreenY = event.screenY;
+    let latestHeight = startHeight;
+
+    document.body?.classList.add("ux-shiken-frame-resizing");
+
+    const onMove = (moveEvent) => {
+      const deltaY = moveEvent.screenY - startScreenY;
+      latestHeight = Math.max(
+        UX_SHIKEN_SINGLE_PAGE_FIELD_MIN_HEIGHT,
+        startHeight + deltaY,
+      );
+      card.style.minHeight = `${Math.round(latestHeight)}px`;
+      postSinglePageShikenFrameHeight();
+    };
+
+    const onEnd = () => {
+      document.removeEventListener("mousemove", onMove, true);
+      document.removeEventListener("mouseup", onEnd, true);
+      document.body?.classList.remove("ux-shiken-frame-resizing");
+      saveShikenSinglePageFieldHeight(latestHeight, frameName);
+      postSinglePageShikenFrameHeight();
+    };
+
+    document.addEventListener("mousemove", onMove, true);
+    document.addEventListener("mouseup", onEnd, true);
+  });
+}
+
+function attachShikenFrameResizeHandle(card, options = {}) {
   if (!card || card.dataset.uxFrameResizeHandle === "true") return;
+  const frameName = options.frameName || window.name || "question";
   card.dataset.uxFrameResizeHandle = "true";
   card.classList.add("ux-shiken-resizable-frame-card");
+  restoreShikenSinglePageFieldHeight(card, frameName);
 
   const handle = document.createElement("button");
   handle.type = "button";
   handle.className = "ux-shiken-frame-resize-handle";
-  handle.setAttribute("aria-label", "問題フレームの高さを変更");
-  handle.title = "問題フレームの高さをドラッグで変更";
+  const label = options.label || "フィールド";
+  handle.setAttribute("aria-label", `${label}の高さを変更`);
+  handle.title = `${label}の高さをドラッグで変更`;
   card.appendChild(handle);
+
+  if (isShikenSinglePageActive()) {
+    attachShikenSinglePageFieldResizeHandle(card, handle, frameName);
+    return;
+  }
 
   handle.addEventListener("mousedown", (event) => {
     if (event.button !== 0) return;
@@ -5676,6 +6834,12 @@ function prepareShikenAnswerSurface(form) {
         "aria-label",
         profile.hasFile ? "回答ファイル" : "回答欄",
       );
+      if (isShikenSinglePageActive()) {
+        attachShikenFrameResizeHandle(answerCard, {
+          frameName: "answer",
+          label: profile.hasFile ? "回答ファイルフィールド" : "回答フィールド",
+        });
+      }
     }
   }
 
@@ -5772,6 +6936,17 @@ function enhanceOneByOneShikenFrameset() {
   rememberUxOriginalFrameStructure(document);
   rememberUxOriginalShikenFrameStructure(document);
 
+  bindShikenLayoutMessageListener();
+  const currentLayoutMode = resolveInitialShikenLayoutMode(document);
+  if (currentLayoutMode === UX_SHIKEN_LAYOUT_HORIZONTAL) {
+    if (applySinglePageOneByOneShikenLayout(document)) {
+      document.documentElement.dataset.uxShikenLayoutMode =
+        UX_SHIKEN_LAYOUT_HORIZONTAL;
+      syncShikenLayoutClasses(document, UX_SHIKEN_LAYOUT_HORIZONTAL);
+      return;
+    }
+  }
+
   const outerFrameset = document.querySelector("frameset[rows]");
   const mainFrameset = Array.from(
     document.querySelectorAll("frameset[cols]"),
@@ -5832,6 +7007,12 @@ function enhanceOneByOneShikenButtonFrame() {
   ensureCourseColorTokens(document);
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
+  syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
 
   if (isOneByOneQuestionListFrame()) {
     enhanceOneByOneQuestionListFrame();
@@ -6180,6 +7361,12 @@ function enhanceOneByOneShikenQuestionFrame() {
   ensureCourseColorTokens(document);
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
+  syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
   if (document.getElementById("ux-onebyone-question-style")) return;
 
   const style = document.createElement("style");
@@ -6203,6 +7390,7 @@ function enhanceOneByOneShikenQuestionFrame() {
             overflow: auto;
         }
         .ux-onebyone-question-card {
+            position: relative;
             width: 100%;
             flex: 1 1 auto;
             min-height: 0;
@@ -6241,6 +7429,40 @@ function enhanceOneByOneShikenQuestionFrame() {
             outline: none;
             box-shadow: var(--ux-home-focus-ring), var(--ux-home-shadow-sm);
         }
+        .ux-shiken-frame-resize-handle {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            z-index: 3;
+            width: 12px;
+            height: 12px;
+            min-width: 12px;
+            min-height: 12px;
+            padding: 0;
+            border: 0;
+            border-radius: 3px;
+            appearance: none;
+            color: transparent;
+            line-height: 0;
+            flex: 0 0 12px;
+            background:
+                linear-gradient(135deg, transparent 0 58%, rgba(110, 110, 115, 0.48) 58% 66%, transparent 66%),
+                linear-gradient(135deg, transparent 0 76%, rgba(110, 110, 115, 0.48) 76% 84%, transparent 84%);
+            cursor: ns-resize;
+            opacity: 0.46;
+            box-shadow: none;
+        }
+        .ux-shiken-frame-resize-handle:hover,
+        .ux-shiken-frame-resize-handle:focus-visible {
+            opacity: 0.85;
+            background-color: var(--ux-home-accent-softer);
+            box-shadow: 0 0 0 2px var(--ux-home-accent-softer);
+        }
+        body.ux-shiken-frame-resizing,
+        body.ux-shiken-frame-resizing * {
+            cursor: ns-resize !important;
+            user-select: none !important;
+        }
         table {
             width: 100%;
             border-collapse: collapse;
@@ -6255,6 +7477,22 @@ function enhanceOneByOneShikenQuestionFrame() {
         iframe {
             max-width: 100%;
         }
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            display: block !important;
+            padding: 12px 16px 14px !important;
+        }
+        html.ux-shiken-single-page-frame .ux-onebyone-question-card {
+            flex: none !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
     `;
   document.head.appendChild(style);
   const questionCard = wrapOneByOneBodyContent("ux-onebyone-question-card");
@@ -6262,6 +7500,12 @@ function enhanceOneByOneShikenQuestionFrame() {
     questionCard.tabIndex = 0;
     questionCard.setAttribute("role", "region");
     questionCard.setAttribute("aria-label", "問題文");
+    if (isShikenSinglePageActive()) {
+      attachShikenFrameResizeHandle(questionCard, {
+        frameName: "question",
+        label: "問題フィールド",
+      });
+    }
   }
 }
 
@@ -6269,6 +7513,12 @@ function enhanceOneByOneShikenAnswerFrame() {
   ensureCourseColorTokens(document);
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
+  syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
   if (document.getElementById("ux-onebyone-answer-style")) return;
 
   const style = document.createElement("style");
@@ -6307,6 +7557,40 @@ function enhanceOneByOneShikenAnswerFrame() {
             box-sizing: border-box;
             display: block;
             text-align: initial;
+        }
+        .ux-shiken-frame-resize-handle {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            z-index: 3;
+            width: 12px;
+            height: 12px;
+            min-width: 12px;
+            min-height: 12px;
+            padding: 0;
+            border: 0;
+            border-radius: 3px;
+            appearance: none;
+            color: transparent;
+            line-height: 0;
+            flex: 0 0 12px;
+            background:
+                linear-gradient(135deg, transparent 0 58%, rgba(110, 110, 115, 0.48) 58% 66%, transparent 66%),
+                linear-gradient(135deg, transparent 0 76%, rgba(110, 110, 115, 0.48) 76% 84%, transparent 84%);
+            cursor: ns-resize;
+            opacity: 0.46;
+            box-shadow: none;
+        }
+        .ux-shiken-frame-resize-handle:hover,
+        .ux-shiken-frame-resize-handle:focus-visible {
+            opacity: 0.85;
+            background-color: var(--ux-home-accent-softer);
+            box-shadow: 0 0 0 2px var(--ux-home-accent-softer);
+        }
+        body.ux-shiken-frame-resizing,
+        body.ux-shiken-frame-resizing * {
+            cursor: ns-resize !important;
+            user-select: none !important;
         }
         .ux-onebyone-answer-heading {
             margin: 0;
@@ -6674,6 +7958,35 @@ function enhanceOneByOneShikenAnswerFrame() {
         br {
             display: none;
         }
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            display: block !important;
+            padding: 12px 14px 18px !important;
+        }
+        html.ux-shiken-single-page-frame form[name="answer_form"] {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            flex: none !important;
+        }
+        html.ux-shiken-single-page-frame .ux-onebyone-answer-root {
+            position: relative;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame textarea {
+            height: auto;
+            min-height: 12rem !important;
+            overflow-y: hidden !important;
+        }
     `;
   document.head.appendChild(style);
 
@@ -6682,6 +7995,12 @@ function enhanceOneByOneShikenAnswerFrame() {
 
   if (form.parentElement && form.parentElement !== document.body) {
     form.parentElement.classList.add("ux-onebyone-answer-root");
+    if (isShikenSinglePageActive()) {
+      attachShikenFrameResizeHandle(form.parentElement, {
+        frameName: "answer",
+        label: "回答フィールド",
+      });
+    }
   }
 
   getShikenAnswerSurfaceProfile(form).textareas.forEach((textarea) => {
@@ -6695,6 +8014,7 @@ function enhanceOneByOneShikenAnswerFrame() {
       textarea.name = "answer";
     }
   });
+  bindSinglePageAnswerTextareaAutoSize(form);
 
   const optionTable = document.querySelector("table.qstnoptions");
   const optionRows = Array.from(
@@ -7030,6 +8350,13 @@ function enhanceOneByOneShikenAnswerFrame() {
 
 function enhanceOneByOneShikenDescriptionFrame() {
   ensureCourseColorTokens(document);
+  enableUxAutoOverflowScrolling(document);
+  syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
   if (document.getElementById("ux-onebyone-description-style")) return;
 
   const style = document.createElement("style");
@@ -7080,6 +8407,20 @@ function enhanceOneByOneShikenDescriptionFrame() {
         a:hover {
             text-decoration: underline;
         }
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            display: block !important;
+            padding: 12px 14px 18px !important;
+        }
+        html.ux-shiken-single-page-frame .ux-onebyone-description-card {
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
     `;
   document.head.appendChild(style);
   wrapOneByOneBodyContent("ux-onebyone-description-card");
@@ -7096,8 +8437,14 @@ function enhanceShikenFrameset() {
     }) || document.querySelector("frameset[cols]");
   if (!outerFrameset || !innerCols) {
     log("Shiken frameset not found");
+    document.__uxShikenFramesetRetryCount =
+      (document.__uxShikenFramesetRetryCount || 0) + 1;
+    if (document.__uxShikenFramesetRetryCount <= 20) {
+      setTimeout(enhanceShikenFrameset, 150);
+    }
     return;
   }
+  document.__uxShikenFramesetRetryCount = 0;
 
   if (outerFrameset.getAttribute("data-ux-shiken") !== "true") {
     outerFrameset.setAttribute("data-ux-shiken", "true");
@@ -7114,6 +8461,11 @@ function enhanceShikenQuestionFrame() {
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
   syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
   if (document.getElementById("ux-shiken-question-style")) return;
 
   const style = document.createElement("style");
@@ -7228,6 +8580,24 @@ function enhanceShikenQuestionFrame() {
         iframe {
             max-width: 100%;
         }
+        /* 単一ページモード: 枠を固定高さにせず、本文の高さに追従させる
+           (内部スクロールを無くし、外側の .ux-shiken-scroll で一体スクロール) */
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            display: block !important;
+            padding: 12px 16px 14px !important;
+        }
+        html.ux-shiken-single-page-frame .ux-shiken-question-card {
+            flex: none !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
     `;
   document.head.appendChild(style);
   const questionCard = wrapOneByOneBodyContent("ux-shiken-question-card");
@@ -7235,7 +8605,10 @@ function enhanceShikenQuestionFrame() {
     questionCard.tabIndex = 0;
     questionCard.setAttribute("role", "region");
     questionCard.setAttribute("aria-label", "問題文");
-    attachShikenFrameResizeHandle(questionCard);
+    attachShikenFrameResizeHandle(questionCard, {
+      frameName: "question",
+      label: "問題フィールド",
+    });
   }
 }
 
@@ -7345,19 +8718,79 @@ function renderShikenHeader(doc, titles) {
   doc.body.appendChild(header);
 }
 
+// 左ボタンフレームから回答フレームのネイティブ保存を呼ぶ（単一ページモードで
+// 「回答を保存」を常時表示にするため）
+function triggerShikenAnswerSaveFromButtonFrame() {
+  try {
+    const answerDoc = window.top?.frames?.answer?.document;
+    if (!answerDoc) return false;
+    const saveBtn =
+      answerDoc.querySelector(".ux-save-answer-button") ||
+      Array.from(
+        answerDoc.querySelectorAll(
+          'button, input[type="button"], input[type="submit"]',
+        ),
+      ).find((el) => `${el.value || el.textContent || ""}`.includes("回答を保存"));
+    if (saveBtn) {
+      saveBtn.click();
+      return true;
+    }
+    // フォールバック: answer_form を sendCmd=save で送信
+    const form = answerDoc.querySelector('form[name="answer_form"]');
+    if (form) {
+      const sendCmd = form.querySelector('input[name="sendCmd"]');
+      if (sendCmd) sendCmd.value = "save";
+      form.submit();
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+function ensureShikenButtonFrameSaveProxy(doc = document) {
+  if (!isShikenSinglePageActive()) return;
+  const form = doc.querySelector('form[name="button_form"]');
+  if (!form || form.querySelector(".ux-shiken-button-save")) return;
+
+  const row = doc.createElement("div");
+  row.className = "ux-shiken-action-row ux-shiken-save-row";
+  const saveButton = doc.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "ux-btn ux-shiken-button-save";
+  saveButton.textContent = "回答を保存";
+  saveButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    triggerShikenAnswerSaveFromButtonFrame();
+  });
+  row.appendChild(saveButton);
+  // 前/次/終了 の上に配置（常時表示の保存ボタン）
+  form.insertBefore(row, form.firstChild);
+}
+
 function enhanceShikenButtonFrame() {
   log("Enhancing shiken button frame");
   ensureCourseColorTokens(document);
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
   syncCurrentFrameShikenLayoutClassFromParent();
+  const singlePageActive = isShikenSinglePageActive();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    singlePageActive,
+  );
+  bindSinglePageShikenChildBridge(document);
 
   if (isOneByOneQuestionListFrame()) {
     enhanceOneByOneQuestionListFrame();
     return;
   }
 
-  if (document.getElementById("ux-shiken-button-style")) return;
+  if (document.getElementById("ux-shiken-button-style")) {
+    ensureShikenLayoutToggleControl();
+    ensureShikenButtonFrameSaveProxy();
+    bindShikenButtonTocCompaction();
+    return;
+  }
 
   const style = document.createElement("style");
   style.id = "ux-shiken-button-style";
@@ -7470,6 +8903,7 @@ function enhanceShikenButtonFrame() {
         }
         .ux-shiken-inline-toc {
             display: flex;
+            flex-direction: column;
             align-items: flex-start;
             gap: 6px;
             min-height: 34px;
@@ -7479,17 +8913,12 @@ function enhanceShikenButtonFrame() {
             border-radius: 6px;
             box-shadow: var(--ux-home-shadow-sm);
             margin: 0;
-            overflow-x: auto;
+            max-height: 220px;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         .ux-shiken-inline-toc::before {
-            content: '';
-            flex: 0 0 6px;
-            width: 6px;
-            height: 6px;
-            margin-top: 10px;
-            border-radius: 999px;
-            background: var(--ux-home-accent);
-            box-shadow: 0 0 0 2px var(--ux-home-accent-soft);
+            display: none;
         }
         .ux-shiken-inline-page {
             -webkit-appearance: none;
@@ -7563,6 +8992,16 @@ function enhanceShikenButtonFrame() {
             border-color: var(--ux-home-separator);
             color: var(--ux-home-tertiary-label);
             cursor: not-allowed;
+        }
+        .ux-btn.ux-shiken-button-save {
+            background: var(--ux-home-accent);
+            border-color: var(--ux-home-accent);
+            color: #fff;
+        }
+        .ux-btn.ux-shiken-button-save:hover {
+            background: var(--ux-home-accent-emphasis, var(--ux-home-accent));
+            border-color: var(--ux-home-accent-emphasis, var(--ux-home-accent));
+            color: #fff;
         }
         .limitInfo {
             margin: 0 !important;
@@ -7672,6 +9111,49 @@ function enhanceShikenButtonFrame() {
             border-color: var(--ux-home-accent);
             background: var(--ux-home-accent-soft);
             color: var(--ux-home-accent-emphasis);
+        }
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: 100vh !important;
+            min-height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+            overscroll-behavior: none !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            padding: 8px !important;
+        }
+        html.ux-shiken-single-page-frame #top {
+            height: 100% !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+            padding-top: 0 !important;
+        }
+        html.ux-shiken-single-page-frame #WsTitle {
+            order: -20 !important;
+        }
+        html.ux-shiken-single-page-frame #ux-shiken-layout-toggle {
+            order: -19 !important;
+        }
+        html.ux-shiken-single-page-frame .limitInfo {
+            order: -18 !important;
+        }
+        html.ux-shiken-single-page-frame #top > form[name="button_form"] {
+            position: static !important;
+            order: -30 !important;
+            flex: 0 0 auto !important;
+            margin: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            background: var(--ux-home-page-bg);
+        }
+        html.ux-shiken-single-page-frame #ux-shiken-inline-toc {
+            order: 20 !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
         }
     `;
   document.head.appendChild(style);
@@ -7963,6 +9445,8 @@ function enhanceShikenButtonFrame() {
     }
     compactShikenButtonTocLayout();
   }
+
+  ensureShikenButtonFrameSaveProxy();
 }
 
 function getShikenAnswerSaveSessionKey() {
@@ -8047,12 +9531,36 @@ function createShikenAnswerSaveCheck(doc = document) {
   return check;
 }
 
+function bindSinglePageAnswerTextareaAutoSize(form) {
+  if (!form || !isShikenSinglePageActive()) return;
+  form.querySelectorAll("textarea").forEach((textarea) => {
+    if (textarea.dataset.uxSinglePageAutoSizeBound === "true") return;
+    textarea.dataset.uxSinglePageAutoSizeBound = "true";
+
+    const resize = () => {
+      textarea.style.height = "auto";
+      const minHeight = 192;
+      const nextHeight = Math.max(minHeight, textarea.scrollHeight + 2);
+      textarea.style.height = `${nextHeight}px`;
+    };
+
+    textarea.addEventListener("input", resize);
+    textarea.addEventListener("change", resize);
+    [0, 120, 350].forEach((delay) => setTimeout(resize, delay));
+  });
+}
+
 function enhanceShikenAnswerFrame() {
   log("Enhancing shiken answer frame");
   ensureCourseColorTokens(document);
   enableUxAutoOverflowScrolling(document);
   ensureUxFrameActionButtonFit(document);
   syncCurrentFrameShikenLayoutClassFromParent();
+  document.documentElement.classList.toggle(
+    "ux-shiken-single-page-frame",
+    isShikenSinglePageActive(),
+  );
+  bindSinglePageShikenChildBridge(document);
   if (document.getElementById("ux-shiken-answer-style")) return;
 
   const style = document.createElement("style");
@@ -8135,6 +9643,43 @@ function enhanceShikenAnswerFrame() {
             overflow-wrap: anywhere;
             overscroll-behavior: contain;
             scrollbar-gutter: stable;
+        }
+        .ux-shiken-frame-resize-handle {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            z-index: 3;
+            width: 12px;
+            height: 12px;
+            min-width: 12px;
+            min-height: 12px;
+            padding: 0;
+            border: 0;
+            border-radius: 3px;
+            appearance: none;
+            color: transparent;
+            line-height: 0;
+            flex: 0 0 12px;
+            background:
+                linear-gradient(135deg, transparent 0 58%, rgba(110, 110, 115, 0.48) 58% 66%, transparent 66%),
+                linear-gradient(135deg, transparent 0 76%, rgba(110, 110, 115, 0.48) 76% 84%, transparent 84%);
+            cursor: ns-resize;
+            opacity: 0.46;
+            box-shadow: none;
+        }
+        .ux-shiken-frame-resize-handle:hover,
+        .ux-shiken-frame-resize-handle:focus-visible {
+            opacity: 0.85;
+            background-color: var(--ux-home-accent-softer);
+            box-shadow: 0 0 0 2px var(--ux-home-accent-softer);
+        }
+        body.ux-shiken-parent-layout-vertical .ux-shiken-frame-resize-handle {
+            display: none;
+        }
+        body.ux-shiken-frame-resizing,
+        body.ux-shiken-frame-resizing * {
+            cursor: ns-resize !important;
+            user-select: none !important;
         }
         .ux-shiken-answer-card > .ux-shiken-answer-heading:first-child,
         .ux-shiken-upload-answer-card > .ux-shiken-answer-heading:first-child {
@@ -8537,6 +10082,45 @@ function enhanceShikenAnswerFrame() {
                 grid-template-columns: minmax(0, 1fr);
             }
         }
+        /* 単一ページモード: 回答フレームを内容の高さに追従させ、内部スクロールを無くす
+           (問題＋回答を外側の .ux-shiken-scroll で一体スクロールできるようにする) */
+        html.ux-shiken-single-page-frame,
+        html.ux-shiken-single-page-frame body {
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        html.ux-shiken-single-page-frame body {
+            display: block !important;
+            padding: 12px 14px 18px !important;
+        }
+        html.ux-shiken-single-page-frame form[name="answer_form"] {
+            min-height: 0 !important;
+            height: auto !important;
+            flex: none !important;
+        }
+        html.ux-shiken-single-page-frame body.ux-shiken-answer-card-page form[name="answer_form"],
+        html.ux-shiken-single-page-frame body.ux-shiken-upload-answer-page form[name="answer_form"] {
+            min-height: 0 !important;
+            height: auto !important;
+        }
+        html.ux-shiken-single-page-frame .ux-shiken-answer-card,
+        html.ux-shiken-single-page-frame .ux-shiken-upload-answer-card {
+            flex: none !important;
+            max-height: none !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+        }
+        /* 単一ページモードでは textarea も内容に合わせて伸ばし、回答フレーム
+           内部ではなくページ側でスクロールする */
+        html.ux-shiken-single-page-frame textarea {
+            height: auto;
+            min-height: 12rem !important;
+            overflow-y: hidden !important;
+        }
+        html.ux-shiken-single-page-frame .ux-answer-actions {
+            margin-top: 16px !important;
+        }
     `;
   document.head.appendChild(style);
 
@@ -8587,6 +10171,7 @@ function enhanceShikenAnswerFrame() {
     bindShikenAnswerSaveStatus(form);
     buildShikenAnswerActionArea(form);
     enhanceShikenAnswerSelectControls(form);
+    bindSinglePageAnswerTextareaAutoSize(form);
   }
 
   // 終了確認ダイアログに終了ボタンを追加する機能
@@ -14219,23 +15804,46 @@ function enhanceCourseContentsPageUI() {
             body.${BODY_CLASS} .navbar-default .navbar-brand {
                 height: auto !important;
                 min-height: 0 !important;
-                padding-top: 14px;
-                padding-bottom: 8px;
-                line-height: 1.05;
+                padding-top: 13px;
+                padding-bottom: 13px;
+                line-height: 34px;
             }
 
             body.${BODY_CLASS} .navbar-default .navbar-brand .course-webclass {
                 display: none !important;
             }
 
+            body.${BODY_CLASS} .ux-course-list-button-hidden {
+                display: none !important;
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li:has(> a[href^="logout"]),
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li:has(> a[href*="/logout"]),
+            body.${BODY_CLASS} header .navbar-nav.navbar-right > li:has(> a[href^="logout"]),
+            body.${BODY_CLASS} header .navbar-nav.navbar-right > li:has(> a[href*="/logout"]) {
+                display: none !important;
+            }
+
             body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right {
+                display: flex !important;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 5px;
+                min-height: 42px;
                 margin-top: 0;
                 margin-bottom: 0;
+                padding: 4px 0;
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right.ux-course-header-actions {
+                min-height: 0;
+                padding-top: 13px;
+                padding-bottom: 13px;
             }
 
             body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a {
-                padding-top: 2px;
-                padding-bottom: 2px;
+                padding-top: 0;
+                padding-bottom: 0;
                 line-height: 1;
             }
 
@@ -14271,29 +15879,71 @@ function enhanceCourseContentsPageUI() {
                 color: #2563eb;
             }
 
-            /* Hide account name text (keep user icon) to avoid 2-line header */
-            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li.dropdown:not(#notification-dropdown-area) > a.dropdown-toggle > span {
+            /* Keep only the account image; language-switch labels must remain visible. */
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-account > span,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.dropdown-toggle[title="アカウントメニュー"] > span,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.dropdown-toggle[title*="Account"] > span {
                 display: none !important;
             }
 
-            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li.dropdown:not(#notification-dropdown-area) > a.dropdown-toggle[title="アカウントメニュー"] {
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li.ux-course-header-action-item {
+                float: none !important;
                 display: inline-flex !important;
                 align-items: center !important;
                 justify-content: center !important;
-                width: 24px !important;
-                height: 24px !important;
+                margin: 0 !important;
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-mailbox,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-language,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-account,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > #notification-dropdown-area > a,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a[title="アカウントメニュー"],
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a[title*="Account"] {
+                position: relative;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 34px !important;
+                height: 34px !important;
+                min-width: 34px !important;
                 min-height: 0 !important;
-                padding: 1px !important;
+                padding: 0 !important;
+                border: 1px solid transparent;
+                border-radius: 9px !important;
+                color: #475569;
+                font-size: 17px;
                 line-height: 1 !important;
                 box-sizing: border-box !important;
             }
 
-            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li.dropdown:not(#notification-dropdown-area) > a.dropdown-toggle[title="アカウントメニュー"] > img {
-                width: 22px !important;
-                height: 22px !important;
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-language {
+                width: auto !important;
+                max-width: 80px;
+                padding: 0 8px !important;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-mailbox img,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-mailbox svg,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-language img,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-language svg {
+                width: 18px !important;
+                height: 18px !important;
+                object-fit: contain;
+            }
+
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.ux-course-header-account > img,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.dropdown-toggle[title="アカウントメニュー"] > img,
+            body.${BODY_CLASS} .navbar-default .navbar-nav.navbar-right > li > a.dropdown-toggle[title*="Account"] > img {
+                width: 28px !important;
+                height: 28px !important;
                 border-width: 1px !important;
                 border-radius: 50% !important;
                 box-sizing: border-box !important;
+                object-fit: cover;
             }
 
             body.${BODY_CLASS} .navbar-default .navbar-nav > li > a,
@@ -15824,6 +17474,8 @@ function suppressBeforeUnload() {
 function init() {
   if (!isUxExtensionVisualEnabled()) return;
   log("Initializing...");
+  scheduleCustomUserIconApply(document);
+  scheduleCourseHeaderUtilityControls(document);
   bindShiryouDisplayMessageListeners();
 
   const pageType = detectPageType();
@@ -15958,6 +17610,7 @@ chrome.storage.local.get(
     [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true,
     [MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]:
       MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT,
+    [CUSTOM_USER_ICON_KEY]: "",
   },
   (items) => {
     setUxExtensionVisualEnabled(
@@ -15967,6 +17620,7 @@ chrome.storage.local.get(
       normalizeMaterialDownloadFilenameSeparator(
         items[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY],
       );
+    setCustomUserIconDataUrl(items[CUSTOM_USER_ICON_KEY]);
     if (!isUxExtensionVisualEnabled()) {
       log("Global visual modification is disabled. Skipping course.js init.");
       return;

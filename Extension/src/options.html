@@ -47,6 +47,10 @@
           <span>高度な設定</span>
           <span class="chevron" aria-hidden="true">›</span>
         </button>
+        <button type="button" class="nav-item" data-open-section="backup">
+          <span>設定のエクスポート・インポート</span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
       </div>
     </section>
 
@@ -110,6 +114,21 @@
             </label>
           </div>
           <p class="helper-text setting-helper">My TODOs で赤く表示される期限間近のタスクがある講義だけ、時間割マスに薄い赤のアウトラインを表示します。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">右上のユーザーアイコン</p>
+          <div class="ios-list">
+            <div class="ios-item user-icon-setting">
+              <img id="customUserIconPreview" class="custom-user-icon-preview" alt="選択中のユーザーアイコン" hidden>
+              <div class="user-icon-setting-actions">
+                <button type="button" id="chooseCustomUserIcon" class="btn-primary">画像を選択</button>
+                <input type="file" id="customUserIconFile" accept="image/*">
+                <button type="button" id="resetCustomUserIcon" class="btn-reset" disabled>元のアイコンに戻す</button>
+              </div>
+            </div>
+          </div>
+          <p id="customUserIconStatus" class="helper-text setting-helper" aria-live="polite">JPG、PNG、WebPなどの画像を選択できます。</p>
         </div>
 
         <div class="setting-group">
@@ -750,6 +769,49 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-detail" data-section="backup" hidden>
+      <div class="detail-header">
+        <button type="button" class="back-button" data-back>‹ 戻る</button>
+        <h2>設定のエクスポート・インポート</h2>
+      </div>
+      <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">バックアップ内容</p>
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="backupIncludeTodoData">
+              <span class="switch-label">
+                <span class="item-title">ToDoデータを含める</span>
+              </span>
+              <input type="checkbox" id="backupIncludeTodoData" class="ios-switch" aria-label="ToDoデータを含める">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">OFFの場合、設定だけを引き継ぎます。ログイン情報、APIキー、外部ToDoサービスの認証情報は安全のため含まれません。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">エクスポート</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="exportSettingsButton" class="btn-primary btn-block">JSONファイルにエクスポート</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">インポート</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="chooseSettingsImportButton" class="btn-primary btn-block">JSONファイルを選択</button>
+              <input type="file" id="settingsImportFile" accept="application/json,.json">
+              <p id="settingsBackupStatus" class="status-text" aria-live="polite"></p>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">ToDoデータを含める設定がOFFの場合、ファイル内のToDoデータはインポートしません。現在のToDoはそのまま残ります。</p>
         </div>
       </div>
     </section>
