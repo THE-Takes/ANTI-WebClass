@@ -1,0 +1,227 @@
+/* Solid, scoped treatment for WebClass-owned entry and result frames. */
+
+html.ux-course-entry {
+  --course-entry-page: var(--ux-color-page, #EBF6FF);
+  --course-entry-surface: var(--ux-color-surface, #FFFFFF);
+  --course-entry-surface-subtle: var(--ux-color-surface-subtle, #F5FAFF);
+  --course-entry-text: var(--ux-color-text, #1F2326);
+  --course-entry-muted: var(--ux-color-muted, #6F767A);
+  --course-entry-border: var(--ux-color-border, #DCE8F0);
+  --course-entry-border-strong: var(--ux-color-border-strong, #BFD4E1);
+  --course-entry-border-hover: var(--ux-color-border-hover, #B1BEC6);
+  --course-entry-accent: var(--ux-color-accent, #099BFF);
+  --course-entry-accent-hover: var(--ux-color-accent-hover, #0789E1);
+  --course-entry-radius: var(--ux-radius-md, 12px);
+  --course-entry-radius-large: var(--ux-radius-lg, 16px);
+  --course-entry-control-height: var(--ux-control-height-md, 38px);
+  --course-entry-motion: var(--ux-motion-duration-fast, 120ms);
+  --course-entry-ease: var(--ux-motion-ease-standard, cubic-bezier(0.2, 0, 0, 1));
+  color-scheme: light;
+  color: var(--course-entry-text);
+  background-color: var(--course-entry-page) !important;
+  font-family: var(--ux-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+}
+
+html.ux-course-entry[data-ux-theme="dark"] {
+  color-scheme: dark;
+}
+
+html.ux-course-entry body,
+html.ux-course-entry frameset,
+html.ux-course-entry frame {
+  background-color: var(--course-entry-page) !important;
+}
+
+html.ux-course-entry body {
+  color: var(--course-entry-text);
+  accent-color: var(--course-entry-accent);
+}
+
+html.ux-course-entry body:not(:has(frameset)) {
+  box-sizing: border-box;
+  min-height: 100vh;
+  margin: 0;
+  padding: var(--ux-space-4, 16px);
+}
+
+html.ux-course-entry #PageBody {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: clamp(var(--ux-space-4, 16px), 4vw, var(--ux-space-10, 40px));
+  background-color: var(--course-entry-page) !important;
+}
+
+html.ux-course-entry #PageBody > .layouter {
+  box-sizing: border-box;
+  width: 100% !important;
+}
+
+/* Only these WebClass-owned containers receive panel treatment. */
+html.ux-course-entry #ScenarioNavi,
+html.ux-course-entry #ContentInfo,
+html.ux-course-entry #WsTitle {
+  box-sizing: border-box;
+  border: 1px solid var(--course-entry-border) !important;
+  border-radius: var(--course-entry-radius-large);
+  color: var(--course-entry-text);
+  background-color: var(--course-entry-surface) !important;
+  background-image: none !important;
+}
+
+html.ux-course-entry #ScenarioNavi,
+html.ux-course-entry #ContentInfo {
+  overflow: hidden;
+}
+
+html.ux-course-entry #WsTitle {
+  margin: 0 0 var(--ux-space-4, 16px) !important;
+  padding: var(--ux-space-3, 12px) var(--ux-space-4, 16px) !important;
+  background: var(--ux-color-surface, #FFFFFF) !important;
+  background-image: none !important;
+}
+
+html.ux-course-entry #WsTitle :where(h1, h2, h3) {
+  margin: 0;
+  color: var(--course-entry-text) !important;
+  background-color: var(--course-entry-surface);
+  font-size: var(--ux-font-size-lg, 1.125rem);
+  line-height: var(--ux-line-height-tight, 1.25);
+}
+
+html.ux-course-entry #WsTitle :where(h1, h2, h3) a,
+html.ux-course-entry #ScenarioNavi a,
+html.ux-course-entry #ContentInfo a {
+  color: var(--course-entry-accent-hover) !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(th, td),
+html.ux-course-entry #ContentInfo :where(th, td) {
+  border-color: var(--course-entry-border) !important;
+  color: var(--course-entry-text) !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(th, thead td),
+html.ux-course-entry #ContentInfo :where(th, thead td) {
+  background-color: var(--course-entry-surface-subtle) !important;
+  background-image: none !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(td[bgcolor], th[bgcolor], tr[bgcolor] > td, tr[bgcolor] > th),
+html.ux-course-entry #ContentInfo :where(td[bgcolor], th[bgcolor], tr[bgcolor] > td, tr[bgcolor] > th) {
+  background-color: var(--course-entry-surface) !important;
+  background-image: none !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(a, button, input, select, textarea),
+html.ux-course-entry #ContentInfo :where(a, button, input, select, textarea) {
+  box-sizing: border-box;
+  font: inherit;
+}
+
+html.ux-course-entry #ScenarioNavi :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn),
+html.ux-course-entry #ContentInfo :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn) {
+  min-height: var(--course-entry-control-height);
+  padding: var(--ux-space-2, 8px) var(--ux-space-3, 12px);
+  border: 1px solid var(--course-entry-border-strong) !important;
+  border-radius: var(--course-entry-radius);
+  color: var(--course-entry-text) !important;
+  background-color: var(--course-entry-surface) !important;
+  background-image: none !important;
+  cursor: pointer;
+  transition:
+    border-color var(--course-entry-motion) var(--course-entry-ease),
+    background-color var(--course-entry-motion) var(--course-entry-ease),
+    color var(--course-entry-motion) var(--course-entry-ease);
+}
+
+html.ux-course-entry #ScenarioNavi :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn):hover,
+html.ux-course-entry #ContentInfo :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn):hover {
+  border-color: var(--course-entry-border-hover) !important;
+  color: var(--course-entry-text) !important;
+  background-color: var(--course-entry-surface) !important;
+}
+
+/* Keep explicit action variants visually semantic while neutral controls use
+ * the outline-only hover treatment above. */
+html.ux-course-entry #ScenarioNavi :where(.btn-primary, .button-primary, [data-variant="primary"]):hover,
+html.ux-course-entry #ContentInfo :where(.btn-primary, .button-primary, [data-variant="primary"]):hover {
+  border-color: var(--course-entry-accent-hover) !important;
+  color: var(--ux-color-on-accent, #FFFFFF) !important;
+  background-color: var(--course-entry-accent-hover) !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(.btn-danger, .button-danger, [data-variant="danger"]):hover,
+html.ux-course-entry #ContentInfo :where(.btn-danger, .button-danger, [data-variant="danger"]):hover {
+  border-color: var(--ux-color-danger, #B42318) !important;
+  color: var(--ux-color-on-accent, #FFFFFF) !important;
+  background-color: var(--ux-color-danger, #B42318) !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn):disabled,
+html.ux-course-entry #ContentInfo :where(button, input[type="button"], input[type="submit"], input[type="reset"], .button, .btn):disabled {
+  cursor: not-allowed;
+}
+
+html.ux-course-entry #ScenarioNavi :where(select, textarea, input:not([type="button"]):not([type="submit"]):not([type="reset"])),
+html.ux-course-entry #ContentInfo :where(select, textarea, input:not([type="button"]):not([type="submit"]):not([type="reset"])) {
+  min-height: var(--course-entry-control-height);
+  max-width: 100%;
+  padding: var(--ux-space-2, 8px) var(--ux-space-3, 12px);
+  border: 1px solid var(--course-entry-border-strong) !important;
+  border-radius: var(--course-entry-radius);
+  color: var(--course-entry-text) !important;
+  background-color: var(--course-entry-surface) !important;
+  background-image: none !important;
+}
+
+html.ux-course-entry #ScenarioNavi :where(button, input, select, textarea, a):focus-visible,
+html.ux-course-entry #ContentInfo :where(button, input, select, textarea, a):focus-visible,
+html.ux-course-entry #WsTitle a:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--course-entry-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+@media (max-width: 640px) {
+  html.ux-course-entry body:not(:has(frameset)) {
+    padding: var(--ux-space-3, 12px);
+  }
+
+  html.ux-course-entry #PageBody {
+    padding: var(--ux-space-4, 16px);
+  }
+
+  html.ux-course-entry #ScenarioNavi,
+  html.ux-course-entry #ContentInfo,
+  html.ux-course-entry #WsTitle {
+    border-radius: var(--course-entry-radius);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.ux-course-entry #ScenarioNavi :where(button, input, select, textarea, a),
+  html.ux-course-entry #ContentInfo :where(button, input, select, textarea, a),
+  html.ux-course-entry #WsTitle a {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  html.ux-course-entry,
+  html.ux-course-entry body,
+  html.ux-course-entry frameset,
+  html.ux-course-entry frame,
+  html.ux-course-entry #PageBody,
+  html.ux-course-entry #ScenarioNavi,
+  html.ux-course-entry #ContentInfo,
+  html.ux-course-entry #WsTitle {
+    color: CanvasText !important;
+    background-color: Canvas !important;
+  }
+
+  html.ux-course-entry #ScenarioNavi :where(button, input, select, textarea),
+  html.ux-course-entry #ContentInfo :where(button, input, select, textarea) {
+    border-color: ButtonText !important;
+    color: ButtonText !important;
+    background-color: ButtonFace !important;
+  }
+}

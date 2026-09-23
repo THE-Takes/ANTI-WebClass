@@ -8,7 +8,6 @@
     const STORAGE_KEY_EXTENSION_VISUAL_ENABLED = 'extensionVisualEnabled';
     const STORAGE_KEY_VIEW_TOGGLE_SHORTCUT = 'viewToggleShortcut';
     const STORAGE_KEY_VIEW_TOGGLE_SHORTCUT_MIGRATED = 'viewToggleShortcutMigratedToCtrlShiftM';
-    const PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = 'webclass_ux_master_enabled';
     const DEFAULT_VIEW_TOGGLE_SHORTCUT = 'Alt+Shift+M';
     const LEGACY_DEFAULT_VIEW_TOGGLE_SHORTCUT = 'Ctrl+Shift+M';
     const SHORTCUT_MODIFIER_ORDER = ['Ctrl', 'Alt', 'Shift', 'Meta'];
@@ -30,22 +29,6 @@
         viewToggleShortcut: DEFAULT_VIEW_TOGGLE_SHORTCUT,
         isHandling: false,
     };
-
-    function syncUxMasterStateToPage(enabled) {
-        const normalized = enabled ? '1' : '0';
-        try {
-            if (document && document.documentElement) {
-                document.documentElement.dataset.webclassUxMasterEnabled = normalized;
-            }
-        } catch {
-            // ignore
-        }
-        try {
-            localStorage.setItem(PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED, normalized);
-        } catch {
-            // ignore
-        }
-    }
 
     function canonicalizeShortcutKeyToken(token) {
         if (typeof token !== 'string') return '';

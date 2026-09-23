@@ -1,0 +1,100 @@
+/* Shared visual tokens for the extension-owned interface. */
+
+:root {
+  --ux-color-page: #EBF6FF;
+  --ux-color-surface: #FFFFFF;
+  --ux-color-surface-subtle: #F5FAFF;
+  --ux-color-surface-muted: #EEF5F9;
+  --ux-color-text: #1F2326;
+  --ux-color-muted: #6F767A;
+  --ux-color-border: #DCE8F0;
+  --ux-color-border-strong: #BFD4E1;
+  /* Neutral control hover state: darken the outline without filling the control. */
+  --ux-color-border-hover: #B1BEC6;
+  --ux-color-accent: #099BFF;
+  --ux-color-accent-hover: #0789E1;
+  --ux-color-accent-active: #0677C7;
+  --ux-color-on-accent: #FFFFFF;
+  --ux-color-success: #18794E;
+  --ux-color-success-surface: #EAF8F0;
+  --ux-color-warning: #9A6500;
+  --ux-color-warning-surface: #FFF7E5;
+  --ux-color-danger: #B42318;
+  --ux-color-danger-surface: #FFF0EE;
+  --ux-color-info: #1664A5;
+  --ux-color-info-surface: #EAF4FF;
+
+  --ux-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  --ux-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+  --ux-font-size-xs: 0.75rem;
+  --ux-font-size-sm: 0.875rem;
+  --ux-font-size-md: 1rem;
+  --ux-font-size-lg: 1.125rem;
+  --ux-font-size-xl: 1.375rem;
+  --ux-font-weight-regular: 400;
+  --ux-font-weight-medium: 500;
+  --ux-font-weight-semibold: 600;
+  --ux-font-weight-bold: 700;
+  --ux-line-height-tight: 1.25;
+  --ux-line-height-normal: 1.5;
+  --ux-line-height-relaxed: 1.65;
+
+  --ux-radius-xs: 4px;
+  --ux-radius-sm: 8px;
+  --ux-radius-md: 12px;
+  --ux-radius-lg: 16px;
+  --ux-radius-pill: 999px;
+
+  --ux-space-1: 4px;
+  --ux-space-2: 8px;
+  --ux-space-3: 12px;
+  --ux-space-4: 16px;
+  --ux-space-5: 20px;
+  --ux-space-6: 24px;
+  --ux-space-8: 32px;
+  --ux-space-10: 40px;
+  --ux-space-12: 48px;
+
+  --ux-focus-color: var(--ux-color-accent);
+  --ux-focus-width: 2px;
+  --ux-focus-offset: 2px;
+
+  --ux-motion-duration-fast: 120ms;
+  --ux-motion-duration-normal: 180ms;
+  --ux-motion-duration-slow: 260ms;
+  --ux-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ux-motion-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --ux-control-height-sm: 32px;
+  --ux-control-height-md: 38px;
+  --ux-control-height-lg: 44px;
+  --ux-content-max-width: 1200px;
+  --ux-z-popover: 1000;
+  --ux-z-modal: 1100;
+}
+
+:root[data-ux-theme="dark"] {
+  --ux-color-page: #181b1e;
+  --ux-color-surface: #22272b;
+  --ux-color-surface-subtle: #292e33;
+  --ux-color-surface-muted: #30363c;
+  --ux-color-text: #eef1f4;
+  --ux-color-muted: #a8afb7;
+  --ux-color-border: #373e45;
+  --ux-color-border-strong: #49515a;
+  --ux-color-border-hover: #606a74;
+  --ux-color-accent: #29a9fa;
+  --ux-color-accent-hover: #4cbbff;
+  --ux-color-accent-active: #75cbff;
+  --ux-color-on-accent: #091923;
+  --ux-color-success: #66d49d;
+  --ux-color-success-surface: #17392b;
+  --ux-color-warning: #f2bf69;
+  --ux-color-warning-surface: #45331d;
+  --ux-color-danger: #ff8984;
+  --ux-color-danger-surface: #452626;
+  --ux-color-info: #75cbff;
+  --ux-color-info-surface: #18384d;
+}

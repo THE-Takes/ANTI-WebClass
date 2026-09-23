@@ -1,0 +1,134 @@
+/* Same-page settings workspace opened from the dashboard header. */
+
+html.ux-dashboard-settings-open,
+html.ux-dashboard-settings-open body {
+  overflow: hidden !important;
+}
+
+.ux-dashboard-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ux-z-modal, 1100);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+:root[data-ux-theme="dark"] .ux-dashboard-settings-overlay {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.ux-dashboard-settings-overlay[hidden] {
+  display: none !important;
+}
+
+.ux-dashboard-settings-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, 100%);
+  height: min(820px, calc(100dvh - 48px));
+  min-height: 420px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--ux-color-border-strong, #bfd4e1);
+  border-radius: var(--ux-radius-lg, 16px);
+  background: var(--ux-color-surface, #ffffff);
+}
+
+.ux-dashboard-settings-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 20px;
+  border-bottom: 1px solid var(--ux-color-border, #dce8f0);
+  background: var(--ux-color-surface, #ffffff);
+}
+
+.ux-dashboard-settings-dialog-header h2 {
+  margin: 0;
+  color: var(--ux-color-text, #1f2326);
+  font-size: var(--ux-font-size-lg, 1.125rem);
+  font-weight: var(--ux-font-weight-bold, 700);
+  line-height: var(--ux-line-height-tight, 1.25);
+}
+
+.ux-dashboard-settings-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--ux-radius-sm, 8px);
+  color: var(--ux-color-muted, #6f767a);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.ux-dashboard-settings-dialog-close:hover {
+  border-color: var(--ux-color-border, #dce8f0);
+  color: var(--ux-color-text, #1f2326);
+  background: var(--ux-color-surface-subtle, #f5faff);
+}
+
+.ux-dashboard-settings-dialog-close:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, #099bff);
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+.ux-dashboard-settings-frame {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: var(--ux-color-page, #ebf6ff);
+}
+
+@media (max-width: 720px) {
+  .ux-dashboard-settings-overlay {
+    padding: 10px;
+  }
+
+  .ux-dashboard-settings-dialog {
+    width: 100%;
+    height: calc(100dvh - 20px);
+    min-height: 0;
+    border-radius: var(--ux-radius-md, 12px);
+  }
+
+  .ux-dashboard-settings-dialog-header {
+    padding-left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-dashboard-settings-overlay,
+  .ux-dashboard-settings-dialog,
+  .ux-dashboard-settings-frame {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .ux-dashboard-settings-dialog {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .ux-dashboard-settings-dialog-header,
+  .ux-dashboard-settings-dialog-close {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

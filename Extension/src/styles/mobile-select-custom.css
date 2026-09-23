@@ -39,3 +39,15 @@
 .ms-mobile-select .ms-select-container li {
     color: #333 !important;
 }
+
+:root[data-ux-theme="dark"] .ms-mobile-select .ms-content {
+    background-color: var(--ux-color-surface) !important;
+}
+
+:root[data-ux-theme="dark"] .ms-mobile-select .ms-select-container li {
+    color: var(--ux-color-text) !important;
+}
+
+:root[data-ux-theme="dark"] .ms-mobile-select .ms-cancel {
+    color: var(--ux-color-muted);
+}

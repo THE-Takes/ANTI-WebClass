@@ -1,244 +1,388 @@
-/* download.css - Download button styles for WebClass UX Improver */
+/* Download UI owned by the extension. Keep native WebClass/PDF/video controls untouched. */
 
 :root {
-    color-scheme: light;
-    --ux-home-page-bg: #f5f5f7;
-    --ux-home-surface: #ffffff;
-    --ux-home-surface-muted: #f2f2f7;
-    --ux-home-surface-soft: #fbfbfd;
-    --ux-home-fill: rgba(120, 120, 128, 0.12);
-    --ux-home-fill-strong: rgba(120, 120, 128, 0.2);
-    --ux-home-label: #1d1d1f;
-    --ux-home-secondary-label: #6e6e73;
-    --ux-home-tertiary-label: #8e8e93;
-    --ux-home-separator: rgba(60, 60, 67, 0.18);
-    --ux-home-accent: #0a84ff;
-    --ux-home-accent-emphasis: #0077ed;
-    --ux-home-accent-soft: rgba(10, 132, 255, 0.12);
-    --ux-home-accent-softer: rgba(10, 132, 255, 0.08);
-    --ux-home-warning: #ff9f0a;
-    --ux-home-warning-soft: rgba(255, 159, 10, 0.16);
-    --ux-home-warning-foreground: #9a5b00;
-    --ux-home-purple: #bf5af2;
-    --ux-home-purple-soft: rgba(191, 90, 242, 0.14);
-    --ux-home-purple-foreground: #7a2fc7;
-    --ux-home-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  color-scheme: light;
+
+  /* The shared tokens are loaded by the course content script. Fallbacks keep
+   * this stylesheet safe when a download frame is opened in isolation. */
+  --ux-download-surface: var(--ux-color-surface, #ffffff);
+  --ux-download-surface-subtle: var(--ux-color-surface-subtle, #f5faff);
+  --ux-download-surface-muted: var(--ux-color-surface-muted, #eef5f9);
+  --ux-download-text: var(--ux-color-text, #1f2326);
+  --ux-download-muted: var(--ux-color-muted, #6f767a);
+  --ux-download-border: var(--ux-color-border, #dce8f0);
+  --ux-download-border-strong: var(--ux-color-border-strong, #bfd4e1);
+  --ux-download-border-hover: var(--ux-color-border-hover, #b1bec6);
+  --ux-download-accent: var(--ux-color-accent, #099bff);
+  --ux-download-accent-hover: var(--ux-color-accent-hover, #0789e1);
+  --ux-download-accent-active: var(--ux-color-accent-active, #0677c7);
+  --ux-download-on-accent: var(--ux-color-on-accent, #ffffff);
+  --ux-download-info: var(--ux-color-info, #1664a5);
+  --ux-download-info-surface: var(--ux-color-info-surface, #eaf4ff);
+  --ux-download-success: var(--ux-color-success, #18794e);
+  --ux-download-success-surface: var(--ux-color-success-surface, #eaf8f0);
+  --ux-download-warning: var(--ux-color-warning, #9a6500);
+  --ux-download-warning-surface: var(--ux-color-warning-surface, #fff7e5);
+  --ux-download-danger: var(--ux-color-danger, #b42318);
+  --ux-download-danger-surface: var(--ux-color-danger-surface, #fff0ee);
+  --ux-download-font: var(
+    --ux-font-family,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Yu Gothic", Meiryo, sans-serif
+  );
 }
 
 /* ============================================================
-   Download Button Group
+   Shared extension download controls
    ============================================================ */
 
 .ux-download-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: 4px;
+  align-items: center;
+  display: inline-flex;
+  gap: var(--ux-space-1, 4px);
+  margin-inline-start: var(--ux-space-1, 4px);
 }
-
-.ux-pdf-download-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: 8px;
-}
-
-/* ============================================================
-   Download Buttons Base
-   ============================================================ */
 
 .ux-download-btn {
-    --ux-download-btn-bg: var(--ux-home-surface);
-    --ux-download-btn-color: var(--ux-home-label);
-    --ux-download-btn-border: transparent;
-    --ux-download-btn-hover-bg: var(--ux-download-btn-bg);
-    --ux-download-btn-hover-color: var(--ux-download-btn-color);
-    --ux-download-btn-hover-border: var(--ux-download-btn-border);
-    padding: 4px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--ux-download-btn-border);
-    border-radius: 8px;
-    white-space: nowrap;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--ux-download-btn-bg);
-    color: var(--ux-download-btn-color);
+  --ux-download-btn-background: var(--ux-download-surface);
+  --ux-download-btn-foreground: var(--ux-download-text);
+  --ux-download-btn-border: var(--ux-download-border);
+  --ux-download-btn-hover-background: var(--ux-download-surface);
+  --ux-download-btn-hover-foreground: var(--ux-download-text);
+  --ux-download-btn-hover-border: var(--ux-download-border-hover);
+
+  align-items: center;
+  appearance: none;
+  background-color: var(--ux-download-btn-background);
+  border: 1px solid var(--ux-download-btn-border);
+  border-radius: var(--ux-radius-sm, 8px);
+  box-sizing: border-box;
+  color: var(--ux-download-btn-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--ux-download-font);
+  font-size: var(--ux-font-size-sm, 0.875rem);
+  font-weight: var(--ux-font-weight-semibold, 600);
+  gap: var(--ux-space-2, 8px);
+  justify-content: center;
+  line-height: var(--ux-line-height-tight, 1.25);
+  min-block-size: var(--ux-control-height-sm, 32px);
+  padding-block: var(--ux-space-1, 4px);
+  padding-inline: var(--ux-space-3, 12px);
+  text-decoration: none;
+  transition:
+    background-color var(--ux-motion-duration-fast, 120ms)
+      var(--ux-motion-ease-standard, ease-out),
+    border-color var(--ux-motion-duration-fast, 120ms)
+      var(--ux-motion-ease-standard, ease-out),
+    color var(--ux-motion-duration-fast, 120ms)
+      var(--ux-motion-ease-standard, ease-out);
+  user-select: none;
+  white-space: nowrap;
 }
 
-.ux-download-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--ux-home-shadow-sm);
-    background: var(--ux-download-btn-hover-bg);
-    color: var(--ux-download-btn-hover-color);
-    border-color: var(--ux-download-btn-hover-border);
+.ux-download-btn:hover:not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--ux-download-btn-hover-background);
+  border-color: var(--ux-download-btn-hover-border);
+  color: var(--ux-download-btn-hover-foreground);
 }
 
-.ux-download-btn:active {
-    transform: translateY(0);
-    box-shadow: none;
+.ux-download-btn:active:not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--ux-download-btn-hover-background);
+  border-color: var(--ux-download-btn-hover-border);
 }
 
-.ux-download-btn:disabled {
-    background: var(--ux-home-fill);
-    color: var(--ux-home-tertiary-label);
-    border-color: var(--ux-home-separator);
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+.ux-download-btn:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-download-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+.ux-download-btn:disabled,
+.ux-download-btn[aria-disabled="true"] {
+  background-color: var(--ux-download-surface-muted);
+  border-color: var(--ux-download-border);
+  color: var(--ux-download-muted);
+  cursor: wait;
+}
+
+.ux-download-btn > svg {
+  block-size: 1.1em;
+  flex: 0 0 auto;
+  inline-size: 1.1em;
+}
+
+/* The PDF viewer injects these buttons beside its native download controls. */
+#download + .ux-download-btn,
+#secondaryDownload + .ux-download-btn,
+button[data-l10n-id="download"] + .ux-download-btn {
+  margin-inline-start: var(--ux-space-2, 8px);
+}
+
+/* Inline and grouped controls already have a gap; do not add a second one. */
+.ux-download-group .ux-download-btn,
+.ux-inline-download-options .ux-download-btn {
+  margin-inline-start: 0;
 }
 
 /* ============================================================
-   Semantic Variants
-   ============================================================ */
+   Download action variants
+   ============================================================
+*/
 
 .ux-download-rename {
-    --ux-download-btn-bg: var(--ux-home-accent);
-    --ux-download-btn-color: var(--ux-home-surface);
-    --ux-download-btn-border: var(--ux-home-accent);
-    --ux-download-btn-hover-bg: var(--ux-home-accent-emphasis);
-    --ux-download-btn-hover-color: var(--ux-home-surface);
-    --ux-download-btn-hover-border: var(--ux-home-accent-emphasis);
+  --ux-download-btn-background: var(--ux-download-accent);
+  --ux-download-btn-foreground: var(--ux-download-on-accent);
+  --ux-download-btn-border: var(--ux-download-accent);
+  --ux-download-btn-hover-background: var(--ux-download-accent-hover);
+  --ux-download-btn-hover-foreground: var(--ux-download-on-accent);
+  --ux-download-btn-hover-border: var(--ux-download-accent-hover);
 }
 
 .ux-download-original {
-    --ux-download-btn-bg: var(--ux-home-surface-soft);
-    --ux-download-btn-color: var(--ux-home-accent-emphasis);
-    --ux-download-btn-border: var(--ux-home-separator);
-    --ux-download-btn-hover-bg: var(--ux-home-accent-softer);
-    --ux-download-btn-hover-color: var(--ux-home-accent-emphasis);
-    --ux-download-btn-hover-border: rgba(10, 132, 255, 0.22);
-    padding: 4px 8px;
+  --ux-download-btn-background: var(--ux-download-surface);
+  --ux-download-btn-foreground: var(--ux-download-accent-active);
+  --ux-download-btn-border: var(--ux-download-border-strong);
+  --ux-download-btn-hover-background: var(--ux-download-surface);
+  --ux-download-btn-hover-foreground: var(--ux-download-accent-active);
+  --ux-download-btn-hover-border: var(--ux-download-border-hover);
 }
 
 .ux-download-image {
-    --ux-download-btn-bg: var(--ux-home-purple-soft);
-    --ux-download-btn-color: var(--ux-home-purple-foreground);
-    --ux-download-btn-border: rgba(191, 90, 242, 0.24);
-    --ux-download-btn-hover-bg: rgba(191, 90, 242, 0.22);
-    --ux-download-btn-hover-color: var(--ux-home-purple-foreground);
-    --ux-download-btn-hover-border: rgba(191, 90, 242, 0.3);
+  --ux-download-btn-background: var(--ux-download-info-surface);
+  --ux-download-btn-foreground: var(--ux-download-info);
+  --ux-download-btn-border: var(--ux-download-border-strong);
+  --ux-download-btn-hover-background: var(--ux-download-surface-subtle);
+  --ux-download-btn-hover-foreground: var(--ux-download-info);
+  --ux-download-btn-hover-border: var(--ux-download-info);
 }
 
 .ux-download-copy {
-    --ux-download-btn-bg: var(--ux-home-warning-soft);
-    --ux-download-btn-color: var(--ux-home-warning-foreground);
-    --ux-download-btn-border: rgba(255, 159, 10, 0.24);
-    --ux-download-btn-hover-bg: rgba(255, 159, 10, 0.22);
-    --ux-download-btn-hover-color: var(--ux-home-warning-foreground);
-    --ux-download-btn-hover-border: rgba(255, 159, 10, 0.3);
+  --ux-download-btn-background: var(--ux-download-warning-surface);
+  --ux-download-btn-foreground: var(--ux-download-warning);
+  --ux-download-btn-border: var(--ux-download-warning);
+  --ux-download-btn-hover-background: var(--ux-download-warning-surface);
+  --ux-download-btn-hover-foreground: var(--ux-download-warning);
+  --ux-download-btn-hover-border: var(--ux-download-warning);
 }
 
 /* ============================================================
-   PDF Viewer Buttons
+   Download window
    ============================================================ */
 
-.ux-pdf-download-group .ux-download-rename,
-.ux-pdf-download-group .ux-download-original {
-    padding: 4px 8px;
-    font-size: 11px;
+body .ux-download-group:not(.ux-video-download-controls) {
+  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ux-space-2, 8px);
+  margin-block-start: var(--ux-space-3, 12px);
+}
+
+body .ux-download-group:not(.ux-video-download-controls) > .ux-download-btn {
+  justify-content: center;
+  width: 100%;
+}
+
+.ux-filename-text {
+  color: inherit;
+  display: block;
+  font-family: var(--ux-download-font);
+  margin-block-end: var(--ux-space-3, 12px);
+  overflow-wrap: anywhere;
 }
 
 /* ============================================================
-   Download Window Styles
+   Video shell and download progress
    ============================================================ */
 
-body .ux-download-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
+.ux-video-player-shell {
+  background-color: #000000;
+  border-radius: var(--ux-radius-md, 12px);
+  display: flex;
+  justify-content: center;
+  margin: var(--ux-space-5, 20px) auto;
+  max-inline-size: 960px;
+  overflow: hidden;
+  position: relative;
+  width: min(100%, 960px);
 }
 
-body .ux-download-group .ux-download-btn {
-    padding: 8px 16px;
-    font-size: 14px;
-    justify-content: center;
-    width: 100%;
+.ux-video-player-shell > video {
+  background-color: #000000;
+  display: block;
+  height: auto !important;
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+body .ux-video-download-controls {
+  align-items: center;
+  background-color: #1f2326;
+  border: 1px solid #3d484f;
+  border-radius: var(--ux-radius-sm, 8px);
+  display: flex;
+  flex-direction: row;
+  gap: var(--ux-space-2, 8px);
+  margin: 0;
+  padding: var(--ux-space-1, 4px);
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: auto;
+  z-index: 3;
+}
+
+body .ux-video-download-controls .ux-video-download-button {
+  border-radius: var(--ux-radius-sm, 8px);
+  block-size: 36px;
+  inline-size: 36px;
+  justify-content: center;
+  padding: 0;
+}
+
+.ux-video-download-progress {
+  background-color: #56636b;
+  border-radius: var(--ux-radius-pill, 999px);
+  block-size: 5px;
+  inline-size: 112px;
+  overflow: hidden;
+}
+
+.ux-video-download-progress[hidden] {
+  display: none;
+}
+
+.ux-video-download-progress > span {
+  background-color: var(--ux-download-accent);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width var(--ux-motion-duration-fast, 120ms) linear;
+  width: 0;
+}
+
+.ux-video-download-progress.is-indeterminate > span {
+  animation: ux-video-progress-indeterminate 1s ease-in-out infinite;
+  width: 42%;
+}
+
+.ux-video-download-controls.has-error .ux-video-download-button {
+  background-color: var(--ux-download-danger-surface);
+  border-color: var(--ux-download-danger);
+  color: var(--ux-download-danger);
+}
+
+.ux-video-download-controls.has-error .ux-video-download-progress > span {
+  background-color: var(--ux-download-danger);
+  width: 100%;
+}
+
+@keyframes ux-video-progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(280%);
+  }
 }
 
 /* ============================================================
-   Tooltip Styles
+   Filename tooltips and inline attachment/PDF actions
    ============================================================ */
 
 .ux-download-btn[title] {
-    position: relative;
+  position: relative;
 }
 
 .ux-download-btn[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 4px 8px;
-    background: var(--ux-home-label);
-    color: var(--ux-home-surface);
-    font-size: 11px;
-    border-radius: 6px;
-    white-space: nowrap;
-    margin-bottom: 4px;
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 0;
-    animation: fadeIn 0.2s ease forwards;
-    animation-delay: 0.5s;
+  background-color: var(--ux-download-text);
+  border-radius: var(--ux-radius-xs, 4px);
+  bottom: 100%;
+  color: var(--ux-download-surface);
+  content: attr(title);
+  font-family: var(--ux-download-font);
+  font-size: var(--ux-font-size-xs, 0.75rem);
+  left: 50%;
+  margin-block-end: var(--ux-space-1, 4px);
+  max-inline-size: min(28rem, calc(100vw - 24px));
+  padding-block: var(--ux-space-1, 4px);
+  padding-inline: var(--ux-space-2, 8px);
+  pointer-events: none;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: normal;
+  width: max-content;
+  z-index: var(--ux-z-popover, 1000);
 }
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* ============================================================
-   Inline Download Options
-   ============================================================ */
 
 .ux-inline-download-options {
-    display: inline-flex;
-    gap: 4px;
-    margin-left: 8px;
-    vertical-align: middle;
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--ux-space-1, 4px);
+  margin-inline-start: var(--ux-space-2, 8px);
+  vertical-align: middle;
 }
 
 .ux-inline-download-options .ux-download-btn {
-    padding: 2px 8px;
-    font-size: 13px;
-    min-width: 28px;
-    justify-content: center;
+  font-size: var(--ux-font-size-xs, 0.75rem);
+  justify-content: center;
+  min-inline-size: 30px;
+  padding-block: var(--ux-space-1, 4px);
+  padding-inline: var(--ux-space-2, 8px);
 }
 
 .ux-inline-download-options .ux-download-btn:disabled {
-    opacity: 0.7;
-    cursor: wait;
+  cursor: wait;
 }
 
 /* ============================================================
-   Responsive Adjustments
+   Responsive and accessibility adjustments
    ============================================================ */
 
 @media (max-width: 768px) {
-    .ux-download-group {
-        flex-wrap: wrap;
-    }
+  .ux-download-group {
+    flex-wrap: wrap;
+  }
 
-    .ux-download-btn {
-        font-size: 11px;
-        padding: 3px 6px;
-    }
+  .ux-download-btn {
+    font-size: var(--ux-font-size-xs, 0.75rem);
+    padding-inline: var(--ux-space-2, 8px);
+  }
 
-    .ux-inline-download-options {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 3px;
-        margin-left: 4px;
-    }
+  .ux-inline-download-options {
+    margin-inline-start: var(--ux-space-1, 4px);
+  }
 
-    .ux-inline-download-options .ux-download-btn {
-        padding: 2px 6px;
-        font-size: 11px;
-    }
+  .ux-video-download-progress {
+    inline-size: 80px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-download-btn,
+  .ux-video-download-progress > span {
+    transition-duration: 1ms;
+  }
+
+  .ux-video-download-progress.is-indeterminate > span {
+    animation-duration: 1ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .ux-download-btn,
+  .ux-video-download-controls {
+    background: ButtonFace;
+    border-color: ButtonText;
+    color: ButtonText;
+  }
+
+  .ux-download-rename,
+  .ux-download-image,
+  .ux-download-copy {
+    background: Highlight;
+    color: HighlightText;
+  }
 }

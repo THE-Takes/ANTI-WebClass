@@ -25,3 +25,36 @@
     z-index: 2147483647 !important;
     /* Max z-index */
 }
+
+:root[data-ux-theme="dark"] .flatpickr-calendar {
+    background: var(--ux-color-surface);
+    color: var(--ux-color-text);
+    border: 1px solid var(--ux-color-border);
+}
+
+:root[data-ux-theme="dark"] .flatpickr-months .flatpickr-month,
+:root[data-ux-theme="dark"] .flatpickr-months .flatpickr-prev-month,
+:root[data-ux-theme="dark"] .flatpickr-months .flatpickr-next-month,
+:root[data-ux-theme="dark"] .flatpickr-day,
+:root[data-ux-theme="dark"] .flatpickr-time input,
+:root[data-ux-theme="dark"] .flatpickr-time .flatpickr-time-separator,
+:root[data-ux-theme="dark"] .flatpickr-time .flatpickr-am-pm {
+    color: var(--ux-color-text);
+    fill: var(--ux-color-text);
+}
+
+:root[data-ux-theme="dark"] .flatpickr-day:hover,
+:root[data-ux-theme="dark"] .flatpickr-day:focus {
+    background: var(--ux-color-surface-muted);
+    border-color: var(--ux-color-border-strong);
+}
+
+:root[data-ux-theme="dark"] .flatpickr-day.prevMonthDay,
+:root[data-ux-theme="dark"] .flatpickr-day.nextMonthDay,
+:root[data-ux-theme="dark"] .flatpickr-weekday {
+    color: var(--ux-color-muted);
+}
+
+:root[data-ux-theme="dark"] .flatpickr-time {
+    border-color: var(--ux-color-border);
+}

@@ -3,12 +3,167 @@
 // Included as the first js file within each content_scripts entry.
 // Uses var/function so it can safely be loaded multiple times on the same page.
 
-var uxDebugModeState = uxDebugModeState || { enabled: false };
+var uxDebugModeState = globalThis.uxDebugModeState || { enabled: false };
+globalThis.uxDebugModeState = uxDebugModeState;
+var uxDebugModeListeners = globalThis.uxDebugModeListeners || new Set();
+globalThis.uxDebugModeListeners = uxDebugModeListeners;
+var uxDebugModeStorageRevision = globalThis.uxDebugModeStorageRevision || 0;
+globalThis.uxDebugModeStorageRevision = uxDebugModeStorageRevision;
 
 var STORAGE_KEY_EXTENSION_VISUAL_ENABLED = 'extensionVisualEnabled';
 var PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = 'webclass_ux_master_enabled';
+var UX_MESSAGE_BADGE_STORAGE_KEY = 'webclass_messages';
+var UX_MESSAGE_BADGE_STORAGE_VERSION = 2;
 var UX_SESSION_EXPIRED_POPUP_ID = 'webclass-ux-session-expired-popup';
 var UX_SESSION_EXPIRED_STYLE_ID = 'webclass-ux-session-expired-style';
+
+if (!globalThis.uxThemeInitialized) {
+    globalThis.uxThemeInitialized = true;
+    const themeMedia = matchMedia('(prefers-color-scheme: dark)');
+    const themeTransitionClass = 'ux-theme-transitioning';
+    const themeTransitionDurationMs = 1000;
+    let appearanceTheme = 'light';
+    let themeTransitionTimer = null;
+    const applyAppearanceTheme = (animate = false) => {
+        const root = document.documentElement;
+        if (!root) return;
+        const dark = appearanceTheme === 'dark'
+            || (appearanceTheme === 'system' && themeMedia.matches);
+        const nextTheme = dark ? 'dark' : 'light';
+        if (root.dataset.uxTheme === nextTheme) return;
+
+        if (animate && ['light', 'dark'].includes(root.dataset.uxTheme)) {
+            root.classList.add(themeTransitionClass);
+            clearTimeout(themeTransitionTimer);
+            themeTransitionTimer = setTimeout(() => {
+                root.classList.remove(themeTransitionClass);
+                themeTransitionTimer = null;
+            }, themeTransitionDurationMs);
+        }
+
+        root.dataset.uxTheme = nextTheme;
+    };
+
+    chrome.storage.local.get({ appearanceTheme: 'light' }, (items) => {
+        appearanceTheme = ['light', 'dark', 'system'].includes(items.appearanceTheme)
+            ? items.appearanceTheme
+            : 'light';
+        applyAppearanceTheme();
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !changes.appearanceTheme) return;
+        appearanceTheme = changes.appearanceTheme.newValue;
+        applyAppearanceTheme(true);
+    });
+    themeMedia.addEventListener('change', () => applyAppearanceTheme(true));
+    document.addEventListener('DOMContentLoaded', applyAppearanceTheme, { once: true });
+    window.addEventListener('load', applyAppearanceTheme, { once: true });
+}
+
+// Shared compact language-change icon used by the course and home headers.
+var UX_LANGUAGE_CHANGE_ICON_MARKUP = `
+  <path d="m2 11 4-9 4 9M3.3 8h5.4"></path>
+  <path d="M21 9V7a2 2 0 0 0-2-2h-5m2.5-2.5L14 5l2.5 2.5"></path>
+  <path d="M3 15v2a2 2 0 0 0 2 2h5m-2.5-2.5L10 19l-2.5 2.5"></path>
+  <path d="M17.5 12v2M13 14h9M20 14c-.8 4-3.2 6.5-7 8M15 16c1.2 2.8 3.5 4.8 7 6"></path>
+`;
+
+function normalizeUxMessageUnreadCount(value) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.max(0, Math.floor(value));
+    }
+
+    const text = String(value ?? '').replace(/,/g, '').trim();
+    if (!text) return null;
+
+    const match = text.match(/\d+/);
+    if (!match) return null;
+    return Math.max(0, Number.parseInt(match[0], 10));
+}
+
+function getUxInboxUnreadMessageCount(doc = document) {
+    const table = doc?.querySelector?.('#MsgListTable');
+    if (!table) return null;
+
+    return Array.from(table.querySelectorAll('tbody tr'))
+        .filter((row) => row.querySelector('b') !== null)
+        .length;
+}
+
+async function fetchUxInboxUnreadMessageCount(messageUrl) {
+    if (!messageUrl || typeof fetch !== 'function' || typeof DOMParser !== 'function') {
+        return null;
+    }
+
+    try {
+        const response = await fetch(messageUrl, { credentials: 'same-origin' });
+        if (!response.ok) return null;
+
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        return getUxInboxUnreadMessageCount(doc);
+    } catch {
+        return null;
+    }
+}
+
+async function getUxStoredMessageUnreadState(fallback = null) {
+    try {
+        const data = await chrome.storage.local.get([UX_MESSAGE_BADGE_STORAGE_KEY]);
+        const state = data?.[UX_MESSAGE_BADGE_STORAGE_KEY];
+        return state && typeof state === 'object' ? state : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+async function setUxStoredMessageUnreadCount(unreadCount, metadata = {}) {
+    const normalizedCount = normalizeUxMessageUnreadCount(unreadCount);
+    if (normalizedCount === null) return false;
+
+    try {
+        const existing = await chrome.storage.local.get([UX_MESSAGE_BADGE_STORAGE_KEY]);
+        const previous = existing?.[UX_MESSAGE_BADGE_STORAGE_KEY];
+        const nextState = previous && typeof previous === 'object' ? previous : {};
+        await chrome.storage.local.set({
+            [UX_MESSAGE_BADGE_STORAGE_KEY]: {
+                ...nextState,
+                ...metadata,
+                version: UX_MESSAGE_BADGE_STORAGE_VERSION,
+                unreadCount: normalizedCount,
+                fetchedAt: new Date().toISOString(),
+            },
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function onUxMessageUnreadCountChange(listener) {
+    if (typeof listener !== 'function') return () => { };
+
+    const handleChange = (changes, areaName) => {
+        if (areaName !== 'local' || !changes?.[UX_MESSAGE_BADGE_STORAGE_KEY]) return;
+        const nextCount = normalizeUxMessageUnreadCount(
+            changes[UX_MESSAGE_BADGE_STORAGE_KEY].newValue?.unreadCount,
+        );
+        try {
+            listener(nextCount);
+        } catch { }
+    };
+
+    try {
+        chrome.storage.onChanged.addListener(handleChange);
+        return () => {
+            try {
+                chrome.storage.onChanged.removeListener(handleChange);
+            } catch { }
+        };
+    } catch {
+        return () => { };
+    }
+}
 
 function syncUxMasterStateToPage(enabled) {
     var normalized = enabled ? '1' : '0';
@@ -21,6 +176,68 @@ function syncUxMasterStateToPage(enabled) {
         localStorage.setItem(PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED, normalized);
     } catch { }
 }
+
+function setUxDebugModeEnabled(enabled) {
+    var nextEnabled = !!enabled;
+    var didChange = uxDebugModeState.enabled !== nextEnabled;
+    uxDebugModeState.enabled = nextEnabled;
+    try {
+        if (document && document.documentElement) {
+            document.documentElement.dataset.webclassUxDebugMode = uxDebugModeState.enabled ? '1' : '0';
+        }
+    } catch { }
+    if (didChange) {
+        uxDebugModeListeners.forEach((listener) => {
+            try {
+                listener(uxDebugModeState.enabled);
+            } catch { }
+        });
+    }
+}
+
+function onUxSharedDebugModeChange(listener) {
+    if (typeof listener !== 'function') return () => { };
+    uxDebugModeListeners.add(listener);
+    try {
+        listener(uxDebugModeState.enabled);
+    } catch { }
+    return () => uxDebugModeListeners.delete(listener);
+}
+
+function initializeUxSharedState() {
+    if (globalThis.__webclassUxSharedStateInitialized) return;
+    globalThis.__webclassUxSharedStateInitialized = true;
+
+    try {
+        chrome.storage.local.get({
+            debugModeEnabled: false,
+            [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true
+        }, (items) => {
+            if (uxDebugModeStorageRevision > 0) return;
+            setUxDebugModeEnabled(items.debugModeEnabled);
+            syncUxMasterStateToPage(items[STORAGE_KEY_EXTENSION_VISUAL_ENABLED] !== false);
+        });
+
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName !== 'local') return;
+            if (Object.prototype.hasOwnProperty.call(changes, 'debugModeEnabled')) {
+                uxDebugModeStorageRevision += 1;
+                globalThis.uxDebugModeStorageRevision = uxDebugModeStorageRevision;
+                setUxDebugModeEnabled(changes.debugModeEnabled.newValue);
+            }
+            if (changes[STORAGE_KEY_EXTENSION_VISUAL_ENABLED]) {
+                syncUxMasterStateToPage(
+                    changes[STORAGE_KEY_EXTENSION_VISUAL_ENABLED].newValue !== false
+                );
+            }
+        });
+    } catch {
+        setUxDebugModeEnabled(false);
+        syncUxMasterStateToPage(true);
+    }
+}
+
+initializeUxSharedState();
 
 function uxDebugLog(...args) {
     if (!uxDebugModeState.enabled) return;
@@ -67,7 +284,6 @@ function ensureUxSessionExpiredStyles(targetDocument) {
             border-radius: 16px;
             background: #ffffff;
             color: #0f172a;
-            box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
             text-align: center;
         }
         #${UX_SESSION_EXPIRED_POPUP_ID} .webclass-ux-session-icon {

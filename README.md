@@ -1,14 +1,16 @@
 # ANTI-WebClass
 
-`ANTI-WebClass-dev` は、神奈川大学の WebClass (`https://kulms.kanagawa-u.ac.jp/webclass/*`) を対象にした Google Chrome / Chromium 向け Manifest V3 拡張機能です。
+`ANTI-WebClass` は、神奈川大学の WebClass (`https://kulms.kanagawa-u.ac.jp/webclass/*`) を対象にした Google Chrome / Chromium 向け Manifest V3 拡張機能です。
 
-現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.3.2` です。
+現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.4.0` です。
 
 ## 現在の実装内容
 
 ### 1. ホーム画面のダッシュボード化
 
 - `Plain` と `Switch View 2 (Dashboard View)` の切り替え
+- ライト・ダーク・システム連動テーマ
+- 同じページ内で開く設定パネル
 - 表示モード切替ショートカットの設定
 - 時間割の表示範囲設定、当日列・現在コマのハイライト
 - 課題一覧 (`My TODOs`) と件数サマリー表示
@@ -18,25 +20,22 @@
 - WebClass 右上のユーザーアイコンのカスタマイズ
 - セッション切れ検知時の再読み込み案内
 
-### 2. コース名の短縮・表示調整
+### 2. コース名の表示調整
 
 - 手動のカスタムコース名
-- ルールベースの短縮
-- LLM ベースの短縮
-  - OpenAI
-  - Groq
-- ダッシュボード読み込み時の自動変換
-- 設定画面からの手動再実行
-- 短縮名キャッシュの保存とクリア
+- 短縮名を使った時間割・コース一覧表示
+- OpenAI / Groq によるコース名短縮は削除しました。旧設定の認証情報も削除されます。
 
 ### 3. 課題収集と ToDo 同期
 
 - WebClass から課題を取得してローカル保存
 - Smart ToDo と外部 ToDo サービスの同期
-- 現在の設定画面で表示している外部 ToDo 連携先は TickTick
+- TickTick と Appleリマインダー（macOS限定・専用補助アプリが必要）に対応
 - バックグラウンドでの定期同期
 - タイトル形式や短縮コース名マッピングの設定
-- Microsoft To Do、Google Tasks、Todoist 関連の実装とホスト権限は、既存データの移行・互換処理を含むコードパスとして残っていますが、現在の設定画面では非表示です。
+- 課題取得の再試行、通信失敗時の既存データ保護、コース遷移時の取得停止
+- Microsoft To Do、Google Tasks、Todoist の旧連携用ホスト権限は削除しました。
+- Appleリマインダー用補助アプリはこのリポジトリ・配布ZIPに含まれません。拡張機能単体では利用できません。
 
 ### 4. 資料ページ・ダウンロード改善
 
@@ -76,9 +75,8 @@
 
 | 用途 | サービス | 必要な設定 |
 | --- | --- | --- |
-| コース名短縮 | OpenAI | API キー、モデル |
-| コース名短縮 | Groq | API キー、モデル |
-| ToDo 同期 | TickTick | Client ID / Client Secret / 専用プロジェクト名 |
+| ToDo 同期 | TickTick | Client ID / Client Secret（専用プロジェクトは WebClass） |
+| ToDo 同期 | Appleリマインダー | macOS 14以降、専用補助アプリ、接続許可 |
 | 更新確認 | GitHub Releases | ユーザー設定不要 |
 
 ## 権限とアクセス先
@@ -90,29 +88,21 @@
 - `storage`: 設定、課題、キャッシュ、暗号化済みローカル値の保存
 - `downloads`: 資料、PDF、動画などのダウンロードとファイル名調整
 - `tabs`: WebClass タブの検出、設定画面からの遷移、同期対象タブの探索
-- `identity`: TickTick OAuth と既存 ToDo 連携コードの OAuth フロー
+- `identity`: TickTick OAuth
 - `alarms`: ToDo 定期同期と GitHub Releases 更新確認
 - `notifications`: 更新通知の表示
+- `nativeMessaging`（任意）: Appleリマインダー用補助アプリとの通信。接続時に要求します。
 
 ### ホスト権限
 
 - WebClass 本体: `https://kulms.kanagawa-u.ac.jp/*`
 - ローカル検証用 WebClass: `http://127.0.0.1/*`, `http://localhost/*`
 - 更新確認: `https://api.github.com/*`
-- LLM API: `https://api.openai.com/*`, `https://api.groq.com/*`
-- ToDo/OAuth 連携:
-  - `https://graph.microsoft.com/*`
-  - `https://login.microsoftonline.com/*`
-  - `https://accounts.google.com/*`
-  - `https://oauth2.googleapis.com/*`
-  - `https://tasks.googleapis.com/*`
-  - `https://api.todoist.com/*`
-  - `https://ticktick.com/*`
-  - `https://api.ticktick.com/*`
+- TickTick / OAuth: `https://ticktick.com/*`, `https://api.ticktick.com/*`
 
 ## インストール
 
-1. このリポジトリを取得します。
+1. [最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) の `ANTI-WebClass-ver.0.4.0.zip` をダウンロードして展開するか、このリポジトリを取得します。
 2. Chrome または Chromium で `chrome://extensions/` を開きます。
 3. 右上の「デベロッパーモード」を有効にします。
 4. 「パッケージ化されていない拡張機能を読み込む」から [`Extension`](./Extension) を選択します。
@@ -122,7 +112,7 @@
 - [`Extension/manifest.json`](./Extension/manifest.json): 拡張機能マニフェスト
 - [`Extension/src/home.js`](./Extension/src/home.js): ホーム画面ダッシュボード、Smart ToDo 表示
 - [`Extension/src/course.js`](./Extension/src/course.js): コース/資料/試験/動画/ダウンロード改善
-- [`Extension/src/background.js`](./Extension/src/background.js): ダウンロード処理、OAuth、ToDo 同期、LLM 呼び出し、更新確認
+- [`Extension/src/background.js`](./Extension/src/background.js): ダウンロード処理、OAuth、ToDo 同期、更新確認
 - [`Extension/src/options.html`](./Extension/src/options.html), [`Extension/src/options.js`](./Extension/src/options.js): 設定 UI
 - [`Extension/src/login.js`](./Extension/src/login.js): 自動ログイン
 - [`Extension/src/scraper.js`](./Extension/src/scraper.js): 課題収集
@@ -137,8 +127,8 @@
 - 対応ブラウザは Chrome / Chromium 系を前提としています。
 - 対象サイトは神奈川大学の WebClass に固定されています。
 - 本拡張機能は非公式です。神奈川大学および WebClass 提供元とは無関係です。
-- 自動ログイン、LLM API、外部 ToDo 連携を使う場合は、信頼できる個人端末での利用を前提にしてください。
-- API キー、Client Secret、OAuth トークンなどの機密値はブラウザ内に保存されます。一部は `chrome.storage.session` または `IndexedDB + Web Crypto (AES-GCM)` により保護されます。
+- 自動ログイン、外部 ToDo 連携を使う場合は、信頼できる個人端末での利用を前提にしてください。
+- パスワード、Client Secret、OAuth トークンなどの機密値はブラウザ内に保存されます。一部は `chrome.storage.session` または `IndexedDB + Web Crypto (AES-GCM)` により保護されます。
 - ローカルホスト向けの権限は開発・検証用途です。
 
 ## License

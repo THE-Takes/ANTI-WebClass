@@ -3,86 +3,7 @@
  * コース一覧と課題を取得するロジック
  */
 
-// uxDebugModeState, uxDebugLog, uxDebugWarn, syncUxMasterStateToPage,
-// STORAGE_KEY_EXTENSION_VISUAL_ENABLED, PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED
-// are declared in shared.js (loaded before this file).
-// Fallbacks are provided to avoid hard failure if shared.js is not available.
-var uxDebugModeState = globalThis.uxDebugModeState || { enabled: false };
-globalThis.uxDebugModeState = uxDebugModeState;
-
-var uxDebugLog = typeof globalThis.uxDebugLog === 'function'
-    ? globalThis.uxDebugLog
-    : function (...args) {
-        if (!uxDebugModeState.enabled) return;
-        console.log(...args);
-    };
-if (typeof globalThis.uxDebugLog !== 'function') {
-    globalThis.uxDebugLog = uxDebugLog;
-}
-
-var uxDebugWarn = typeof globalThis.uxDebugWarn === 'function'
-    ? globalThis.uxDebugWarn
-    : function (...args) {
-        if (!uxDebugModeState.enabled) return;
-        console.warn(...args);
-    };
-if (typeof globalThis.uxDebugWarn !== 'function') {
-    globalThis.uxDebugWarn = uxDebugWarn;
-}
-
-var PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = typeof globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED === 'string'
-    ? globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED
-    : 'webclass_ux_master_enabled';
-if (typeof globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED !== 'string') {
-    globalThis.PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED = PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED;
-}
-
-var syncUxMasterStateToPage = typeof globalThis.syncUxMasterStateToPage === 'function'
-    ? globalThis.syncUxMasterStateToPage
-    : function (enabled) {
-        const normalized = enabled ? '1' : '0';
-        try {
-            if (document && document.documentElement) {
-                document.documentElement.dataset.webclassUxMasterEnabled = normalized;
-            }
-        } catch {
-            // ignore
-        }
-        try {
-            localStorage.setItem(PAGE_STORAGE_KEY_EXTENSION_VISUAL_ENABLED, normalized);
-        } catch {
-            // ignore
-        }
-    };
-if (typeof globalThis.syncUxMasterStateToPage !== 'function') {
-    globalThis.syncUxMasterStateToPage = syncUxMasterStateToPage;
-}
-
-(() => {
-    try {
-        chrome.storage.local.get({ debugModeEnabled: false, extensionVisualEnabled: true }, (items) => {
-            uxDebugModeState.enabled = !!items.debugModeEnabled;
-            syncUxMasterStateToPage(items.extensionVisualEnabled !== false);
-            if (document && document.documentElement) {
-                document.documentElement.dataset.webclassUxDebugMode = uxDebugModeState.enabled ? '1' : '0';
-            }
-        });
-        chrome.storage.onChanged.addListener((changes, areaName) => {
-            if (areaName !== 'local') return;
-            if (changes.debugModeEnabled) {
-                uxDebugModeState.enabled = !!changes.debugModeEnabled.newValue;
-                if (document && document.documentElement) {
-                    document.documentElement.dataset.webclassUxDebugMode = uxDebugModeState.enabled ? '1' : '0';
-                }
-            }
-            if (changes.extensionVisualEnabled) {
-                syncUxMasterStateToPage(changes.extensionVisualEnabled.newValue !== false);
-            }
-        });
-    } catch {
-        uxDebugModeState.enabled = false;
-    }
-})();
+// Shared debug and visibility state is initialized by shared.js.
 
 const STORAGE_KEY_CUSTOM_COURSE_NAMES = 'webclass_custom_course_names';
 
@@ -126,6 +47,170 @@ function looksLikeLoginOrSessionPage(html) {
         || html.includes('再度ログイン') || html.includes('ログインしなおし');
 }
 
+function normalizeScraperText(value) {
+    return typeof value === 'string'
+        ? value.replace(/\s+/g, ' ').trim()
+        : '';
+}
+
+function resolveScraperUrl(href, baseUrl) {
+    const rawHref = normalizeScraperText(href);
+    if (!rawHref || rawHref === '#' || /^javascript:/i.test(rawHref)) return null;
+
+    try {
+        return new URL(rawHref, baseUrl).href;
+    } catch {
+        return null;
+    }
+}
+
+function getContentsItemTitle(item) {
+    const titleElement = item.querySelector('.cm-contentsList_contentName');
+    if (!titleElement) return '';
+
+    // The current WebClass layout renders locked content names as a div,
+    // while an open item may render the name inside an anchor. Remove the
+    // badge before reading text so "Newfunc prog 1" becomes "func prog 1".
+    const titleClone = titleElement.cloneNode(true);
+    titleClone
+        .querySelectorAll('.cl-contentsList_new, .cm-contentsList_new')
+        .forEach((badge) => badge.remove());
+    return normalizeScraperText(titleClone.textContent);
+}
+
+function findContentsDetailUrl(item, baseUrl) {
+    const candidates = item.querySelectorAll(
+        '.cl-contentsList_contentDetailListItemData a[href], '
+        + '.cm-contentsList_contentDetailListItemData a[href], '
+        + 'a[href*="/contents/"]'
+    );
+
+    for (const candidate of candidates) {
+        const href = candidate.getAttribute('href');
+        if (!href || /history/i.test(href)) continue;
+
+        const resolvedUrl = resolveScraperUrl(href, baseUrl);
+        if (resolvedUrl && /\/contents\//i.test(resolvedUrl)) {
+            return resolvedUrl;
+        }
+    }
+
+    return null;
+}
+
+function isNonAssignmentCategory(category) {
+    const normalizedCategory = normalizeScraperText(category).replace(/\s+/g, '');
+    return normalizedCategory.startsWith('資料') || normalizedCategory.startsWith('リンク');
+}
+
+function isEmptyContentsDocument(doc) {
+    if (!doc.querySelector('.cm-contentsList')) return false;
+
+    return Array.from(doc.querySelectorAll('.cm-contentsList p, #js-contents p'))
+        .some((paragraph) => normalizeScraperText(paragraph.textContent).includes('教材がありません'));
+}
+
+class AssignmentFetchError extends Error {
+    constructor(courseName, url, cause) {
+        let path = '';
+        try {
+            path = new URL(url).pathname;
+        } catch {
+            path = '(invalid URL)';
+        }
+
+        super(`[Scraper] ${courseName} の課題取得に失敗しました: ${path}`);
+        this.name = 'AssignmentFetchError';
+        this.courseName = courseName;
+        this.isAssignmentFetchFailed = true;
+        this.cause = cause;
+    }
+}
+
+class AssignmentFetchStoppedError extends Error {
+    constructor() {
+        super('[Scraper] 課題取得をページ遷移のため停止しました。');
+        this.name = 'AssignmentFetchStoppedError';
+        this.isAssignmentFetchStopped = true;
+    }
+}
+
+function throwIfAssignmentUpdateCancelled(updateRun) {
+    if (updateRun?.cancelled) {
+        throw new AssignmentFetchStoppedError();
+    }
+}
+
+function waitForScraperDelay(delayMs, updateRun = null) {
+    throwIfAssignmentUpdateCancelled(updateRun);
+
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            if (updateRun?.cancelPendingDelay === cancel) {
+                updateRun.cancelPendingDelay = null;
+            }
+            resolve();
+        }, delayMs);
+
+        const cancel = () => {
+            clearTimeout(timer);
+            if (updateRun?.cancelPendingDelay === cancel) {
+                updateRun.cancelPendingDelay = null;
+            }
+            reject(new AssignmentFetchStoppedError());
+        };
+
+        if (updateRun) {
+            updateRun.cancelPendingDelay = cancel;
+        }
+    });
+}
+
+async function fetchScraperPage(url, courseName, updateRun = null) {
+    const maxAttempts = 3;
+    const retryDelays = [400, 1000];
+    let lastError = null;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        throwIfAssignmentUpdateCancelled(updateRun);
+
+        try {
+            const response = await fetch(url, {
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                await response.text();
+                throwIfAssignmentUpdateCancelled(updateRun);
+                const httpError = new Error(`HTTP ${response.status} ${response.statusText}`);
+                const retryableStatus = response.status === 429 || response.status >= 500;
+                if (!retryableStatus || attempt === maxAttempts - 1) {
+                    throw new AssignmentFetchError(courseName, url, httpError);
+                }
+                lastError = httpError;
+            } else {
+                const text = await response.text();
+                throwIfAssignmentUpdateCancelled(updateRun);
+                return text;
+            }
+        } catch (error) {
+            if (updateRun?.cancelled) throw new AssignmentFetchStoppedError();
+            if (error?.isAssignmentFetchFailed) throw error;
+
+            const retryableNetworkError = error instanceof TypeError || error?.name === 'AbortError';
+            if (!retryableNetworkError || attempt === maxAttempts - 1) {
+                throw new AssignmentFetchError(courseName, url, error);
+            }
+            lastError = error;
+        }
+
+        await waitForScraperDelay(retryDelays[attempt], updateRun);
+    }
+
+    throw new AssignmentFetchError(courseName, url, lastError);
+}
+
 const Scraper = {
 
     /**
@@ -133,6 +218,18 @@ const Scraper = {
      */
     _customNamesCache: null,
     _updateAllAssignmentsPromise: null,
+    _activeAssignmentUpdateRun: null,
+    _courseNavigationRequested: false,
+
+    stopAssignmentUpdateForNavigation: () => {
+        Scraper._courseNavigationRequested = true;
+        const updateRun = Scraper._activeAssignmentUpdateRun;
+        if (!updateRun) return null;
+
+        updateRun.cancelled = true;
+        updateRun.cancelPendingDelay?.();
+        return updateRun.completion || Promise.resolve();
+    },
 
     /**
      * カスタムコース名を読み込む
@@ -312,18 +409,13 @@ const Scraper = {
      * @param {string} courseName - 短縮コース名
      * @param {string} courseFullName - 正式コース名
      */
-    fetchAssignments: async (courseUrl, courseName, courseFullName = null) => {
+    fetchAssignments: async (courseUrl, courseName, courseFullName = null, updateRun = null) => {
         try {
+            throwIfAssignmentUpdateCancelled(updateRun);
             uxDebugLog(`[Scraper] 課題を取得中: ${courseName}`);
             uxDebugLog(`[Scraper] URL: ${courseUrl}`);
 
-            const response = await fetch(courseUrl);
-            if (!response.ok) {
-                console.error(`[Scraper] HTTPエラー: ${response.status} ${response.statusText}`);
-                return [];
-            }
-
-            let text = await response.text();
+            let text = await fetchScraperPage(courseUrl, courseName, updateRun);
             uxDebugLog(`[Scraper] HTMLを取得しました (サイズ: ${text.length} bytes)`);
             uxDebugLog(`[Scraper] HTML冒頭サンプル:`, text.substring(0, 200));
 
@@ -344,12 +436,7 @@ const Scraper = {
                 uxDebugLog(`[Scraper] リダイレクト先: ${redirectUrl}`);
 
                 // リダイレクト先に再度アクセス
-                const redirectResponse = await fetch(redirectUrl);
-                if (!redirectResponse.ok) {
-                    console.error(`[Scraper] リダイレクト先HTTPエラー: ${redirectResponse.status}`);
-                    return [];
-                }
-                text = await redirectResponse.text();
+                text = await fetchScraperPage(redirectUrl, courseName, updateRun);
                 uxDebugLog(`[Scraper] リダイレクト先HTMLを取得 (サイズ: ${text.length} bytes)`);
 
                 // セッション切れ検知: リダイレクト先がログインページの場合
@@ -372,12 +459,7 @@ const Scraper = {
                     if (frameSrc) {
                         const frameUrl = new URL(frameSrc, courseUrl).href;
                         uxDebugLog(`[Scraper] コンテンツフレームにリダイレクト: ${frameUrl}`);
-                        const frameResponse = await fetch(frameUrl);
-                        if (!frameResponse.ok) {
-                            console.error(`[Scraper] フレームHTTPエラー: ${frameResponse.status}`);
-                            return [];
-                        }
-                        const frameText = await frameResponse.text();
+                        const frameText = await fetchScraperPage(frameUrl, courseName, updateRun);
 
                         // セッション切れ検知: フレーム内容がログインページの場合
                         if (looksLikeLoginOrSessionPage(frameText)) {
@@ -407,34 +489,26 @@ const Scraper = {
                 listItems.forEach(item => {
                     // カテゴリ取得 (試験, レポート, 資料, etc.)
                     const categoryEl = item.querySelector('.cl-contentsList_categoryLabel');
-                    const category = categoryEl ? categoryEl.textContent.trim() : 'Unknown';
+                    const category = categoryEl ? normalizeScraperText(categoryEl.textContent) : 'Unknown';
 
                     // 「資料」「リンク」などはスキップ
-                    if (category === '資料' || category === 'リンク') return;
+                    if (isNonAssignmentCategory(category)) return;
 
-                    // タイトルとリンク
-                    const titleEl = item.querySelector('.cm-contentsList_contentName a');
-                    // Newバッジなどでaタグが直下じゃない場合も考慮して探す
-
-                    if (!titleEl) return;
-
-                    let title = titleEl.textContent.trim();
-                    const titleHref = titleEl.getAttribute('href');
-                    // 相対パスの場合があるので絶対パスに変換
-                    const doContentsUrl = new URL(titleHref, courseUrl).href; // courseUrlがベースになるが、リダイレクト後のURLの方が正確かも
-
-                    // course.php/.../contents/... 形式のリンクがあれば優先して使用（セッションエラー回避）
-                    let detailUrl = null;
-                    const detailCandidates = item.querySelectorAll('.cl-contentsList_contentDetailListItemData a[href*="course.php"][href*="/contents/"]');
-                    for (const candidate of detailCandidates) {
-                        const candidateHref = candidate.getAttribute('href');
-                        if (candidateHref && !candidateHref.includes('history')) {
-                            detailUrl = new URL(candidateHref, courseUrl).href;
-                            break;
-                        }
-                    }
+                    // The title can be a link or a plain div when the content is
+                    // not open yet. In the latter case use the separate detail
+                    // link as the assignment URL.
+                    const titleContainer = item.querySelector('.cm-contentsList_contentName');
+                    const titleLink = titleContainer?.querySelector('a[href]');
+                    const title = getContentsItemTitle(item);
+                    const doContentsUrl = resolveScraperUrl(titleLink?.getAttribute('href'), courseUrl);
+                    const detailUrl = findContentsDetailUrl(item, courseUrl);
 
                     const preferredUrl = detailUrl || doContentsUrl;
+
+                    if (!title || !preferredUrl) {
+                        uxDebugLog('[Scraper] タイトルまたは教材URLがないためアイテムをスキップしました:', item);
+                        return;
+                    }
 
                     // 期限情報の抽出
                     let deadline = null;
@@ -511,7 +585,7 @@ const Scraper = {
                         sourceTitle: title,
                         titleEdited: false,
                         url: preferredUrl,
-                        fallbackUrl: doContentsUrl,
+                        fallbackUrl: doContentsUrl || preferredUrl,
                         deadline: deadline || "期限なし",
                         originalDeadline: deadline || "期限なし",  // 初期設定期限（ユーザー変更しても保持）
                         category: category,
@@ -526,13 +600,21 @@ const Scraper = {
                 });
 
             } else {
-                // --- 旧ロジック (フォールバック) ---
-                uxDebugWarn(`[Scraper] リストアイテムが見つかりませんでした。フォールバックロジックを試行...`);
-                uxDebugLog(`[Scraper] HTML構造の確認:`);
-                uxDebugLog(`[Scraper] - body要素: ${doc.body ? 'あり' : 'なし'}`);
-                uxDebugLog(`[Scraper] - container要素: ${doc.querySelector('.container') ? 'あり' : 'なし'}`);
-                uxDebugLog(`[Scraper] - list-group要素: ${doc.querySelectorAll('.list-group').length}個`);
-                // ... (省略、必要なら以前のコードを維持)
+                if (isEmptyContentsDocument(doc)) {
+                    // "教材がありません" is a valid empty course, not a
+                    // parser failure and should not appear in extension errors.
+                    uxDebugLog(`[Scraper] ${courseName} は教材なしとして扱います`);
+                } else {
+                    // A successful course response can omit the list entirely
+                    // when it has no published content yet. Keep this as a
+                    // debug message; console.warn makes Chrome report it as an
+                    // extension error even though the fetch itself succeeded.
+                    uxDebugLog(`[Scraper] ${courseName} は教材リスト0件として扱います`);
+                    uxDebugLog(`[Scraper] HTML構造の確認:`);
+                    uxDebugLog(`[Scraper] - body要素: ${doc.body ? 'あり' : 'なし'}`);
+                    uxDebugLog(`[Scraper] - container要素: ${doc.querySelector('.container') ? 'あり' : 'なし'}`);
+                    uxDebugLog(`[Scraper] - list-group要素: ${doc.querySelectorAll('.list-group').length}個`);
+                }
             }
 
             uxDebugLog(`[Scraper] ${courseName} から ${assignments.length} 件の課題を取得しました`);
@@ -542,10 +624,10 @@ const Scraper = {
             return assignments;
 
         } catch (error) {
-            if (error instanceof SessionDroppedError) throw error; // 呼び出し側（取得ループ）で処理する
+            if (error instanceof SessionDroppedError || error?.isAssignmentFetchFailed || error?.isAssignmentFetchStopped) {
+                throw error; // The update loop must preserve stored assignments on incomplete fetches.
+            }
             console.error(`[Scraper] ${courseName} の課題取得に失敗:`, error);
-            console.error(`[Scraper] エラー詳細:`, error.message);
-            console.error(`[Scraper] スタックトレース:`, error.stack);
             return [];
         }
     },
@@ -583,23 +665,46 @@ const Scraper = {
     /**
      * 全コースの課題を一括取得して保存する
      */
-    updateAllAssignments: async () => {
+    updateAllAssignments: async ({ allowAfterNavigation = false } = {}) => {
         if (Scraper._updateAllAssignmentsPromise) {
             uxDebugLog('[Scraper] 既存の課題取得処理を再利用します。');
             return Scraper._updateAllAssignmentsPromise;
         }
 
-        Scraper._updateAllAssignmentsPromise = Scraper._updateAllAssignmentsInternal();
+        if (Scraper._courseNavigationRequested && !allowAfterNavigation) {
+            const stored = await chrome.storage.local.get(['assignments']);
+            return stored.assignments || [];
+        }
+
+        if (allowAfterNavigation) {
+            Scraper._courseNavigationRequested = false;
+        }
+
+        let completeUpdateRun;
+        const updateRun = {
+            cancelled: false,
+            cancelPendingDelay: null,
+            completion: new Promise((resolve) => {
+                completeUpdateRun = resolve;
+            })
+        };
+        Scraper._activeAssignmentUpdateRun = updateRun;
+        Scraper._updateAllAssignmentsPromise = Scraper._updateAllAssignmentsInternal(updateRun);
         try {
             return await Scraper._updateAllAssignmentsPromise;
         } finally {
+            if (Scraper._activeAssignmentUpdateRun === updateRun) {
+                Scraper._activeAssignmentUpdateRun = null;
+            }
             Scraper._updateAllAssignmentsPromise = null;
+            completeUpdateRun();
         }
     },
 
-    _updateAllAssignmentsInternal: async () => {
+    _updateAllAssignmentsInternal: async (updateRun) => {
         // カスタムコース名を先に読み込む
         await Scraper.loadCustomCourseNames();
+        throwIfAssignmentUpdateCancelled(updateRun);
 
         // 既存の課題とチェック状態を取得
         const existingData = await new Promise(resolve => {
@@ -627,13 +732,21 @@ const Scraper = {
             if (assignment.localOnly === true) return true;
 
             const category = normalizeCategory(assignment.category);
+            const debugTodoTarget = normalizeCategory(assignment.debugTodoTarget);
             const url = typeof assignment.url === 'string' ? assignment.url : '';
             const fallbackUrl = typeof assignment.fallbackUrl === 'string' ? assignment.fallbackUrl : '';
 
-            return category === 'devdev'
+            return debugTodoTarget === 'local'
+                || category === 'devdev'
                 || url.startsWith('debug://')
                 || fallbackUrl.startsWith('debug://');
         };
+        const isDebugApiAssignment = (assignment) => {
+            if (!assignment || typeof assignment !== 'object') return false;
+            return normalizeCategory(assignment.category) === 'debug-api';
+        };
+        const isPersistedDebugAssignment = (assignment) =>
+            isLocalOnlyAssignment(assignment) || isDebugApiAssignment(assignment);
         const rememberState = (key, assignment) => {
             if (key) {
                 stateMap[key] = {
@@ -664,26 +777,35 @@ const Scraper = {
         let sessionDropped = false;
         for (let i = 0; i < courses.length; i++) {
             const course = courses[i];
-            if (i > 0) await new Promise(r => setTimeout(r, INTER_FETCH_DELAY_MS)); // 先頭はwaitしない
+            if (i > 0) await waitForScraperDelay(INTER_FETCH_DELAY_MS, updateRun); // 先頭はwaitしない
+            throwIfAssignmentUpdateCancelled(updateRun);
             try {
-                const items = await Scraper.fetchAssignments(course.url, course.name, course.fullName);
+                const items = await Scraper.fetchAssignments(course.url, course.name, course.fullName, updateRun);
                 allAssignments = allAssignments.concat(items || []);
             } catch (error) {
+                if (error?.isAssignmentFetchStopped) throw error;
                 if (error && error.isSessionDropped) {
                     // セッション切れ: 短いバックオフ後に当該コースを1回だけ再取得
-                    await new Promise(r => setTimeout(r, 800));
+                    await waitForScraperDelay(800, updateRun);
                     try {
-                        const retry = await Scraper.fetchAssignments(course.url, course.name, course.fullName);
+                        const retry = await Scraper.fetchAssignments(course.url, course.name, course.fullName, updateRun);
                         allAssignments = allAssignments.concat(retry || []);
                     } catch (retryErr) {
+                        if (retryErr?.isAssignmentFetchStopped) throw retryErr;
                         if (retryErr && retryErr.isSessionDropped) { sessionDropped = true; break; }
+                        if (retryErr && retryErr.isAssignmentFetchFailed) throw retryErr;
                         uxDebugWarn(`[Scraper] ${course.name} リトライ失敗`, retryErr);
                     }
+                } else if (error && error.isAssignmentFetchFailed) {
+                    // Do not save a partial course list after a network failure.
+                    throw error;
                 } else {
                     uxDebugWarn(`[Scraper] ${course.name} の課題取得に失敗`, error);
                 }
             }
         }
+
+        throwIfAssignmentUpdateCancelled(updateRun);
 
         // 既存の状態をマージ
         allAssignments = allAssignments.map((assignment) => {
@@ -739,24 +861,23 @@ const Scraper = {
             return assignment;
         });
 
-        const localOnlyAssignments = existingData.filter(isLocalOnlyAssignment);
-        if (localOnlyAssignments.length > 0) {
+        const persistedDebugAssignments = existingData.filter(isPersistedDebugAssignment);
+        if (persistedDebugAssignments.length > 0) {
             const mergedPrimaryKeys = new Set(
                 allAssignments
                     .map(getPrimaryAssignmentKey)
                     .filter(Boolean)
             );
 
-            localOnlyAssignments.forEach((assignment) => {
+            persistedDebugAssignments.forEach((assignment) => {
                 const primaryKey = getPrimaryAssignmentKey(assignment);
                 if (primaryKey && mergedPrimaryKeys.has(primaryKey)) {
                     return;
                 }
 
-                allAssignments.push({
-                    ...assignment,
-                    localOnly: true,
-                });
+                const preservedAssignment = { ...assignment };
+                if (isLocalOnlyAssignment(assignment)) preservedAssignment.localOnly = true;
+                allAssignments.push(preservedAssignment);
 
                 if (primaryKey) {
                     mergedPrimaryKeys.add(primaryKey);
@@ -766,8 +887,12 @@ const Scraper = {
         uxDebugLog('[Scraper] 全ての課題を取得しました:', allAssignments);
         uxDebugLog(`[Scraper] 合計 ${allAssignments.length} 件の課題`);
 
-        const newRealCount = allAssignments.filter(a => !a.localOnly).length;
-        const existingRealCount = existingData.filter(a => !a.localOnly).length;
+        const newRealCount = allAssignments.filter((assignment) =>
+            !isLocalOnlyAssignment(assignment) && !isDebugApiAssignment(assignment)
+        ).length;
+        const existingRealCount = existingData.filter((assignment) =>
+            !isLocalOnlyAssignment(assignment) && !isDebugApiAssignment(assignment)
+        ).length;
         const massEmptyFailure = newRealCount === 0 && existingRealCount > 0;
 
         if (sessionDropped || massEmptyFailure) {
@@ -779,9 +904,66 @@ const Scraper = {
             return existingData; // massEmptyのみ: 既存維持
         }
 
+        // Fetching can take time, so preserve edits made after this refresh started.
+        const latestData = await new Promise(resolve => {
+            chrome.storage.local.get(['assignments'], (result) => {
+                resolve(result.assignments || []);
+            });
+        });
+        throwIfAssignmentUpdateCancelled(updateRun);
+        const latestStateMap = {};
+        latestData.forEach((assignment) => {
+            rememberStateForLatestAssignment(assignment);
+        });
+
+        function rememberStateForLatestAssignment(assignment) {
+            if (!assignment || typeof assignment !== 'object') return;
+            const state = {
+                isCompleted: assignment.isCompleted,
+                isDeleted: assignment.isDeleted,
+                deletedAt: assignment.deletedAt,
+                deadline: assignment.deadline,
+                originalDeadline: assignment.originalDeadline,
+                title: assignment.title,
+                sourceTitle: assignment.sourceTitle,
+                titleEdited: assignment.titleEdited === true,
+                ticktickTaskId: assignment.ticktickTaskId,
+            };
+            if (assignment.url) latestStateMap[assignment.url] = state;
+            if (assignment.fallbackUrl) latestStateMap[assignment.fallbackUrl] = state;
+        }
+
+        const userManagedFields = [
+            'isCompleted',
+            'isDeleted',
+            'deletedAt',
+            'deadline',
+            'originalDeadline',
+            'title',
+            'sourceTitle',
+            'titleEdited',
+            'ticktickTaskId',
+        ];
+        allAssignments.forEach((assignment) => {
+            const initialState = assignment.url && hasOwn(stateMap, assignment.url)
+                ? stateMap[assignment.url]
+                : stateMap[assignment.fallbackUrl];
+            const latestState = assignment.url && hasOwn(latestStateMap, assignment.url)
+                ? latestStateMap[assignment.url]
+                : latestStateMap[assignment.fallbackUrl];
+            if (!initialState || !latestState) return;
+
+            userManagedFields.forEach((field) => {
+                if (latestState[field] !== initialState[field]) {
+                    assignment[field] = latestState[field];
+                }
+            });
+        });
+
         if (areAssignmentListsEquivalent(existingData, allAssignments)) {
             uxDebugLog('[Scraper] 課題リストに変更はありません。保存をスキップしました。');
         } else {
+            throwIfAssignmentUpdateCancelled(updateRun);
             await chrome.storage.local.set({
                 'assignments': allAssignments,
                 'lastUpdated': new Date().toISOString()

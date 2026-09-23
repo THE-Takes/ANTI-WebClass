@@ -1,0 +1,194 @@
+/* Opaque, extension-owned styles for the material viewer. */
+
+#ux-shiryou-header {
+  align-items: center;
+  background-color: var(--ux-color-surface);
+  border-bottom: 1px solid var(--ux-color-border);
+  box-sizing: border-box;
+  color: var(--ux-color-text);
+  display: flex;
+  font-family: var(--ux-font-family);
+  min-height: 55px;
+}
+
+#ux-shiryou-header button,
+#ux-shiryou-origin-toggle {
+  box-sizing: border-box;
+  font-family: var(--ux-font-family);
+}
+
+#ux-shiryou-header button:focus-visible,
+#ux-shiryou-origin-toggle:focus-visible,
+#ux-toc-resize-handle:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+#ux-content-loading-overlay {
+  background-color: var(--ux-color-page);
+  color: var(--ux-color-text);
+  contain: paint;
+}
+
+#ux-loading-indicator {
+  color: var(--ux-color-text);
+  font-family: var(--ux-font-family);
+}
+
+#ux-toc-overlay-iframe {
+  background-color: var(--ux-color-surface);
+  border-right: 1px solid var(--ux-color-border);
+}
+
+#ux-toc-resize-handle {
+  background-color: var(--ux-color-surface);
+  box-sizing: border-box;
+  inline-size: 10px;
+  touch-action: none;
+}
+
+#ux-toc-resize-handle::before {
+  background-color: var(--ux-color-border-strong);
+  content: "";
+}
+
+#ux-toc-resize-handle:hover::before,
+#ux-toc-resize-handle:focus-visible::before,
+html.ux-shiryou-toc-resizing #ux-toc-resize-handle::before {
+  background-color: var(--ux-color-accent);
+}
+
+#ux-toc-resize-handle:focus-visible::before {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+#ux-toc-resize-shield,
+#ux-toc-hover-zone {
+  background-color: var(--ux-color-page);
+  opacity: 0;
+}
+
+#ux-toc-resize-shield {
+  cursor: col-resize;
+  touch-action: none;
+}
+
+#ux-toc-hover-zone {
+  cursor: pointer;
+}
+
+#ux-ribbon-expand-btn {
+  align-items: center;
+  appearance: none;
+  background-color: var(--ux-color-accent);
+  border: 1px solid var(--ux-color-accent-active);
+  border-radius: var(--ux-radius-pill);
+  box-sizing: border-box;
+  color: var(--ux-color-on-accent);
+  display: flex;
+  font: inherit;
+  justify-content: center;
+  line-height: 1;
+  margin: 0;
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding: 0;
+  text-align: center;
+  touch-action: none;
+  user-select: none;
+}
+
+#ux-ribbon-expand-btn:hover,
+#ux-ribbon-expand-btn:focus-visible {
+  background-color: var(--ux-color-accent-hover);
+}
+
+#ux-ribbon-expand-btn:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+/* The chapter document is the only place where these original WebClass IDs
+ * are extension-owned. The marker prevents the original page from changing
+ * when the extension visual mode is disabled. */
+html:has(#ux-shiryou-chapter-style) body {
+  background-color: var(--ux-color-page);
+  color: var(--ux-color-text);
+  font-family: var(--ux-font-family);
+}
+
+html:has(#ux-shiryou-chapter-style) #TOC {
+  background-color: var(--ux-color-surface);
+  border: 1px solid var(--ux-color-border);
+  border-radius: var(--ux-radius-md);
+}
+
+html:has(#ux-shiryou-chapter-style) #naviLayout input[type="button"],
+html:has(#ux-shiryou-chapter-style) #naviLayout button {
+  background-color: var(--ux-color-accent);
+  border: 1px solid var(--ux-color-accent);
+  border-radius: var(--ux-radius-sm);
+  color: var(--ux-color-on-accent);
+}
+
+html:has(#ux-shiryou-chapter-style) #naviLayout input[type="button"]:disabled,
+html:has(#ux-shiryou-chapter-style) #naviLayout button:disabled {
+  background-color: var(--ux-color-surface-muted);
+  border-color: var(--ux-color-border);
+  color: var(--ux-color-muted);
+}
+
+html:has(#ux-shiryou-chapter-style) .ux-section-number-badge {
+  background-color: var(--ux-color-surface-subtle);
+  border: 1px solid var(--ux-color-border);
+  border-radius: var(--ux-radius-sm);
+  color: var(--ux-color-accent-active);
+}
+
+/* The generated TOC iframe writes its own fallback rules. These guarded
+ * selectors only cover a material document that also owns the header. */
+html:has(#ux-shiryou-header) #toc-content,
+html:has(#ux-shiryou-header) #toc-content table {
+  box-sizing: border-box;
+}
+
+html:has(#ux-shiryou-header) #toc-content tr.ux-toc-page-row:focus-visible,
+html:has(#ux-shiryou-header) .toc-frame-toggle-btn:focus-visible,
+html:has(#ux-shiryou-header) .ux-download-btn:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+html:has(#ux-shiryou-header) .toc-frame-toggle-btn,
+html:has(#ux-shiryou-header) .ux-download-btn {
+  background-color: var(--ux-color-surface-subtle);
+  border: 1px solid var(--ux-color-border);
+  color: var(--ux-color-accent-active);
+}
+
+html:has(#ux-shiryou-header) .toc-frame-toggle-btn:hover,
+html:has(#ux-shiryou-header) .ux-download-btn:not(.ux-download-rename):not(.ux-download-image):not(.ux-download-copy):hover {
+  background-color: var(--ux-color-surface-subtle);
+  border-color: var(--ux-color-border-hover, #B1BEC6);
+}
+
+@media (max-width: 480px) {
+  #ux-shiryou-header {
+    padding-inline: var(--ux-space-3);
+  }
+
+  #ux-ribbon-expand-btn {
+    bottom: var(--ux-space-4);
+    right: var(--ux-space-4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ux-shiryou-header button,
+  #ux-toc-overlay-iframe,
+  #ux-toc-resize-handle,
+  #ux-ribbon-expand-btn {
+    transition-duration: 1ms !important;
+  }
+}

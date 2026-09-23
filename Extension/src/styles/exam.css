@@ -1,0 +1,662 @@
+/*
+ * Shared visual layer for extension-owned exam controls.
+ *
+ * Page-specific frame sizing remains in the shiken frame bridges because those
+ * values depend on the legacy frameset. This file owns the reusable controls,
+ * cards, proxies, and states so every exam view uses the same simple language.
+ */
+
+:root {
+  --ux-exam-page: var(--ux-color-page, #ebf6ff);
+  --ux-exam-surface: var(--ux-color-surface, #ffffff);
+  --ux-exam-surface-subtle: var(--ux-color-surface-subtle, #f5faff);
+  --ux-exam-surface-muted: var(--ux-color-surface-muted, #eef5f9);
+  --ux-exam-text: var(--ux-color-text, #1f2326);
+  --ux-exam-muted: var(--ux-color-muted, #6f767a);
+  --ux-exam-border: var(--ux-color-border, #dce8f0);
+  --ux-exam-border-strong: var(--ux-color-border-strong, #bfd4e1);
+  --ux-exam-border-hover: var(--ux-color-border-hover, #b1bec6);
+  --ux-exam-accent: var(--ux-color-accent, #099bff);
+  --ux-exam-accent-hover: var(--ux-color-accent-hover, #0789e1);
+  --ux-exam-accent-active: var(--ux-color-accent-active, #0677c7);
+  --ux-exam-on-accent: var(--ux-color-on-accent, #ffffff);
+  --ux-exam-info: var(--ux-color-info, #1664a5);
+  --ux-exam-info-surface: var(--ux-color-info-surface, #eaf4ff);
+  --ux-exam-success: var(--ux-color-success, #18794e);
+  --ux-exam-success-surface: var(--ux-color-success-surface, #eaf8f0);
+  --ux-exam-warning: var(--ux-color-warning, #9a6500);
+  --ux-exam-warning-surface: var(--ux-color-warning-surface, #fff7e5);
+  --ux-exam-danger: var(--ux-color-danger, #b42318);
+  --ux-exam-danger-surface: var(--ux-color-danger-surface, #fff0ee);
+  --ux-exam-font: var(
+    --ux-font-family,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Yu Gothic", Meiryo, sans-serif
+  );
+  --ux-exam-radius: var(--ux-radius-sm, 8px);
+  --ux-exam-radius-card: var(--ux-radius-md, 12px);
+  --ux-exam-motion: var(--ux-motion-duration-fast, 120ms);
+  --ux-exam-ease: var(--ux-motion-ease-standard, ease-out);
+}
+
+/* -------------------------------------------------------------------------
+   Shared controls
+   ------------------------------------------------------------------------- */
+
+.ux-btn,
+.ux-shiken-layout-toggle button,
+.ux-shiken-inline-page,
+.ux-onebyone-answer-actions button,
+.ux-onebyone-answer-actions input[type="button"] {
+  align-items: center;
+  appearance: none;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--ux-exam-font);
+  font-size: var(--ux-font-size-sm, 0.875rem);
+  font-weight: var(--ux-font-weight-semibold, 600);
+  justify-content: center;
+  line-height: var(--ux-line-height-tight, 1.25);
+  min-block-size: var(--ux-control-height-md, 38px);
+  min-inline-size: 0;
+  padding-block: var(--ux-space-2, 8px);
+  padding-inline: var(--ux-space-3, 12px);
+  text-decoration: none;
+  transition:
+    background-color var(--ux-exam-motion) var(--ux-exam-ease),
+    border-color var(--ux-exam-motion) var(--ux-exam-ease),
+    color var(--ux-exam-motion) var(--ux-exam-ease);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.ux-btn:hover:not(:disabled):not([aria-disabled="true"]),
+.ux-shiken-layout-toggle button:hover:not(:disabled),
+.ux-shiken-inline-page:hover:not(:disabled),
+.ux-onebyone-answer-actions button:hover:not(:disabled),
+.ux-onebyone-answer-actions input[type="button"]:hover:not(:disabled) {
+  background-color: var(--ux-exam-surface);
+  border-color: var(--ux-exam-border-hover);
+}
+
+.ux-btn:focus-visible,
+.ux-shiken-layout-toggle button:focus-visible,
+.ux-shiken-inline-page:focus-visible,
+.ux-onebyone-answer-actions button:focus-visible,
+.ux-onebyone-answer-actions input[type="button"]:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-exam-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+.ux-btn:disabled,
+.ux-btn[aria-disabled="true"],
+.ux-shiken-layout-toggle button:disabled,
+.ux-shiken-inline-page:disabled,
+.ux-onebyone-answer-actions button:disabled,
+.ux-onebyone-answer-actions input[type="button"]:disabled {
+  background-color: var(--ux-exam-surface-muted);
+  border-color: var(--ux-exam-border);
+  color: var(--ux-exam-muted);
+  cursor: not-allowed;
+}
+
+.ux-btn.ux-danger,
+.ux-onebyone-answer-actions .ux-danger,
+.ux-onebyone-answer-actions button[name="grade"],
+.ux-onebyone-answer-actions input[name="grade"] {
+  background-color: var(--ux-exam-danger);
+  border-color: var(--ux-exam-danger);
+  color: var(--ux-exam-on-accent);
+}
+
+.ux-btn.ux-danger:hover:not(:disabled),
+.ux-onebyone-answer-actions .ux-danger:hover:not(:disabled),
+.ux-onebyone-answer-actions button[name="grade"]:hover:not(:disabled),
+.ux-onebyone-answer-actions input[name="grade"]:hover:not(:disabled) {
+  background-color: var(--ux-exam-danger);
+  border-color: var(--ux-exam-danger);
+  color: var(--ux-exam-on-accent);
+}
+
+.ux-btn.ux-shiken-button-save {
+  background-color: var(--ux-exam-accent);
+  border-color: var(--ux-exam-accent);
+  color: var(--ux-exam-on-accent);
+}
+
+.ux-btn.ux-shiken-button-save:hover:not(:disabled) {
+  background-color: var(--ux-exam-accent-hover);
+  border-color: var(--ux-exam-accent-hover);
+  color: var(--ux-exam-on-accent);
+}
+
+/* -------------------------------------------------------------------------
+   Answer navigation, action rows, and hidden source controls
+   ------------------------------------------------------------------------- */
+
+.ux-answer-actions,
+.ux-onebyone-answer-actions {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  width: 100%;
+}
+
+.ux-answer-nav,
+.ux-answer-primary-actions,
+.ux-shiken-nav-row,
+.ux-shiken-action-row,
+.ux-onebyone-nav-actions,
+.ux-onebyone-primary-actions {
+  box-sizing: border-box;
+  min-inline-size: 0;
+}
+
+.ux-answer-nav .ux-btn,
+.ux-answer-primary-actions .ux-btn,
+.ux-shiken-nav-row > .ux-btn,
+.ux-shiken-action-row > .ux-btn {
+  justify-content: center;
+  max-inline-size: 100%;
+  width: 100%;
+}
+
+.ux-answer-actions > .ux-answer-primary-actions:only-child,
+.ux-answer-actions > .ux-answer-nav:only-child {
+  grid-column: 1 / -1;
+}
+
+.ux-source-action-hidden,
+.ux-source-options-hidden,
+.ux-source-result-hidden,
+.ux-choice-hidden-row {
+  display: none !important;
+}
+
+/* Keep native controls available to the form contract while exposing the
+ * extension-owned action button. */
+.ux-answer-actions .ux-source-action-hidden,
+.ux-shiken-action-row .ux-source-action-hidden {
+  pointer-events: none;
+}
+
+.ux-answer-save-status {
+  align-items: center;
+  color: var(--ux-exam-success);
+  display: inline-flex;
+  gap: var(--ux-space-2, 8px);
+  line-height: var(--ux-line-height-tight, 1.25);
+  min-block-size: var(--ux-control-height-sm, 32px);
+  pointer-events: none;
+}
+
+.ux-answer-save-status.is-saving,
+.ux-answer-save-status.is-last-saved {
+  color: var(--ux-exam-muted);
+}
+
+.ux-answer-save-check {
+  align-items: center;
+  background-color: var(--ux-exam-success);
+  border: 2px solid var(--ux-exam-success);
+  border-radius: var(--ux-radius-pill, 999px);
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 var(--ux-control-height-sm, 32px);
+  justify-content: center;
+  min-block-size: var(--ux-control-height-sm, 32px);
+  min-inline-size: var(--ux-control-height-sm, 32px);
+}
+
+.ux-answer-save-status.is-saving .ux-answer-save-check {
+  background-color: var(--ux-exam-surface-muted);
+  border-color: var(--ux-exam-border);
+}
+
+.ux-answer-save-check span {
+  color: var(--ux-exam-on-accent);
+  line-height: 1;
+}
+
+.ux-answer-save-status.is-saving .ux-answer-save-check span,
+.ux-answer-save-status.is-last-saved .ux-answer-save-check {
+  display: none;
+}
+
+/* -------------------------------------------------------------------------
+   Question/answer cards and frame resize affordances
+   ------------------------------------------------------------------------- */
+
+.ux-shiken-question-card,
+.ux-shiken-answer-card,
+.ux-shiken-upload-answer-card,
+.ux-onebyone-question-card,
+.ux-onebyone-description-card,
+.ux-onebyone-answer-shell {
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius-card);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  min-inline-size: 0;
+}
+
+.ux-shiken-question-card,
+.ux-shiken-answer-card,
+.ux-shiken-upload-answer-card,
+.ux-onebyone-question-card,
+.ux-onebyone-description-card {
+  overflow-wrap: anywhere;
+}
+
+.ux-shiken-answer-heading,
+.ux-onebyone-answer-heading {
+  color: var(--ux-exam-muted);
+  font-family: var(--ux-exam-font);
+  font-size: var(--ux-font-size-sm, 0.875rem);
+  font-weight: var(--ux-font-weight-semibold, 600);
+  line-height: var(--ux-line-height-tight, 1.25);
+}
+
+.ux-shiken-frame-resize-handle,
+.ux-shiken-question-resize-handle {
+  appearance: none;
+  background-color: var(--ux-exam-surface-muted);
+  border: 1px solid var(--ux-exam-border-strong);
+  border-radius: var(--ux-radius-xs, 4px);
+  box-sizing: border-box;
+  cursor: ns-resize;
+}
+
+.ux-shiken-frame-resize-handle:hover,
+.ux-shiken-frame-resize-handle:focus-visible,
+.ux-shiken-question-resize-handle:hover,
+.ux-shiken-question-resize-handle:focus-visible {
+  background-color: var(--ux-exam-surface-subtle);
+  border-color: var(--ux-exam-accent);
+}
+
+.ux-shiken-frame-resize-handle:focus-visible,
+.ux-shiken-question-resize-handle:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-exam-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+body.ux-shiken-frame-resizing,
+body.ux-shiken-frame-resizing * {
+  cursor: ns-resize !important;
+  user-select: none !important;
+}
+
+/* -------------------------------------------------------------------------
+   Native select mirror and keyboard-accessible popup
+   ------------------------------------------------------------------------- */
+
+.ux-select-wrap {
+  display: inline-block;
+  min-inline-size: 140px;
+  position: relative;
+  vertical-align: top;
+}
+
+.ux-native-select {
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute !important;
+}
+
+.ux-select-display {
+  align-items: center;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--ux-exam-font);
+  font-size: var(--ux-select-display-font-size, var(--ux-font-size-sm, 0.875rem));
+  justify-content: flex-start;
+  line-height: var(--ux-line-height-tight, 1.25);
+  min-block-size: var(--ux-control-height-md, 38px);
+  overflow: hidden;
+  padding-block: var(--ux-space-2, 8px);
+  padding-inline: var(--ux-space-3, 12px);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.ux-select-display:hover,
+.ux-select-display:focus-visible {
+  border-color: var(--ux-exam-accent);
+}
+
+.ux-select-display:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-exam-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+.ux-select-list {
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius);
+  box-sizing: border-box;
+  display: none;
+  inset-inline: 0;
+  max-block-size: min(220px, calc(100vh - 32px));
+  overflow-y: auto;
+  padding: var(--ux-space-1, 4px);
+  position: absolute;
+  top: calc(100% + var(--ux-space-1, 4px));
+  z-index: var(--ux-z-popover, 1000);
+}
+
+.ux-select-wrap.ux-open .ux-select-list {
+  display: block;
+}
+
+.ux-select-option {
+  align-items: center;
+  appearance: none;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-surface);
+  border-radius: var(--ux-radius-xs, 4px);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--ux-exam-font);
+  font-size: var(--ux-select-option-font-size, var(--ux-font-size-sm, 0.875rem));
+  line-height: var(--ux-line-height-normal, 1.5);
+  min-block-size: var(--ux-control-height-sm, 32px);
+  padding-block: var(--ux-space-1, 4px);
+  padding-inline: var(--ux-space-2, 8px);
+  text-align: start;
+  width: 100%;
+}
+
+.ux-select-option:hover,
+.ux-select-option[aria-selected="true"] {
+  background-color: var(--ux-exam-info-surface);
+  border-color: var(--ux-exam-accent);
+  color: var(--ux-exam-accent-active);
+}
+
+.ux-select-option:focus-visible {
+  outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-exam-accent));
+  outline-offset: var(--ux-focus-offset, 2px);
+}
+
+/* -------------------------------------------------------------------------
+   One-by-one choices and results
+   ------------------------------------------------------------------------- */
+
+.ux-onebyone-choice-list,
+.ux-onebyone-result-list,
+.ux-onebyone-result-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ux-space-2, 8px);
+  min-inline-size: 0;
+  width: 100%;
+}
+
+.ux-onebyone-choice,
+.ux-onebyone-result-choice {
+  align-items: center;
+  background-color: var(--ux-exam-surface-subtle);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius-card);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  display: grid;
+  grid-template-columns: 34px 34px minmax(0, 1fr);
+  min-block-size: 44px;
+  width: 100%;
+}
+
+.ux-onebyone-choice {
+  cursor: pointer;
+  transition:
+    background-color var(--ux-exam-motion) var(--ux-exam-ease),
+    border-color var(--ux-exam-motion) var(--ux-exam-ease);
+}
+
+.ux-onebyone-choice:hover,
+.ux-onebyone-choice:focus-within,
+.ux-onebyone-choice.is-selected,
+.ux-onebyone-result-choice.is-selected {
+  background-color: var(--ux-exam-info-surface);
+  border-color: var(--ux-exam-accent);
+}
+
+.ux-onebyone-choice-number,
+.ux-onebyone-result-number,
+.ux-onebyone-choice-point,
+.ux-onebyone-result-score {
+  color: var(--ux-exam-muted);
+  font-size: var(--ux-font-size-xs, 0.75rem);
+  font-weight: var(--ux-font-weight-semibold, 600);
+}
+
+.ux-onebyone-choice-number,
+.ux-onebyone-result-number,
+.ux-onebyone-choice-point,
+.ux-onebyone-result-score {
+  text-align: end;
+}
+
+.ux-onebyone-choice-label,
+.ux-onebyone-result-label {
+  color: inherit;
+  font-size: var(--ux-font-size-sm, 0.875rem);
+  line-height: var(--ux-line-height-normal, 1.5);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.ux-onebyone-choice-radio {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+}
+
+.ux-onebyone-choice-radio input[type="radio"] {
+  accent-color: var(--ux-exam-accent);
+  block-size: 14px;
+  inline-size: 14px;
+  margin: 0;
+}
+
+.ux-onebyone-result-title {
+  background-color: var(--ux-exam-surface-subtle);
+  border: 1px solid var(--ux-exam-border);
+  border-inline-start: 4px solid var(--ux-exam-accent);
+  border-radius: var(--ux-exam-radius-card);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  display: flex;
+  font-weight: var(--ux-font-weight-bold, 700);
+  min-block-size: 40px;
+  padding-block: var(--ux-space-2, 8px);
+  padding-inline: var(--ux-space-3, 12px);
+}
+
+.ux-onebyone-result-title.is-correct {
+  background-color: var(--ux-exam-success-surface);
+  border-inline-start-color: var(--ux-exam-success);
+  color: var(--ux-exam-success);
+}
+
+.ux-onebyone-result-title.is-wrong {
+  background-color: var(--ux-exam-danger-surface);
+  border-inline-start-color: var(--ux-exam-danger);
+  color: var(--ux-exam-danger);
+}
+
+.ux-onebyone-result-marker {
+  align-items: center;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-radius-pill, 999px);
+  display: flex;
+  justify-content: center;
+  min-block-size: 18px;
+  min-inline-size: 18px;
+}
+
+.ux-onebyone-result-choice.is-selected .ux-onebyone-result-marker {
+  background-color: var(--ux-exam-accent);
+  border-color: var(--ux-exam-accent);
+  color: var(--ux-exam-on-accent);
+}
+
+/* -------------------------------------------------------------------------
+   TOC and single-page shell
+   ------------------------------------------------------------------------- */
+
+.ux-qnav-item {
+  display: block;
+  margin-block-end: var(--ux-space-1, 4px);
+  width: 100%;
+}
+
+.ux-qnav-item td {
+  display: none;
+}
+
+.ux-qnav-item td.ux-qnav-label {
+  align-items: center;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius);
+  box-sizing: border-box;
+  color: var(--ux-exam-text);
+  display: flex;
+  font-size: var(--ux-font-size-xs, 0.75rem);
+  font-weight: var(--ux-font-weight-semibold, 600);
+  min-block-size: 32px;
+  padding-inline: var(--ux-space-3, 12px);
+  width: 100%;
+}
+
+.ux-qnav-item.is-current td.ux-qnav-label {
+  background-color: var(--ux-exam-info-surface);
+  border-color: var(--ux-exam-accent);
+  color: var(--ux-exam-accent-active);
+}
+
+.ux-qnav-item.is-unanswered:not(.is-current) td.ux-qnav-label {
+  color: var(--ux-exam-muted);
+}
+
+.ux-qnav-empty {
+  display: none;
+}
+
+.ux-shiken-inline-toc {
+  align-items: flex-start;
+  background-color: var(--ux-exam-surface);
+  border: 1px solid var(--ux-exam-border);
+  border-radius: var(--ux-exam-radius);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ux-space-2, 8px);
+  max-block-size: 220px;
+  overflow: auto;
+  padding: var(--ux-space-2, 8px);
+}
+
+body.ux-shiken-single-page {
+  background-color: var(--ux-exam-page);
+  color: var(--ux-exam-text);
+  font-family: var(--ux-exam-font);
+}
+
+body.ux-shiken-single-page > .ux-shiken-single-button {
+  background-color: var(--ux-exam-page);
+  border-inline-end: 1px solid var(--ux-exam-border);
+}
+
+body.ux-shiken-single-page > .ux-shiken-scroll {
+  min-inline-size: 0;
+}
+
+body.ux-shiken-single-page .ux-shiken-question-resize-handle {
+  background-color: var(--ux-exam-page);
+  border-block-start: 1px solid var(--ux-exam-border);
+}
+
+body.ux-shiken-single-page .ux-shiken-question-resize-handle::before {
+  background-color: var(--ux-exam-border-strong);
+  border-radius: var(--ux-radius-pill, 999px);
+  content: "";
+  display: block;
+  height: 2px;
+  margin-inline: var(--ux-space-3, 12px);
+}
+
+body.ux-shiken-single-page .ux-shiken-question-resize-handle:hover::before,
+body.ux-shiken-single-page .ux-shiken-question-resize-handle:focus-visible::before {
+  background-color: var(--ux-exam-accent);
+}
+
+@media (max-width: 560px) {
+  .ux-answer-actions,
+  .ux-onebyone-answer-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ux-onebyone-answer-actions button,
+  .ux-onebyone-answer-actions input[type="button"] {
+    min-inline-size: 0;
+    width: 100% !important;
+  }
+
+  .ux-onebyone-choice,
+  .ux-onebyone-result-choice {
+    grid-template-columns: 28px 30px minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-btn,
+  .ux-shiken-layout-toggle button,
+  .ux-shiken-inline-page,
+  .ux-onebyone-choice,
+  .ux-onebyone-answer-actions button,
+  .ux-onebyone-answer-actions input[type="button"] {
+    transition-duration: 1ms;
+  }
+}
+
+@media (forced-colors: active) {
+  .ux-btn,
+  .ux-shiken-layout-toggle button,
+  .ux-shiken-inline-page,
+  .ux-onebyone-choice,
+  .ux-onebyone-result-choice,
+  .ux-select-display,
+  .ux-select-list,
+  .ux-select-option {
+    background-color: Canvas;
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+
+  .ux-btn.ux-danger,
+  .ux-btn.ux-shiken-button-save,
+  .ux-onebyone-answer-actions .ux-danger {
+    background-color: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+}

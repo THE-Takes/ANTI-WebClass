@@ -1,0 +1,129 @@
+/* Same-window message workspace on course pages. */
+
+html.ux-course-message-open,
+html.ux-course-message-open body {
+  overflow: hidden !important;
+}
+
+.ux-course-message-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.ux-course-message-overlay[hidden] {
+  display: none !important;
+}
+
+.ux-course-message-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(960px, 100%);
+  height: min(760px, calc(100dvh - 48px));
+  min-height: 360px;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid var(--ux-color-border-strong);
+  border-radius: 18px;
+  background: var(--ux-color-surface);
+}
+
+.ux-course-message-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 20px;
+  border-bottom: 1px solid var(--ux-color-border);
+  background: var(--ux-color-surface);
+}
+
+.ux-course-message-dialog-header h2 {
+  margin: 0;
+  color: var(--ux-color-text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.ux-course-message-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--ux-color-muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.ux-course-message-dialog-close:hover {
+  border-color: var(--ux-color-border);
+  color: var(--ux-color-text);
+  background: var(--ux-color-surface-subtle);
+}
+
+.ux-course-message-dialog-close:focus-visible {
+  outline: 2px solid var(--ux-color-accent);
+  outline-offset: 2px;
+}
+
+.ux-course-message-frame {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: var(--ux-color-surface-subtle);
+}
+
+@media (max-width: 720px) {
+  .ux-course-message-overlay {
+    padding: 10px;
+  }
+
+  .ux-course-message-dialog {
+    width: 100%;
+    height: calc(100dvh - 20px);
+    min-height: 0;
+    border-radius: 14px;
+  }
+
+  .ux-course-message-dialog-header {
+    padding-left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-course-message-overlay,
+  .ux-course-message-dialog,
+  .ux-course-message-frame {
+    scroll-behavior: auto;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .ux-course-message-dialog {
+    border: 1px solid CanvasText;
+  }
+
+  .ux-course-message-dialog-header,
+  .ux-course-message-dialog-close {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}

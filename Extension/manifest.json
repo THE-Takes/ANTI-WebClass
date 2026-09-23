@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "ANTI-WebClass-dev",
-  "version": "0.3.2",
+  "name": "ANTI-WebClass",
+  "version": "0.4.0",
   "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
@@ -11,17 +11,10 @@
     "alarms",
     "notifications"
   ],
+  "optional_permissions": ["nativeMessaging"],
   "host_permissions": [
     "https://kulms.kanagawa-u.ac.jp/*",
     "https://api.github.com/*",
-    "https://api.openai.com/*",
-    "https://api.groq.com/*",
-    "https://graph.microsoft.com/*",
-    "https://login.microsoftonline.com/*",
-    "https://accounts.google.com/*",
-    "https://oauth2.googleapis.com/*",
-    "https://tasks.googleapis.com/*",
-    "https://api.todoist.com/*",
     "https://ticktick.com/*",
     "https://api.ticktick.com/*",
     "http://127.0.0.1/*",
@@ -40,7 +33,7 @@
         "http://127.0.0.1/webclass/?acs_=*",
         "http://localhost/webclass/?acs_=*"
       ],
-      "js": ["src/login.js"]
+      "js": ["src/shared.js", "src/login.js"]
     },
     {
       "matches": [
@@ -48,33 +41,61 @@
         "http://127.0.0.1/webclass/*",
         "http://localhost/webclass/*"
       ],
-      "js": ["src/shared.js", "src/shortcuts.js"],
+      "js": [
+        "src/shared.js",
+        "src/ui/components.js",
+        "src/course-entry.js",
+        "src/shortcuts.js"
+      ],
+      "css": [
+        "src/styles/ui-tokens.css",
+        "src/styles/ui-primitives.css",
+        "src/styles/course-entry.css"
+      ],
       "all_frames": true,
       "run_at": "document_start"
     },
     {
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/webclass/index.php*",
-        "https://kulms.kanagawa-u.ac.jp/webclass/*",
+        "https://kulms.kanagawa-u.ac.jp/webclass/",
+        "https://kulms.kanagawa-u.ac.jp/webclass/?*",
         "http://127.0.0.1/webclass/index.php*",
         "http://localhost/webclass/index.php*",
-        "http://127.0.0.1/webclass/*",
-        "http://localhost/webclass/*"
+        "http://127.0.0.1/webclass/",
+        "http://127.0.0.1/webclass/?*",
+        "http://localhost/webclass/",
+        "http://localhost/webclass/?*"
       ],
       "js": [
         "src/shared.js",
+        "src/ui/components.js",
         "lib/flatpickr.min.js",
         "lib/ja.js",
         "lib/mobile-select.js",
         "src/scraper.js",
+        "src/home/core.js",
+        "src/home/course-navigation.js",
+        "src/home/timetable.js",
+        "src/home/data.js",
+        "src/home/debug-todos.js",
+        "src/home/messages.js",
+        "src/home/todo-controls.js",
+        "src/home/todo.js",
+        "src/home/course-names.js",
+        "src/home/settings-overlay.js",
+        "src/home/dashboard.js",
         "src/home.js"
       ],
+      "all_frames": true,
       "css": [
         "lib/flatpickr.min.css",
         "lib/mobile-select.css",
         "src/styles/flatpickr-custom.css",
         "src/styles/mobile-select-custom.css",
-        "src/styles/home.css"
+        "src/styles/home.css",
+        "src/styles/home-messages.css",
+        "src/styles/home-settings.css"
       ]
     },
     {
@@ -122,8 +143,39 @@
         "http://127.0.0.1/webclass/file_down.php*",
         "http://localhost/webclass/file_down.php*"
       ],
-      "js": ["src/shared.js", "lib/mux-mp4.min.js", "src/course.js"],
-      "css": ["src/styles/download.css"],
+      "js": [
+        "src/shared.js",
+        "src/ui/components.js",
+        "lib/mux-mp4.min.js",
+        "src/course/core.js",
+        "src/course/messages-overlay.js",
+        "src/course/downloads.js",
+        "src/course/shiryou-display.js",
+        "src/course/shiken-layout.js",
+        "src/course/shiken-single-page.js",
+        "src/course/shiken-controls.js",
+        "src/course/shiken-navigation.js",
+        "src/course/shiken-one-by-one.js",
+        "src/course/shiken-frames.js",
+        "src/course/shiken-answer.js",
+        "src/course/video-fullscreen.js",
+        "src/course/media.js",
+        "src/course/shiryou-shell.js",
+        "src/course/shiryou-navigation.js",
+        "src/course/shiryou-chapter.js",
+        "src/course/course-quick-nav.js",
+        "src/course/course-scroll-memory.js",
+        "src/course/course-contents.js",
+        "src/course.js"
+      ],
+      "css": [
+        "src/styles/ui-tokens.css",
+        "src/styles/ui-primitives.css",
+        "src/styles/download.css",
+        "src/styles/material.css",
+        "src/styles/exam.css",
+        "src/styles/course-messages.css"
+      ],
       "all_frames": true,
       "run_at": "document_start"
     },
@@ -153,7 +205,11 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/beforeunload-blocker.js", "lib/mp4box.all.js"],
+      "resources": [
+        "src/beforeunload-blocker.js",
+        "lib/mp4box.all.js",
+        "src/options.html"
+      ],
       "matches": [
         "https://kulms.kanagawa-u.ac.jp/*",
         "http://127.0.0.1/*",

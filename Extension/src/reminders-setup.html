@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Appleリマインダー連携の導入</title><link rel="stylesheet" href="styles/ui-tokens.css"><link rel="stylesheet" href="styles/ui-primitives.css"></head>
+<body>
+<main>
+<h1>Appleリマインダー連携</h1>
+<p>開発版の導入手順です。macOS 14以降、Google Chrome、Xcode Command Line Toolsが必要です。署名・公証済みの一般配布版はまだありません。</p>
+<ol>
+<li>Chromeの拡張機能管理画面で、この拡張機能のIDを確認します。</li>
+<li>リポジトリのルートで <code>bash NativeReminders/scripts/build.sh 拡張機能ID</code> を実行します。</li>
+<li><code>bash NativeReminders/scripts/install.sh 拡張機能ID</code> を実行します。</li>
+<li>設定画面で連携先をAppleリマインダーに変更し、「接続」を押します。ブラウザーとmacOSのアクセス要求を許可します。</li>
+<li>ログイン済みのWebClassホーム画面で、通常のToDo同期を実行します。</li>
+</ol>
+<p>接続できない場合は、拡張機能ID・補助アプリの導入状態・システム設定の「プライバシーとセキュリティ」のリマインダー権限を確認してください。</p>
+<p>更新時は同期を無効にして設定画面を閉じてから、同じIDで再ビルド・インストールしてください。削除する場合は接続解除後、<code>bash NativeReminders/scripts/uninstall.sh</code> を実行します。既存リマインダーは削除されません。</p>
+<p>外部で変更した課題名・締切・完了状態も取り込みます。外部で削除した課題は次回の全体同期で再作成されます。同期を終了したい課題はWebClass側のゴミ箱に移してください。</p>
+</main>
+</body></html>

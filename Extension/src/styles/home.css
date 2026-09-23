@@ -1,207 +1,26 @@
 /* home.css */
 
-/* General Layout Tweaks */
-body.ux-enhanced-home {
-  background-color: #f4f7f6;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Flex繝ｬ繧､繧｢繧ｦ繝医〒row繧呈僑蠑ｵ */
-.ux-flex-row {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-}
-
-/* 蟾ｦ繧ｵ繧､繝峨ヰ繝ｼ・・ol-sm-3・峨・縺昴・縺ｾ縺ｾ */
-.ux-flex-row>.col-sm-3:first-child {
-  flex-shrink: 0;
-}
-
-/* 繝｡繧､繝ｳ繧ｳ繝ｳ繝・Φ繝・ｼ・ol-sm-9・峨・蜈・・蟷・ｒ邯ｭ謖・*/
-.ux-flex-row>.col-sm-9 {
-  flex-shrink: 0;
-}
-
-/* 蜿ｳ繧ｵ繧､繝峨ヰ繝ｼ繧ｫ繝ｩ繝・郁ｿｽ蜉蛻・ｼ・*/
-#ux-sidebar-column {
-  flex-shrink: 0;
-  width: 320px;
-  padding-left: 15px;
-  padding-right: 15px;
-}
-
-/* 繝繝・す繝･繝懊・繝・*/
-#ux-dashboard {
-  /* 繝壹・繧ｸ蜀・↓蝗ｺ螳夲ｼ医せ繧ｯ繝ｭ繝ｼ繝ｫ霑ｽ蠕薙↑縺暦ｼ・*/
-}
-
-/* side-block 縺ｮ繧ｹ繧ｿ繧､繝ｫ・亥ｷｦ繧ｵ繧､繝峨ヰ繝ｼ縺ｨ蜷後§・・*/
-#ux-dashboard .side-block-outer {
-  margin-bottom: 1em;
-}
-
-#ux-dashboard .side-block {
-  border: solid 1px #f0f0f0;
-  border-radius: 5px;
-}
-
-#ux-dashboard .side-block-title {
-  margin: 0;
-  padding: 0.5em;
-  font-size: 14px;
-  border-bottom: 1px solid #efefef;
-  background-color: #f8f8f8;
-}
-
-#ux-dashboard .side-block-content {
-  padding: 0;
-}
-
-/* 繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ繝舌・縺ｮ繧ｹ繧ｿ繧､繝ｫ・亥・蛛ｴ縺ｮ繧ｳ繝ｳ繝・Φ繝・畑・・*/
-#ux-dashboard ::-webkit-scrollbar {
-  width: 6px;
-}
-
-#ux-dashboard ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-#ux-dashboard ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-#ux-dashboard ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* Cards */
-.ux-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.ux-card h3 {
-  background: #0056b3;
-  /* Kanagawa U Blue-ish */
-  color: white;
-  margin: 0;
-  padding: 15px;
-  font-size: 1.1rem;
-}
-
-.ux-card-body {
-  padding: 15px;
-  flex-grow: 1;
-  overflow-y: auto;
-  max-height: 400px;
-}
-
-/* ToDo List Styles */
-.ux-todo-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.ux-todo-list li {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  transition: background 0.2s;
-}
-
 .ux-todo-deadline-line {
   display: flex;
   align-items: center;
   gap: 0 !important;
-  column-gap: 0 !important;
 }
 
 .ux-todo-deadline-line input {
   margin: 0 !important;
 }
 
-.ux-todo-list li:hover {
-  background: #f9f9f9;
-}
-
-.ux-todo-list li.completed {
-  opacity: 0.6;
-  text-decoration: line-through;
-}
-
-.ux-todo-list input[type="checkbox"] {
-  margin-right: 10px;
-}
-
-.todo-text {
-  flex-grow: 1;
-  margin-right: 10px;
-  outline: none;
-}
-
-.todo-text:focus {
-  background: #eef;
-  border-radius: 3px;
-}
-
-.todo-date {
-  font-size: 0.85rem;
-  color: #666;
-  margin-right: 10px;
-  min-width: 80px;
-  text-align: right;
-  outline: none;
-}
-
-.todo-date:focus {
-  background: #eef;
-  border-radius: 3px;
-}
-
-.ux-todo-list a {
-  text-decoration: none;
-  color: #0056b3;
-  font-size: 0.9rem;
-  font-weight: bold;
-}
-
-/* Hide original content if needed, or style it down */
-/* Example: .container { display: none; } - Be careful not to break functionality */
-
-/* ===============================================
-   譎る俣蜑ｲ陦ｨ繧ｻ繝ｫ蟷・怙驕ｩ蛹悶せ繧ｿ繧､繝ｫ・域ｭ｣譁ｹ蠖｢蛹厄ｼ・
-   讓ｪ蟷・ｒ蝓ｺ貅悶↓鬮倥＆繧定ｪｿ謨ｴ縺励※豁｣譁ｹ蠖｢縺ｫ霑代▼縺代ｋ
-   =============================================== */
-
-/* 譛驕ｩ蛹悶′譛牙柑縺ｪ譎る俣蜑ｲ陦ｨ */
-table.schedule-table.ux-optimized-cell-width {
-  /* 繝・・繝悶Ν繝ｬ繧､繧｢繧ｦ繝医・縺昴・縺ｾ縺ｾ */
-}
-
-/* 譛驕ｩ蛹悶＆繧後◆繧ｻ繝ｫ */
+/* Normalize the original timetable before cloning it into Dashboard V2. */
 table.schedule-table.ux-optimized-cell-width td.ux-cell-optimized {
-  /* 蟷・→鬮倥＆繧偵↑繧九∋縺乗ｭ｣譁ｹ蠖｢縺ｫ霑代▼縺代ｋ */
   word-break: break-word;
   overflow-wrap: break-word;
-  /* 繝・く繧ｹ繝医ｒ謚倥ｊ霑斐☆ */
   white-space: normal !important;
-  /* 荳ｭ螟ｮ謠・∴縺ｫ縺励※隕九◆逶ｮ繧呈紛縺医ｋ */
   vertical-align: middle !important;
   text-align: center !important;
-  /* 繝代ョ繧｣繝ｳ繧ｰ繧貞ｰ代＠霑ｽ蜉 */
   padding: 8px !important;
-  /* 繝懊ャ繧ｯ繧ｹ繧ｵ繧､繧ｺ */
   box-sizing: border-box !important;
 }
 
-/* 譛驕ｩ蛹悶＆繧後◆繧ｻ繝ｫ蜀・・繝ｪ繝ｳ繧ｯ */
 table.schedule-table.ux-optimized-cell-width td.ux-cell-optimized a {
   display: flex;
   align-items: center;
@@ -212,259 +31,30 @@ table.schedule-table.ux-optimized-cell-width td.ux-cell-optimized a {
   line-height: 1.3;
 }
 
-/* 譎る俣譫蛻暦ｼ・髯舌・髯舌↑縺ｩ・・*/
 table.schedule-table.ux-optimized-cell-width td.schedule-table-class_order {
   display: flex !important;
   flex-wrap: nowrap !important;
-}
-
-/* 蟾ｦ繧ｵ繧､繝峨ヰ繝ｼ・・ol-sm-3・峨・縺昴・縺ｾ縺ｾ */
-.ux-flex-row>.col-sm-3:first-child {
-  flex-shrink: 0;
-}
-
-/* 繝｡繧､繝ｳ繧ｳ繝ｳ繝・Φ繝・ｼ・ol-sm-9・峨・蜈・・蟷・ｒ邯ｭ謖・*/
-.ux-flex-row>.col-sm-9 {
-  flex-shrink: 0;
-}
-
-/* 蜿ｳ繧ｵ繧､繝峨ヰ繝ｼ繧ｫ繝ｩ繝・郁ｿｽ蜉蛻・ｼ・*/
-#ux-sidebar-column {
-  flex-shrink: 0;
-  width: 320px;
-  padding-left: 15px;
-  padding-right: 15px;
-}
-
-/* 繝繝・す繝･繝懊・繝・*/
-#ux-dashboard {
-  /* 繝壹・繧ｸ蜀・↓蝗ｺ螳夲ｼ医せ繧ｯ繝ｭ繝ｼ繝ｫ霑ｽ蠕薙↑縺暦ｼ・*/
-}
-
-/* side-block 縺ｮ繧ｹ繧ｿ繧､繝ｫ・亥ｷｦ繧ｵ繧､繝峨ヰ繝ｼ縺ｨ蜷後§・・*/
-#ux-dashboard .side-block-outer {
-  margin-bottom: 1em;
-}
-
-#ux-dashboard .side-block {
-  border: solid 1px #f0f0f0;
-  border-radius: 5px;
-}
-
-#ux-dashboard .side-block-title {
-  margin: 0;
-  padding: 0.5em;
-  font-size: 14px;
-  border-bottom: 1px solid #efefef;
-  background-color: #f8f8f8;
-}
-
-#ux-dashboard .side-block-content {
-  padding: 0;
-}
-
-/* 繧ｹ繧ｯ繝ｭ繝ｼ繝ｫ繝舌・縺ｮ繧ｹ繧ｿ繧､繝ｫ・亥・蛛ｴ縺ｮ繧ｳ繝ｳ繝・Φ繝・畑・・*/
-#ux-dashboard ::-webkit-scrollbar {
-  width: 6px;
-}
-
-#ux-dashboard ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-#ux-dashboard ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-#ux-dashboard ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* Cards */
-.ux-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.ux-card h3 {
-  background: #0056b3;
-  /* Kanagawa U Blue-ish */
-  color: white;
-  margin: 0;
-  padding: 15px;
-  font-size: 1.1rem;
-}
-
-.ux-card-body {
-  padding: 15px;
-  flex-grow: 1;
-  overflow-y: auto;
-  max-height: 400px;
-}
-
-/* ToDo List Styles */
-.ux-todo-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.ux-todo-list li {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  transition: background 0.2s;
-}
-
-.ux-todo-list li:hover {
-  background: #f9f9f9;
-}
-
-.ux-todo-list li.completed {
-  opacity: 0.6;
-  text-decoration: line-through;
-}
-
-.ux-todo-list input[type="checkbox"] {
-  margin-right: 10px;
-}
-
-.todo-text {
-  flex-grow: 1;
-  margin-right: 10px;
-  outline: none;
-}
-
-.todo-text:focus {
-  background: #eef;
-  border-radius: 3px;
-}
-
-.todo-date {
-  font-size: 0.85rem;
-  color: #666;
-  margin-right: 10px;
-  min-width: 80px;
-  text-align: right;
-  outline: none;
-}
-
-.todo-date:focus {
-  background: #eef;
-  border-radius: 3px;
-}
-
-.ux-todo-list a {
-  text-decoration: none;
-  color: #0056b3;
-  font-size: 0.9rem;
-  font-weight: bold;
-}
-
-/* Hide original content if needed, or style it down */
-/* Example: .container { display: none; } - Be careful not to break functionality */
-
-/* ===============================================
-   譎る俣蜑ｲ陦ｨ繧ｻ繝ｫ蟷・怙驕ｩ蛹悶せ繧ｿ繧､繝ｫ・域ｭ｣譁ｹ蠖｢蛹厄ｼ・
-   讓ｪ蟷・ｒ蝓ｺ貅悶↓鬮倥＆繧定ｪｿ謨ｴ縺励※豁｣譁ｹ蠖｢縺ｫ霑代▼縺代ｋ
-   =============================================== */
-
-/* 譛驕ｩ蛹悶′譛牙柑縺ｪ譎る俣蜑ｲ陦ｨ */
-table.schedule-table.ux-optimized-cell-width {
-  /* 繝・・繝悶Ν繝ｬ繧､繧｢繧ｦ繝医・縺昴・縺ｾ縺ｾ */
-}
-
-/* 譛驕ｩ蛹悶＆繧後◆繧ｻ繝ｫ */
-table.schedule-table.ux-optimized-cell-width td.ux-cell-optimized {
-  /* 蟷・→鬮倥＆繧偵↑繧九∋縺乗ｭ｣譁ｹ蠖｢縺ｫ霑代▼縺代ｋ */
-  word-break: break-word;
-  overflow-wrap: break-word;
-  /* 繝・く繧ｹ繝医ｒ謚倥ｊ霑斐☆ */
-  white-space: normal !important;
-  /* 荳ｭ螟ｮ謠・∴縺ｫ縺励※隕九◆逶ｮ繧呈紛縺医ｋ */
-  vertical-align: middle !important;
-  text-align: center !important;
-  /* 繝代ョ繧｣繝ｳ繧ｰ繧貞ｰ代＠霑ｽ蜉 */
-  padding: 8px !important;
-  /* 繝懊ャ繧ｯ繧ｹ繧ｵ繧､繧ｺ */
-  box-sizing: border-box !important;
-}
-
-/* 譛驕ｩ蛹悶＆繧後◆繧ｻ繝ｫ蜀・・繝ｪ繝ｳ繧ｯ */
-table.schedule-table.ux-optimized-cell-width td.ux-cell-optimized a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  line-height: 1.3;
-}
-
-/* 譎る俣譫蛻暦ｼ・髯舌・髯舌↑縺ｩ・・*/
-table.schedule-table.ux-optimized-cell-width td.schedule-table-class_order {
   vertical-align: middle !important;
   text-align: center !important;
   box-sizing: border-box !important;
 }
 
-/* 繝倥ャ繝繝ｼ陦・*/
 table.schedule-table.ux-optimized-cell-width thead th {
   text-align: center;
 }
 
-/* ===============================================
-   Modern Mode Styles
-   =============================================== */
-
-/* Toggle Button */
-.ux-modern-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  padding: 12px 24px;
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s, opacity 0.2s;
-}
-
-.ux-modern-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Inactive (not currently selected view) */
-.ux-modern-toggle.inactive {
-  background: #9ca3af;
-  opacity: 0.7;
-}
-
-.ux-modern-toggle.inactive:hover {
-  opacity: 1;
-}
-
-/* Active (currently selected view) */
-.ux-modern-toggle.active {
-  background: #667eea;
-}
-
-/* (Modern Mode styles removed - no longer used) */
-
-/* Hide original content in Dashboard V2 Mode */
-body.ux-dashboard-v2-mode>*:not(.ux-dashboard-v2-container):not(.flatpickr-calendar):not(.ms-mobile-select):not(.ux-datetime-popover):not(.ux-reminder-popover):not(.ux-trash-fab):not(.ux-trash-overlay):not(script):not(style):not(link) {
+/* Dashboard V2 */
+body.ux-dashboard-v2-mode>*:not(.ux-dashboard-v2-container):not(.flatpickr-calendar):not(.ms-mobile-select):not(.ux-datetime-popover):not(.ux-trash-fab):not(.ux-trash-overlay):not(script):not(style):not(link) {
   display: none !important;
+}
+
+/* Apply to the viewport too: the body's overscroll policy is not propagated. */
+html:has(> body.ux-dashboard-v2-mode),
+body.ux-dashboard-v2-mode,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable-body,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-list,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-courses-body {
+  overscroll-behavior: none;
 }
 
 /* Dashboard V2 Mode Body */
@@ -492,11 +82,10 @@ body.ux-dashboard-v2-mode {
   align-items: center;
   justify-content: space-between;
   padding: 11px 24px;
-  background: var(--ux-home-header-backdrop);
+  min-height: 64px;
+  box-sizing: border-box;
+  background: var(--ux-home-header-surface);
   border-bottom: 1px solid var(--ux-home-separator);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  backdrop-filter: blur(18px) saturate(1.18);
-  -webkit-backdrop-filter: blur(18px) saturate(1.18);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -505,17 +94,30 @@ body.ux-dashboard-v2-mode {
 .ux-dashboard-v2-header-left {
   display: flex;
   align-items: center;
+  min-height: 42px;
 }
 
 .ux-dashboard-v2-logo {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--ux-home-accent-emphasis);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .ux-dashboard-v2-header-nav {
   display: flex;
+  flex: 0 1 auto;
+  align-items: center;
   gap: 10px;
+  min-height: 42px;
+  overflow: visible;
 }
 
 .ux-dashboard-v2-tab {
@@ -524,18 +126,20 @@ body.ux-dashboard-v2-mode {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 38px;
-  padding: 10px 20px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  height: 42px;
+  padding: 0 20px;
   box-sizing: border-box;
   text-decoration: none;
   color: var(--ux-home-secondary-label);
   border-radius: 8px;
   font-weight: 500;
   font-size: 0.95rem;
-  line-height: 1.4;
+  line-height: 1.25;
   white-space: nowrap;
   outline: none;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
 .ux-dashboard-v2-tab,
@@ -549,22 +153,18 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-dashboard-v2-tab:hover {
-  background: var(--ux-home-fill);
+  background: var(--ux-home-surface);
   color: var(--ux-home-label);
 }
 
 .ux-dashboard-v2-tab:focus-visible {
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.28);
+  outline: var(--ux-focus-width) solid var(--ux-home-tab-focus);
+  outline-offset: var(--ux-focus-offset);
 }
 
 .ux-dashboard-v2-tab.active {
   background: var(--ux-home-accent-soft);
   color: var(--ux-home-accent-emphasis);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.12);
-}
-
-.ux-dashboard-v2-tab.active:focus-visible {
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.12);
 }
 
 .ux-dashboard-v2-tab.has-unread {
@@ -572,21 +172,25 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-dashboard-v2-tab-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  width: 20px;
   min-width: 20px;
   height: 20px;
-  padding: 0 6px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
   box-sizing: border-box;
-  border-radius: 999px;
+  aspect-ratio: 1;
+  border-radius: 50%;
   background: var(--ux-home-danger);
   color: #fff;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 6px 16px rgba(255, 69, 58, 0.22);
 }
 
 .ux-dashboard-v2-tab-badge[hidden] {
@@ -596,12 +200,12 @@ body.ux-dashboard-v2-mode {
 .ux-dashboard-v2-header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
 }
 
 .ux-message-debug-btn {
   padding: 6px 10px;
-  border: 1px solid rgba(255, 69, 58, 0.2);
+  border: 1px solid var(--ux-home-danger-soft);
   border-radius: 999px;
   background: var(--ux-home-danger-soft);
   color: var(--ux-home-danger-foreground);
@@ -612,190 +216,72 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-message-debug-btn:hover {
-  background: rgba(255, 69, 58, 0.18);
-  border-color: rgba(255, 69, 58, 0.28);
-}
-
-.ux-dashboard-v2-messages {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.ux-message-toolbar,
-.ux-dashboard-v2-message-list {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.ux-message-toolbar {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  flex-wrap: wrap;
-  margin: 0 !important;
-  padding: 10px 12px;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.86);
-}
-
-.ux-message-toolbar-btn {
-  width: 36px;
-  height: 36px;
-  padding: 8px !important;
-  border: 1px solid var(--ux-home-separator) !important;
-  border-radius: 10px !important;
-  background: var(--ux-home-surface) !important;
-  color: var(--ux-home-secondary-label);
-}
-
-.ux-message-toolbar-btn:hover {
-  background: var(--ux-home-fill) !important;
-  color: var(--ux-home-label);
-}
-
-.ux-message-status {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  margin-left: 4px;
-  color: var(--ux-home-secondary-label);
-  font-size: 0.86rem !important;
-}
-
-.ux-dashboard-v2-message-list {
-  flex: 1 1 auto;
-  min-height: 0 !important;
-  overflow-y: auto;
-  padding: 4px 2px 10px;
-}
-
-.ux-message-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  list-style: none;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.ux-message-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 5px 16px;
-  padding: 16px 18px !important;
-  border: 1px solid var(--ux-home-separator) !important;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.94) !important;
-  box-shadow: var(--ux-home-shadow-sm);
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
-}
-
-.ux-message-item:hover {
-  transform: translateY(-1px);
-  border-color: rgba(10, 132, 255, 0.22) !important;
-  background: var(--ux-home-surface) !important;
-  box-shadow: var(--ux-home-shadow-md);
-}
-
-.ux-message-item.is-unread {
-  border-left: 4px solid var(--ux-home-danger) !important;
-}
-
-.ux-message-item.is-just-read {
-  border-left: 4px solid var(--ux-home-success) !important;
-}
-
-.ux-message-sender {
-  grid-column: 1;
-  margin: 0 !important;
-  color: var(--ux-home-secondary-label) !important;
-  font-size: 0.82rem !important;
-  font-weight: 600;
-}
-
-.ux-message-subject {
-  grid-column: 1 / -1;
-  min-width: 0;
-  color: var(--ux-home-label) !important;
-  font-size: 1rem;
-  line-height: 1.45;
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-}
-
-.ux-message-date {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
-  margin: 0 !important;
-  color: var(--ux-home-tertiary-label) !important;
-  font-size: 0.78rem !important;
-  white-space: nowrap;
-}
-
-.ux-message-empty {
-  padding: 28px 18px !important;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--ux-home-secondary-label) !important;
-  text-align: center;
-}
-
-.ux-message-empty-success {
-  color: var(--ux-home-success-foreground) !important;
-  background: var(--ux-home-success-soft);
-}
-
-.ux-message-empty-warning {
-  color: var(--ux-home-warning-foreground) !important;
-  background: var(--ux-home-warning-soft);
+  background: var(--ux-home-danger-soft);
+  border-color: var(--ux-home-danger-soft);
 }
 
 .ux-dashboard-v2-header-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 12px;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  box-sizing: border-box;
+  padding: 0;
   border: 1px solid var(--ux-home-separator);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
+  border-radius: var(--ux-radius-pill);
+  background: var(--ux-home-surface);
   color: var(--ux-home-label);
   text-decoration: none;
-  font-size: 0.86rem;
+  font-size: 0;
   font-weight: 600;
   line-height: 1;
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.ux-dashboard-v2-inbox:hover {
-  background: var(--ux-home-accent-soft);
-  border-color: rgba(10, 132, 255, 0.18);
+.ux-dashboard-v2-header-link svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.ux-dashboard-v2-settings,
+.ux-dashboard-v2-inbox,
+.ux-dashboard-v2-language-trigger,
+.ux-dashboard-v2-logout {
+  border-color: transparent;
+  background: transparent;
+}
+
+.ux-dashboard-v2-settings:hover,
+.ux-dashboard-v2-inbox:hover,
+.ux-dashboard-v2-language-trigger:hover {
+  background: transparent;
+  border-color: transparent;
   color: var(--ux-home-accent-emphasis);
 }
 
 .ux-dashboard-v2-logout:hover {
-  background: var(--ux-home-danger-soft);
-  border-color: rgba(255, 69, 58, 0.2);
+  background: transparent;
+  border-color: transparent;
   color: var(--ux-home-danger-foreground);
 }
 
-.ux-dashboard-v2-username {
+.ux-dashboard-v2-language {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  font-size: 0.95rem;
-  color: var(--ux-home-secondary-label);
+}
+
+.ux-dashboard-v2-language.open .ux-dashboard-v2-language-menu {
+  display: block;
 }
 
 .ux-dashboard-v2-account {
@@ -809,14 +295,14 @@ body.ux-dashboard-v2-mode {
   align-items: center;
   justify-content: center;
   border: none;
-  background: transparent;
+  background: var(--ux-home-surface);
   padding: 2px;
   border-radius: 6px;
   cursor: pointer;
 }
 
 .ux-dashboard-v2-account-trigger:hover {
-  background: var(--ux-home-fill);
+  background: var(--ux-home-surface);
 }
 
 .ux-dashboard-v2-account-menu {
@@ -828,10 +314,9 @@ body.ux-dashboard-v2-mode {
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--ux-home-surface);
   border: 1px solid var(--ux-home-separator);
   border-radius: 8px;
-  box-shadow: var(--ux-home-shadow-md);
   z-index: 300;
 }
 
@@ -869,13 +354,17 @@ body.ux-dashboard-v2-mode {
 .ux-dashboard-v2-user-icon {
   width: 30px;
   height: 30px;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 4px;
+  box-sizing: border-box;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  outline: 1px solid var(--ux-home-separator-strong);
+  outline-offset: 2px;
   background: var(--ux-home-surface);
   object-fit: cover;
+  transition: outline-color var(--ux-motion-duration-fast) var(--ux-motion-ease-standard);
 }
 
-/* Dashboard V2 Main Layout - 2 Columns (Navigation removed) */
+/* Dashboard V2 Main Layout */
 .ux-dashboard-v2-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 470px;
@@ -890,7 +379,7 @@ body.ux-dashboard-v2-mode {
 
 @media (max-width: 1200px) {
   .ux-dashboard-v2-main {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     height: auto;
     min-height: auto;
     overflow: visible;
@@ -902,87 +391,22 @@ body.ux-dashboard-v2-mode {
   }
 }
 
-/* Left Column - Navigation (Removed) */
-/* .ux-dashboard-v2-left { ... } */
-
-.ux-dashboard-v2-left h3 {
-  margin: 0 0 15px 0;
-  font-size: 0.9rem;
-  color: var(--ux-home-tertiary-label);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.ux-dashboard-v2-nav-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.ux-dashboard-v2-nav-list li {
-  padding: 12px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--ux-home-secondary-label);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.ux-dashboard-v2-nav-list li:hover {
-  background: var(--ux-home-fill);
-  color: var(--ux-home-accent-emphasis);
-}
-
-.ux-dashboard-v2-nav-list li a {
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 8px;
-}
-
-.ux-dashboard-v2-nav-list li a:hover {
-  color: var(--ux-home-accent-emphasis);
-}
-
-.ux-dashboard-v2-nav-list li:has(a) {
-  padding: 0;
-}
-
-.ux-dashboard-v2-nav-list li:has(a):hover {
-  background: transparent;
-}
-
-.ux-dashboard-v2-nav-list li a:hover {
-  background: var(--ux-home-fill);
-}
-
-.ux-dashboard-v2-nav-list li .icon {
-  font-size: 1.1rem;
-}
-
 /* Center Column */
 .ux-dashboard-v2-center {
   display: flex;
   flex-direction: column;
   gap: 14px;
   height: 100%;
+  min-width: 0;
   min-height: 0;
   align-self: stretch;
 }
 
 /* Section Card Style */
 .ux-dashboard-v2-section {
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--ux-home-surface);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: var(--ux-home-shadow-md);
   border: 1px solid var(--ux-home-separator);
   line-height: 1.55;
 }
@@ -993,6 +417,33 @@ body.ux-dashboard-v2-mode {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Split-frame cards keep controls on the outer surface and content on a
+   quieter inner surface, matching the visual hierarchy of the home page. */
+.ux-dashboard-v2-timetable-toolbar,
+.ux-dashboard-v2-todo-toolbar {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 8px;
+}
+
+.ux-dashboard-v2-todo-filter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.ux-dashboard-v2-timetable-body,
+.ux-dashboard-v2-todo-list {
+  box-sizing: border-box;
+  border-radius: var(--ux-radius-lg);
+  background: var(--ux-home-surface);
 }
 
 .ux-dashboard-v2-timetable-body {
@@ -1032,55 +483,62 @@ body.ux-dashboard-v2-mode {
 .ux-dashboard-v2-outside-courses-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .ux-dashboard-v2-outside-courses-list {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   gap: 8px;
+  width: 100%;
+  min-width: 100%;
 }
 
 .ux-dashboard-v2-outside-course-item {
   display: flex;
+  /* Show five full cards and roughly half of the sixth at the left edge. */
+  flex: 0 0 calc((100% - 40px) / 5.5);
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
+  min-width: 0;
+  min-height: 96px;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid transparent;
-  background: var(--ux-home-surface-muted);
+  border: 1px solid var(--ux-home-separator);
+  background: var(--ux-home-surface);
+  box-sizing: border-box;
+  text-align: center;
   text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .ux-dashboard-v2-outside-course-item:hover {
-  transform: translateY(-1px);
-  background: var(--ux-home-fill);
-  border-color: rgba(10, 132, 255, 0.16);
-  box-shadow: 0 8px 18px rgba(10, 132, 255, 0.08);
+  background: var(--ux-home-surface);
+  border-color: var(--ux-home-separator-strong);
 }
 
 .ux-dashboard-v2-outside-course-title {
   color: var(--ux-home-label);
-  font-size: 0.96rem;
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.ux-dashboard-v2-outside-course-detail {
-  color: var(--ux-home-secondary-label);
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
-
-.ux-dashboard-v2-outside-course-meta {
-  color: var(--ux-home-tertiary-label);
-  font-size: 0.82rem;
+  display: -webkit-box;
+  width: 100%;
+  max-height: 68px;
+  overflow: hidden;
+  font-weight: 500;
+  font-size: 1.08rem;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow-wrap: anywhere;
 }
 
 .ux-dashboard-v2-outside-course-note {
-  align-self: flex-start;
+  align-self: center;
   padding: 3px 9px;
   border-radius: 999px;
   background: var(--ux-home-warning-soft);
@@ -1088,6 +546,7 @@ body.ux-dashboard-v2-mode {
   font-size: 0.76rem;
   font-weight: 600;
   line-height: 1.35;
+  text-align: center;
 }
 
 .ux-dashboard-v2-outside-courses-empty {
@@ -1097,71 +556,11 @@ body.ux-dashboard-v2-mode {
   padding: 24px 0;
 }
 
-.ux-dashboard-v2-outside-courses-count {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.2em;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--ux-home-fill);
-  color: var(--ux-home-secondary-label);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
 .ux-dashboard-v2-section h2 {
   margin: 0 0 18px 0;
   font-size: 1.2rem;
   color: var(--ux-home-label);
   font-weight: 600;
-}
-
-/* Today's Section */
-.ux-dashboard-v2-today-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ux-dashboard-v2-class-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 12px 15px;
-  background: var(--ux-home-surface-muted);
-  border-radius: 8px;
-  border-left: 4px solid var(--ux-home-accent);
-  transition: all 0.2s;
-}
-
-.ux-dashboard-v2-class-item:hover {
-  background: var(--ux-home-fill);
-  transform: translateX(3px);
-}
-
-.ux-dashboard-v2-class-item .period {
-  font-weight: 700;
-  color: var(--ux-home-accent-emphasis);
-  min-width: 40px;
-}
-
-.ux-dashboard-v2-class-item .class-name {
-  color: var(--ux-home-label);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.ux-dashboard-v2-class-item .class-name:hover {
-  color: var(--ux-home-accent-emphasis);
-}
-
-.no-classes {
-  text-align: center;
-  color: var(--ux-home-secondary-label);
-  padding: 30px;
 }
 
 .ux-timetable-header-row {
@@ -1184,37 +583,49 @@ body.ux-dashboard-v2-mode {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
   min-height: 34px;
-  padding: 8px 14px;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 999px;
-  background: var(--ux-home-surface);
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--ux-home-label);
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0;
   line-height: 1;
   text-decoration: none;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ux-timetable-add-course-btn svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  transform: translateX(2px);
 }
 
 .ux-timetable-add-course-btn:hover {
-  background: var(--ux-home-fill);
-  border-color: rgba(10, 132, 255, 0.14);
-  color: var(--ux-home-accent-emphasis);
+  background: transparent;
   text-decoration: none;
 }
 
 .ux-dashboard-v2-term-filter {
-  margin-left: 0;
+  margin-left: 8px;
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px;
 }
 
 .ux-dashboard-v2-timetable.ux-timetable-inline-edit-active {
-  border-color: rgba(10, 132, 255, 0.18);
-  box-shadow: 0 14px 34px rgba(10, 132, 255, 0.12);
+  border-color: var(--ux-home-separator-strong);
 }
 
 .ux-timetable-inline-edit-meta {
@@ -1249,20 +660,18 @@ body.ux-dashboard-v2-mode {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .ux-timetable-inline-edit-toolbar button:hover {
   transform: translateY(-1px);
-  border-color: rgba(10, 132, 255, 0.2);
-  box-shadow: 0 8px 18px rgba(10, 132, 255, 0.12);
+  border-color: var(--ux-home-separator-hover);
 }
 
 .ux-timetable-inline-edit-toolbar button:disabled {
   cursor: wait;
   opacity: 0.7;
   transform: none;
-  box-shadow: none;
 }
 
 .ux-timetable-inline-edit-toolbar {
@@ -1278,7 +687,7 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-timetable-inline-edit-done {
-  border-color: transparent;
+  border-color: var(--ux-home-accent);
   background: var(--ux-home-accent);
   color: #ffffff;
 }
@@ -1289,57 +698,84 @@ body.ux-dashboard-v2-mode {
 
 .ux-timetable-inline-edit-clear {
   color: var(--ux-home-danger-foreground);
-  border-color: rgba(255, 69, 58, 0.18);
+  border-color: var(--ux-home-danger-soft);
   background: var(--ux-home-danger-soft);
 }
 
 /* カスタムセレクト（年度・学期） */
 :root {
   color-scheme: light;
-  --ux-home-page-bg: #f5f5f7;
-  --ux-home-surface: #ffffff;
-  --ux-home-surface-muted: #f2f2f7;
-  --ux-home-surface-soft: #fbfbfd;
-  --ux-home-fill: rgba(120, 120, 128, 0.12);
-  --ux-home-fill-strong: rgba(120, 120, 128, 0.2);
-  --ux-home-label: #1d1d1f;
-  --ux-home-secondary-label: #6e6e73;
-  --ux-home-tertiary-label: #8e8e93;
-  --ux-home-quaternary-label: #aeaeb2;
-  --ux-home-separator: rgba(60, 60, 67, 0.18);
-  --ux-home-separator-strong: rgba(60, 60, 67, 0.29);
-  --ux-home-accent: #0a84ff;
-  --ux-home-accent-emphasis: #0077ed;
-  --ux-home-accent-soft: rgba(10, 132, 255, 0.12);
-  --ux-home-accent-softer: rgba(10, 132, 255, 0.08);
-  --ux-home-success: #34c759;
-  --ux-home-success-soft: rgba(52, 199, 89, 0.14);
-  --ux-home-success-foreground: #248a3d;
-  --ux-home-warning: #ff9f0a;
-  --ux-home-warning-soft: rgba(255, 159, 10, 0.16);
-  --ux-home-warning-foreground: #9a5b00;
-  --ux-home-danger: #ff453a;
-  --ux-home-danger-soft: rgba(255, 69, 58, 0.14);
-  --ux-home-danger-foreground: #c12a1f;
-  --ux-home-purple: #bf5af2;
-  --ux-home-purple-soft: rgba(191, 90, 242, 0.14);
-  --ux-home-purple-foreground: #7a2fc7;
-  --ux-home-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --ux-home-shadow-md: 0 12px 32px rgba(15, 23, 42, 0.08);
-  --ux-home-shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.14);
-  --ux-home-focus-ring: 0 0 0 3px rgba(10, 132, 255, 0.18);
-  --ux-home-header-backdrop: rgba(255, 255, 255, 0.78);
-  --ux-home-overlay: rgba(15, 23, 42, 0.26);
+  --ux-home-page-bg: #F4F8FB;
+  --ux-home-surface: var(--ux-color-surface);
+  --ux-home-surface-muted: var(--ux-color-surface-muted);
+  --ux-home-dashboard-frame: #EBF0F5;
+  --ux-home-surface-soft: var(--ux-color-surface-subtle);
+  --ux-home-fill: var(--ux-color-surface-subtle);
+  --ux-home-fill-strong: #E6F2FA;
+  --ux-home-label: var(--ux-color-text);
+  --ux-home-secondary-label: var(--ux-color-muted);
+  --ux-home-tertiary-label: #87939A;
+  --ux-home-quaternary-label: #A8B4BA;
+  --ux-home-separator: var(--ux-color-border);
+  --ux-home-separator-strong: var(--ux-color-border-strong);
+  --ux-home-separator-hover: var(--ux-color-border-hover, #B1BEC6);
+  --ux-home-tab-focus: #7A8E98;
+  --ux-home-accent: var(--ux-color-accent);
+  --ux-home-accent-emphasis: var(--ux-color-accent-active);
+  --ux-home-accent-soft: var(--ux-color-info-surface);
+  --ux-home-timetable-today-cell-background: var(--ux-home-accent-soft);
+  --ux-home-accent-softer: var(--ux-color-surface-subtle);
+  --ux-home-current-slot-background: #4699F8;
+  --ux-home-success: var(--ux-color-success);
+  --ux-home-success-soft: var(--ux-color-success-surface);
+  --ux-home-success-foreground: #12613F;
+  --ux-home-warning: var(--ux-color-warning);
+  --ux-home-warning-soft: var(--ux-color-warning-surface);
+  --ux-home-warning-foreground: #795000;
+  --ux-home-danger: var(--ux-color-danger);
+  --ux-home-danger-soft: var(--ux-color-danger-surface);
+  --ux-home-danger-foreground: #8C1C14;
+  --ux-home-purple: #7A3DB8;
+  --ux-home-purple-soft: #F1E9FF;
+  --ux-home-purple-foreground: #62309B;
+  --ux-home-header-surface: var(--ux-color-surface);
+  --ux-home-overlay: #33424D;
   /* One place to tune custom select font size across pages */
   --ux-select-display-font-size: 14px;
   --ux-select-option-font-size: 14px;
   --ux-term-select-font-size: var(--ux-select-display-font-size);
 }
 
+:root[data-ux-theme="dark"] {
+  --ux-home-page-bg: #181b1e;
+  --ux-home-dashboard-frame: #1c2024;
+  --ux-home-fill-strong: #303b44;
+  --ux-home-tertiary-label: #88939d;
+  --ux-home-quaternary-label: #6c7780;
+  --ux-home-tab-focus: #75cbff;
+  --ux-home-current-slot-background: #246fa4;
+  --ux-home-timetable-today-cell-background: #344650;
+  --ux-home-success-foreground: #91e1b7;
+  --ux-home-warning-foreground: #f5ca86;
+  --ux-home-danger-foreground: #ffaaa5;
+  --ux-home-purple: #b49aff;
+  --ux-home-purple-soft: #302943;
+  --ux-home-purple-foreground: #c9b8ff;
+  --ux-home-overlay: #0d1013;
+}
+
+body.ux-dashboard-v2-mode {
+  color-scheme: light;
+}
+
+:root[data-ux-theme="dark"] body.ux-dashboard-v2-mode {
+  color-scheme: dark;
+}
+
 .ux-term-select-wrap {
   position: relative;
   display: inline-block;
-  min-width: 88px;
+  min-width: 0;
   vertical-align: top;
 }
 
@@ -1385,10 +821,57 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-select-display:focus {
-  outline: none;
-  box-shadow: var(--ux-home-focus-ring);
-  outline-offset: 1px;
-  border-color: rgba(10, 132, 255, 0.2);
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
+  border-color: var(--ux-home-separator-strong);
+}
+
+/* Timetable filters use a text-first trigger instead of a button-like surface. */
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-display {
+  width: auto !important;
+  min-width: 0;
+  min-height: 34px !important;
+  padding: 4px 18px 4px 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--ux-home-secondary-label);
+  font-weight: 600;
+  justify-content: flex-start;
+  transition: color 0.18s ease;
+}
+
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-display:hover,
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-display:focus {
+  border-color: transparent !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--ux-home-label);
+}
+
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-display:focus-visible {
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
+}
+
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-display::after {
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  opacity: 0.55;
+}
+
+body.ux-dashboard-v2-mode .ux-term-select-wrap.ux-open .ux-select-display {
+  color: var(--ux-home-accent-emphasis);
+  outline: var(--ux-focus-width) solid var(--ux-focus-color) !important;
+  outline-offset: var(--ux-focus-offset);
+}
+
+body.ux-dashboard-v2-mode .ux-term-select-wrap .ux-select-list {
+  min-width: 136px;
+  border: 1px solid var(--ux-home-separator) !important;
+  border-radius: var(--ux-radius-md);
 }
 
 .ux-select-list {
@@ -1396,10 +879,9 @@ body.ux-dashboard-v2-mode {
   left: 0;
   right: 0;
   top: calc(100% + 6px);
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--ux-home-surface);
   border: 1px solid var(--ux-home-separator);
   border-radius: 8px;
-  box-shadow: var(--ux-home-shadow-md);
   max-height: 220px;
   overflow-y: auto;
   display: none;
@@ -1412,7 +894,7 @@ body.ux-dashboard-v2-mode {
 .ux-term-select-wrap .ux-select-list,
 .ux-select-list {
   scrollbar-width: thin;
-  scrollbar-color: var(--ux-home-tertiary-label) transparent;
+  scrollbar-color: var(--ux-home-tertiary-label) var(--ux-home-surface-muted);
 }
 
 .ux-term-select-wrap .ux-select-list::-webkit-scrollbar,
@@ -1422,7 +904,7 @@ body.ux-dashboard-v2-mode {
 
 .ux-term-select-wrap .ux-select-list::-webkit-scrollbar-track,
 .ux-select-list::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--ux-home-surface-muted);
   border-radius: 999px;
 }
 
@@ -1444,7 +926,7 @@ body.ux-dashboard-v2-mode {
 .ux-select-option {
   width: 100%;
   text-align: left;
-  background: transparent;
+  background: var(--ux-home-surface);
   border: none;
   padding: 6px 10px;
   border-radius: 6px;
@@ -1461,7 +943,7 @@ body.ux-dashboard-v2-mode {
 }
 
 .ux-select-option[aria-selected="true"] {
-  background: rgba(10, 132, 255, 0.16);
+  background: var(--ux-home-separator-strong);
   font-weight: 600;
 }
 
@@ -1542,11 +1024,11 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   text-align: center;
   border: 1px solid var(--ux-home-separator);
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.88);
-  transition: all 0.2s ease;
+  background-color: var(--ux-home-surface);
+  /* Layout fitting updates height and padding immediately after first paint. */
+  transition: border-color 0.2s ease, background-color 0.2s ease;
   height: 96px;
   vertical-align: middle;
-  box-shadow: var(--ux-home-shadow-sm);
 }
 
 .ux-dashboard-v2-schedule-table tbody tr {
@@ -1573,11 +1055,10 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 
 .ux-dashboard-v2-schedule-table th {
   height: auto;
-  background: transparent;
+  background: var(--ux-home-page-bg);
   font-weight: 600;
   color: var(--ux-home-secondary-label);
   border: none;
-  box-shadow: none;
 }
 
 .ux-dashboard-v2-schedule-table.ux-compact-density th {
@@ -1591,28 +1072,24 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 }
 
 .ux-dashboard-v2-schedule-table td.today-highlight {
-  background-color: rgba(10, 132, 255, 0.08);
-  border-color: rgba(10, 132, 255, 0.18);
+  background-color: var(--ux-home-separator-strong);
+  border-color: var(--ux-home-separator-strong);
 }
 
-/* Hover effect for class cells */
-.ux-dashboard-v2-schedule-table td:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-  border-color: rgba(10, 132, 255, 0.14);
+/* Keep class-cell hover feedback on the surface without movement. */
+.ux-dashboard-v2-schedule-table td:not(:first-child):hover {
+  border-color: var(--ux-home-separator-strong);
 }
 
-.ux-dashboard-v2-schedule-table.ux-inline-edit-mode td:hover {
+.ux-dashboard-v2-schedule-table.ux-inline-edit-mode td:not(:first-child):hover {
   transform: none;
-  box-shadow: var(--ux-home-shadow-sm);
 }
 
 /* Empty cells styling (if needed) */
 .ux-dashboard-v2-schedule-table td:empty {
-  background-color: rgba(120, 120, 128, 0.06);
+  background-color: var(--ux-home-surface-muted);
   border-style: dashed;
-  border-color: rgba(60, 60, 67, 0.12);
-  box-shadow: none;
+  border-color: var(--ux-home-tertiary-label);
 }
 
 .ux-dashboard-v2-schedule-table td a {
@@ -1649,21 +1126,22 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 .ux-dashboard-v2-schedule-table.ux-inline-edit-mode td[data-editable-course="true"] {
   animation: ux-timetable-cell-jiggle 150ms ease-in-out infinite alternate;
   animation-delay: var(--ux-inline-edit-delay, 0ms);
-  border-color: rgba(10, 132, 255, 0.16);
-  box-shadow: 0 0 0 1px rgba(10, 132, 255, 0.12), 0 8px 20px rgba(10, 132, 255, 0.1);
+  border-color: var(--ux-home-separator-strong);
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
 }
 
 .ux-dashboard-v2-schedule-table.ux-inline-edit-mode td[data-editable-course="true"].ux-inline-edit-dirty {
-  border-color: rgba(255, 159, 10, 0.24);
-  box-shadow: 0 0 0 1px rgba(255, 159, 10, 0.16), 0 10px 22px rgba(255, 159, 10, 0.12);
+  border-color: var(--ux-home-warning-soft);
 }
 
 .ux-dashboard-v2-schedule-table.ux-inline-edit-mode td[data-editable-course="true"]:focus-within,
 .ux-dashboard-v2-schedule-table.ux-inline-edit-mode td[data-editable-course="true"].ux-inline-edit-focus {
   animation: none;
   transform: scale(1.01);
-  border-color: rgba(10, 132, 255, 0.24);
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.18), 0 14px 28px rgba(10, 132, 255, 0.14);
+  border-color: var(--ux-home-separator-strong);
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
 }
 
 .ux-timetable-inline-link-hidden {
@@ -1676,7 +1154,7 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   padding: 8px 10px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--ux-home-surface);
   color: var(--ux-home-label);
   font-size: 1rem;
   font-weight: 600;
@@ -1692,7 +1170,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 
 .ux-timetable-inline-input:focus {
   background: var(--ux-home-surface);
-  box-shadow: var(--ux-home-focus-ring);
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
 }
 
 @keyframes ux-timetable-cell-jiggle {
@@ -1711,7 +1190,6 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   width: 60px;
   background: transparent;
   border: none;
-  box-shadow: none;
   font-weight: bold;
   color: var(--ux-home-tertiary-label);
   font-size: 0.95rem;
@@ -1766,6 +1244,7 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   flex-direction: column;
   gap: 14px;
   height: 100%;
+  min-width: 0;
   min-height: 0;
   align-self: stretch;
 }
@@ -1783,29 +1262,24 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   margin: 0;
 }
 
-.ux-dashboard-v2-tabs {
+/* Keep ToDo icon actions consistent with the rounded dashboard controls. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.ux-dashboard-v2-todo-tab {
-  padding: 8px 14px;
-  border: none;
-  background: var(--ux-home-fill);
-  color: var(--ux-home-secondary-label);
-  border-radius: 6px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-action {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 6px !important;
+  border-radius: var(--ux-radius-pill) !important;
 }
 
-.ux-dashboard-v2-todo-tab:hover {
-  background: var(--ux-home-fill-strong);
-}
-
-.ux-dashboard-v2-todo-tab.active {
-  background: var(--ux-home-accent-soft);
-  color: var(--ux-home-accent-emphasis);
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-action:focus-visible {
+  outline: 2px solid var(--ux-home-separator-strong);
+  outline-offset: 2px;
 }
 
 .ux-dashboard-v2-todo-list {
@@ -1816,25 +1290,11 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   line-height: 1.5;
 }
 
-/* Announcements Section */
-.ux-dashboard-v2-announcement-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.no-announcements {
-  text-align: center;
-  color: var(--ux-home-tertiary-label);
-  padding: 20px;
-  font-size: 1rem;
-}
-
 /* Stats / Misc Links Section */
 .ux-dashboard-v2-stats {
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--ux-home-surface);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--ux-home-shadow-md);
   border: 1px solid var(--ux-home-separator);
   margin-top: 20px;
 }
@@ -1861,13 +1321,13 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   align-items: center;
   padding: 30px 15px;
   background: var(--ux-home-surface-muted);
-  border: 1px solid transparent;
+  border: 1px solid var(--ux-home-separator);
   border-radius: 12px;
   color: var(--ux-home-secondary-label);
   text-decoration: none;
   font-size: 1.6rem;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
   text-align: center;
   height: 100%;
   box-sizing: border-box;
@@ -1875,9 +1335,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 
 .ux-dashboard-v2-stats-list li a:hover {
   background: var(--ux-home-accent-softer);
-  border-color: rgba(10, 132, 255, 0.16);
+  border-color: var(--ux-home-separator-strong);
   color: var(--ux-home-accent-emphasis);
-  box-shadow: 0 8px 18px rgba(10, 132, 255, 0.1);
   transform: translateY(-1px);
 }
 
@@ -1903,7 +1362,7 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   gap: 12px;
   padding: 18px;
   background: var(--ux-home-surface-muted);
-  border: 1px solid transparent;
+  border: 1px solid var(--ux-home-separator);
   border-radius: 12px;
 }
 
@@ -1931,191 +1390,100 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   border-top: 1px dashed var(--ux-home-separator);
 }
 
+.ux-dashboard-v2-debug-task-card {
+  border-left: 3px solid var(--ux-home-accent-emphasis);
+}
+
+.ux-dashboard-v2-debug-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 8px;
+  padding-left: 10px;
+  border-top: 1px dashed var(--ux-home-separator);
+  border-left: 3px solid var(--ux-home-accent-emphasis);
+}
+
+.ux-dashboard-v2-debug-task-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ux-dashboard-v2-debug-task-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ux-home-secondary-label);
+  font-size: 0.78rem;
+}
+
+.ux-dashboard-v2-debug-task-field input,
+.ux-dashboard-v2-debug-task-field select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 7px 8px;
+  color: var(--ux-home-label);
+  background: var(--ux-home-surface);
+  border: 1px solid var(--ux-home-separator-strong);
+  border-radius: var(--ux-radius-sm);
+  font: inherit;
+}
+
+.ux-dashboard-v2-debug-task-field input:focus,
+.ux-dashboard-v2-debug-task-field select:focus {
+  outline: 2px solid var(--ux-home-accent);
+  outline-offset: 1px;
+}
+
+.ux-dashboard-v2-debug-task-deadline {
+  cursor: pointer;
+}
+
+.ux-dashboard-v2-debug-task-refresh {
+  color: var(--ux-home-secondary-label);
+}
+
+.ux-dashboard-v2-debug-task-status {
+  min-width: 0;
+  color: var(--ux-home-secondary-label);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .ux-dashboard-v2-debug-task-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Scrollbar styles for Dashboard V2 */
 .ux-dashboard-v2-todo-list::-webkit-scrollbar,
-.ux-dashboard-v2-announcement-list::-webkit-scrollbar,
 .ux-dashboard-v2-outside-courses-body::-webkit-scrollbar {
   width: 6px;
 }
 
+.ux-dashboard-v2-outside-courses-body::-webkit-scrollbar {
+  height: 6px;
+}
+
 .ux-dashboard-v2-todo-list::-webkit-scrollbar-track,
-.ux-dashboard-v2-announcement-list::-webkit-scrollbar-track,
 .ux-dashboard-v2-outside-courses-body::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--ux-home-surface-muted);
   border-radius: 3px;
 }
 
 .ux-dashboard-v2-todo-list::-webkit-scrollbar-thumb,
-.ux-dashboard-v2-announcement-list::-webkit-scrollbar-thumb,
 .ux-dashboard-v2-outside-courses-body::-webkit-scrollbar-thumb {
-  background: rgba(60, 60, 67, 0.2);
+  background: var(--ux-home-tertiary-label);
   border-radius: 3px;
 }
 
 .ux-dashboard-v2-todo-list::-webkit-scrollbar-thumb:hover,
-.ux-dashboard-v2-announcement-list::-webkit-scrollbar-thumb:hover,
 .ux-dashboard-v2-outside-courses-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(60, 60, 67, 0.32);
-}
-
-.ux-ms-reminder-btn {
-  border: 1px solid var(--ux-home-separator);
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--ux-home-secondary-label);
-  border-radius: 999px;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  line-height: 1;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
-}
-
-.ux-ms-reminder-btn:hover {
-  background: var(--ux-home-fill);
-  border-color: rgba(10, 132, 255, 0.14);
-  color: var(--ux-home-accent-emphasis);
-}
-
-.ux-ms-reminder-btn.is-off {
-  opacity: 0.75;
-}
-
-.ux-ms-reminder-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
-.ux-ms-reminder-btn svg path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.ux-ms-reminder-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ux-home-focus-ring);
-  outline-offset: 1px;
-}
-
-.ux-reminder-popover {
-  position: absolute;
-  z-index: 100001;
-  animation: ux-datetime-pop 160ms ease-out;
-}
-
-.ux-reminder-panel {
-  width: fit-content;
-  min-width: 0;
-  max-width: min(92vw, 320px);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 12px;
-  box-shadow: var(--ux-home-shadow-md);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ux-reminder-row {
-  display: grid;
-  grid-template-columns: 56px 188px;
-  align-items: center;
-  column-gap: 10px;
-  row-gap: 0;
-  width: auto;
-  font-size: 0.95rem;
-  color: var(--ux-home-secondary-label);
-}
-
-.ux-reminder-label {
-  font-size: inherit;
-  line-height: 1.3;
-  color: inherit;
-}
-
-.ux-reminder-select {
-  width: 100%;
-  min-width: 0;
-  max-width: none;
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 8px;
-  background: var(--ux-home-surface);
-  color: var(--ux-home-label);
-  font-size: 0.92rem;
-  line-height: 1.4;
-  padding: 7px 9px;
-}
-
-.ux-reminder-select:disabled {
-  background: var(--ux-home-surface-muted);
-  color: var(--ux-home-tertiary-label);
-}
-
-.ux-reminder-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.ux-reminder-btn {
-  border: 1px solid var(--ux-home-separator);
-  border-radius: 8px;
-  background: var(--ux-home-surface);
-  color: var(--ux-home-label);
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.ux-reminder-btn:hover {
-  background: var(--ux-home-fill);
-  border-color: rgba(10, 132, 255, 0.14);
-}
-
-.ux-reminder-btn:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.ux-reminder-btn-primary {
-  background: var(--ux-home-accent);
-  border-color: var(--ux-home-accent);
-  color: #fff;
-}
-
-.ux-reminder-btn-primary:hover {
-  background: var(--ux-home-accent-emphasis);
-  border-color: var(--ux-home-accent-emphasis);
-}
-
-@media (max-width: 520px) {
-  .ux-reminder-panel {
-    width: calc(100vw - 24px);
-    min-width: 0;
-  }
-
-  .ux-reminder-row {
-    grid-template-columns: 1fr;
-    row-gap: 6px;
-  }
-
-  .ux-reminder-select {
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-  }
+  background: var(--ux-home-tertiary-label);
 }
 
 /* Unified date/time picker (calendar + time wheel) */
@@ -2127,9 +1495,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   animation: ux-datetime-pop 160ms ease-out;
   --ux-datetime-accent: var(--ux-home-accent);
   --ux-time-wheel-item: 32px;
-  --ux-datetime-glass-bg: rgba(255, 255, 255, 0.78);
-  --ux-datetime-glass-border: rgba(255, 255, 255, 0.6);
-  --ux-datetime-glass-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  --ux-datetime-panel-bg: var(--ux-color-surface);
+  --ux-datetime-panel-border: var(--ux-color-border-strong);
 }
 
 .ux-datetime-panel {
@@ -2138,11 +1505,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   gap: 14px;
   padding: 12px 14px;
   border-radius: 18px;
-  background: var(--ux-datetime-glass-bg);
-  border: 1px solid var(--ux-datetime-glass-border);
-  box-shadow: var(--ux-datetime-glass-shadow);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  background: var(--ux-datetime-panel-bg);
+  border: 1px solid var(--ux-datetime-panel-border);
 }
 
 @keyframes ux-datetime-pop {
@@ -2176,9 +1540,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 }
 
 .ux-datetime-calendar .flatpickr-calendar {
-  background: transparent;
+  background: var(--ux-home-surface);
   border: 0;
-  box-shadow: none;
   width: 100%;
 }
 
@@ -2202,7 +1565,7 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   font-size: 1.5rem;
   font-weight: 600;
   border: 0;
-  background: transparent;
+  background: var(--ux-home-surface);
   color: inherit;
   padding: 0 4px;
 }
@@ -2241,15 +1604,13 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 .ux-datetime-calendar .flatpickr-day.startRange:hover,
 .ux-datetime-calendar .flatpickr-day.endRange:hover {
   background: var(--ux-datetime-accent);
-  border-color: transparent;
+  border-color: var(--ux-datetime-accent);
   color: #fff;
-  box-shadow: 0 6px 12px rgba(10, 132, 255, 0.28);
 }
 
 .ux-datetime-calendar .flatpickr-day.inRange {
-  background: rgba(10, 132, 255, 0.12);
-  border-color: transparent;
-  box-shadow: none;
+  background: var(--ux-home-separator-strong);
+  border-color: var(--ux-home-separator);
 }
 
 .ux-datetime-time {
@@ -2290,8 +1651,8 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
+  mask-image: none;
+  -webkit-mask-image: none;
 }
 
 .ux-time-wheel::-webkit-scrollbar {
@@ -2329,27 +1690,26 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   height: var(--ux-time-wheel-item);
   transform: translateY(-50%);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  background: var(--ux-home-surface);
+  border: 1px solid var(--ux-home-separator);
   pointer-events: none;
 }
 
 .ux-datetime-clear {
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--ux-home-separator);
+  background: var(--ux-home-surface);
   color: var(--ux-home-label);
   border-radius: 999px;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .ux-datetime-clear:hover {
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+  background: var(--ux-home-surface);
+  border-color: var(--ux-home-separator-hover);
 }
 
 .ux-datetime-clear:focus-visible {
@@ -2379,7 +1739,7 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   height: 36px;
   border: none;
   border-radius: 50%;
-  background: rgba(29, 29, 31, 0.42);
+  background: var(--ux-home-label);
   color: white;
   font-size: 16px;
   line-height: 1;
@@ -2387,16 +1747,15 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
-  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--ux-home-label);
+  transition: background 0.2s, transform 0.2s;
   opacity: 0.5;
 }
 
 .ux-trash-fab:hover {
   opacity: 1;
-  background: rgba(29, 29, 31, 0.68);
+  background: var(--ux-home-label);
   transform: scale(1.1);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.22);
 }
 
 /* Overlay */
@@ -2405,8 +1764,6 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   inset: 0;
   z-index: 10000;
   background: var(--ux-home-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2420,9 +1777,9 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
 
 /* Modal */
 .ux-trash-modal {
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--ux-home-surface);
+  border: 1px solid var(--ux-home-separator-strong);
   border-radius: 14px;
-  box-shadow: var(--ux-home-shadow-lg);
   width: 90%;
   max-width: 520px;
   max-height: 70vh;
@@ -2534,12 +1891,12 @@ table.schedule-table.ux-optimized-cell-width tbody td.ux-cell-optimized a {
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .ux-trash-restore-btn:hover {
-  background: var(--ux-home-accent-soft);
-  border-color: rgba(10, 132, 255, 0.18);
+  background: var(--ux-home-surface);
+  border-color: var(--ux-home-separator-hover);
   color: var(--ux-home-accent-emphasis);
 }
 
@@ -2552,7 +1909,497 @@ body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:focu
 body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab:active,
 body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav a.ux-dashboard-v2-tab > span {
   background-image: none !important;
-  border-bottom: 0 !important;
   text-decoration-line: none !important;
   text-decoration: none !important;
+}
+
+/* Solid, simple visual layer for the extension-owned dashboard. */
+body.ux-dashboard-v2-mode {
+  background-color: var(--ux-home-page-bg);
+  background-image: none;
+  color: var(--ux-home-label);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header {
+  background-color: var(--ux-home-header-surface);
+  border-bottom-color: var(--ux-home-separator);
+}
+
+/* Keep the header controls in a predictable row even when WebClass's global
+ * navigation rules set a fixed height, padding, or clipping overflow. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-left,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-right,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab > span {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header {
+  box-sizing: border-box;
+  min-height: 64px !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav {
+  align-items: center;
+  height: 42px !important;
+  min-height: 42px !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab {
+  box-sizing: border-box !important;
+  align-items: center;
+  display: inline-flex !important;
+  flex: 0 0 auto;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding-block: 0 !important;
+  line-height: 1.25 !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab[hidden],
+body.ux-dashboard-v2-mode .ux-trash-fab[hidden] {
+  display: none !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab > span {
+  display: inline-flex;
+  align-items: center;
+  line-height: inherit;
+}
+
+/* The label rule above also matches the unread badge. Keep an empty badge
+ * out of the flex row so the message tab only sizes to its visible label. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab-badge[hidden] {
+  display: none !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-link,
+body.ux-dashboard-v2-mode .ux-select-display,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn,
+body.ux-dashboard-v2-mode .ux-timetable-inline-edit-toolbar button,
+body.ux-dashboard-v2-mode .ux-message-toolbar-btn,
+body.ux-dashboard-v2-mode .ux-action-btn,
+body.ux-dashboard-v2-mode .ux-refresh-btn {
+  border: 1px solid var(--ux-home-separator) !important;
+  background-color: var(--ux-home-surface) !important;
+  transition:
+    transform var(--ux-motion-duration-fast) var(--ux-motion-ease-standard),
+    background-color var(--ux-motion-duration-fast) var(--ux-motion-ease-standard),
+    border-color var(--ux-motion-duration-fast) var(--ux-motion-ease-standard),
+    color var(--ux-motion-duration-fast) var(--ux-motion-ease-standard);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab {
+  border-radius: var(--ux-radius-pill);
+  padding-inline: 18px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-link:hover,
+body.ux-dashboard-v2-mode .ux-select-display:hover,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:hover,
+body.ux-dashboard-v2-mode .ux-timetable-inline-edit-toolbar button:hover,
+body.ux-dashboard-v2-mode .ux-message-toolbar-btn:hover,
+body.ux-dashboard-v2-mode .ux-action-btn:hover,
+body.ux-dashboard-v2-mode .ux-refresh-btn:hover {
+  background-color: var(--ux-home-surface) !important;
+  border-color: var(--ux-home-separator-hover) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:hover,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:focus,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:active,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:visited {
+  color: var(--ux-home-label) !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-link:active,
+body.ux-dashboard-v2-mode .ux-timetable-add-course-btn:active,
+body.ux-dashboard-v2-mode .ux-action-btn:active,
+body.ux-dashboard-v2-mode .ux-refresh-btn:active {
+  transform: translateY(1px);
+  background-color: var(--ux-home-accent-soft) !important;
+}
+
+/* Header actions keep their hit areas without a visible button frame. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-settings,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-inbox,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-language-trigger,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-logout,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-settings:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-inbox:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-language-trigger:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-logout:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-settings:active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-inbox:active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-language-trigger:active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-logout:active {
+  border: 0 !important;
+  background-color: transparent !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-settings:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-inbox:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-language-trigger:hover {
+  color: var(--ux-home-accent-emphasis) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-logout:hover {
+  color: var(--ux-home-danger-foreground) !important;
+}
+
+/* Keep the pointer-pressed state on the same single neutral border. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:active {
+  border: 1px solid var(--ux-home-separator) !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab.active {
+  color: var(--ux-home-accent-emphasis);
+  background-color: var(--ux-home-accent-soft) !important;
+  border: 1px solid var(--ux-home-separator) !important;
+  outline: none !important;
+}
+
+/* Active tabs reuse the inactive border and only change color and fill. */
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:focus-visible {
+  outline: var(--ux-focus-width) solid var(--ux-home-tab-focus) !important;
+  outline-offset: var(--ux-focus-offset) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab.active:focus,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab.active:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-trigger {
+  border-radius: var(--ux-radius-pill);
+  transition:
+    background-color var(--ux-motion-duration-fast) var(--ux-motion-ease-standard),
+    transform var(--ux-motion-duration-fast) var(--ux-motion-ease-standard);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-trigger:hover {
+  background-color: var(--ux-home-surface);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-trigger:hover .ux-dashboard-v2-user-icon {
+  border-color: #ffffff;
+  outline-color: var(--ux-home-separator-hover);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-user-icon {
+  border-color: #ffffff;
+  border-radius: 50%;
+  outline: 1px solid var(--ux-home-separator-strong);
+  outline-offset: 2px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-section,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-stats {
+  background-color: var(--ux-home-surface);
+  border-color: var(--ux-home-separator);
+  border-radius: var(--ux-radius-md);
+}
+
+/* Two-layer treatment for the timetable and My TODOs cards. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo {
+  box-sizing: border-box;
+  gap: 10px;
+  padding: 10px 13px 13px;
+  border-radius: var(--ux-radius-lg);
+  border: 0;
+  background-color: var(--ux-home-dashboard-frame);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable-body,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-list {
+  border: 0;
+  border-radius: var(--ux-radius-lg);
+  background-color: var(--ux-home-surface);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable .ux-timetable-header-row,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-section-header {
+  padding: 2px 6px 0;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable .ux-timetable-header-row {
+  padding-right: 0;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-section-header {
+  flex-wrap: wrap;
+  margin-bottom: 0;
+}
+
+/* TODO actions stay as bare icons on the outer frame. */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-action {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-action:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-action:active {
+  border: 0 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-import svg,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-export svg {
+  transform: scale(1.65, 1.6);
+  transform-origin: center;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo .ux-dashboard-v2-todo-list,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-timetable .ux-dashboard-v2-timetable-body {
+  padding: 10px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table td {
+  background-color: var(--ux-home-surface);
+  border-color: var(--ux-home-separator);
+  border-radius: var(--ux-radius-sm);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table td.today-highlight {
+  background-color: var(--ux-home-timetable-today-cell-background);
+  border-color: var(--ux-home-accent);
+}
+
+:root[data-ux-theme="dark"] body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table td.today-highlight:not(.ux-timetable-current-slot) {
+  background-color: var(--ux-home-timetable-today-cell-background) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table td:empty {
+  background-color: var(--ux-home-surface-muted);
+  border-color: var(--ux-home-separator);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table td:first-child,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table th:first-child {
+  background-color: transparent;
+  border: 0;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-course-item,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-debug-card,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-stats-list li a,
+body.ux-dashboard-v2-mode .ux-message-item,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-list > li {
+  background-color: var(--ux-home-surface-soft) !important;
+  border: 1px solid var(--ux-home-separator) !important;
+  border-radius: var(--ux-radius-md);
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 3px 8px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-todo-list > li:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-course-item:hover,
+body.ux-dashboard-v2-mode .ux-message-item:hover {
+  background-color: var(--ux-home-surface) !important;
+  border-color: var(--ux-home-separator-strong) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-course-item,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-course-item:hover {
+  background-color: var(--ux-home-surface) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-todo-input-title:focus,
+body.ux-dashboard-v2-mode .ux-todo-input-date:focus,
+body.ux-dashboard-v2-mode .ux-todo-input-time:focus,
+body.ux-dashboard-v2-mode .ux-timetable-inline-input:focus {
+  background-color: var(--ux-home-surface) !important;
+  border-color: var(--ux-home-accent) !important;
+  outline: var(--ux-focus-width) solid var(--ux-focus-color) !important;
+  outline-offset: var(--ux-focus-offset);
+}
+
+body.ux-dashboard-v2-mode .ux-message-toolbar {
+  background-color: var(--ux-home-surface);
+  border-color: var(--ux-home-separator);
+  border-radius: var(--ux-radius-md);
+}
+
+body.ux-dashboard-v2-mode .ux-select-list,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-menu,
+.ux-datetime-panel,
+.ux-trash-modal {
+  background-color: var(--ux-home-surface);
+  border: 1px solid var(--ux-home-separator-strong);
+  border-radius: var(--ux-radius-md);
+}
+
+body.ux-dashboard-v2-mode .ux-select-option,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-menu li a {
+  border-radius: var(--ux-radius-sm);
+}
+
+body.ux-dashboard-v2-mode .ux-select-option:hover,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-account-menu li a:hover {
+  background-color: var(--ux-home-accent-soft);
+}
+
+body.ux-dashboard-v2-mode :where(a, button, input, select, [tabindex]):focus-visible,
+.ux-datetime-popover :where(button, input, select, [tabindex]):focus-visible,
+.ux-trash-overlay :where(button, input, select, [tabindex]):focus-visible {
+  outline: var(--ux-focus-width) solid var(--ux-focus-color);
+  outline-offset: var(--ux-focus-offset);
+}
+
+@media (max-width: 700px) {
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header {
+    padding-inline: 12px;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav > * {
+    flex: 0 0 auto;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header-right {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-tab {
+    padding-inline: 12px;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-main {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.ux-dashboard-v2-mode *,
+  .ux-datetime-popover *,
+  .ux-trash-overlay * {
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-schedule-table.ux-inline-edit-mode td[data-editable-course="true"],
+  .ux-datetime-popover,
+  .ux-trash-overlay,
+  .ux-trash-modal {
+    animation: none !important;
+  }
+}
+
+/* Unified home navigation and WebClass inbox */
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header {
+  min-height: 76px !important;
+  padding-block: 8px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-header-nav {
+  height: 60px !important;
+  min-height: 60px !important;
+  gap: 6px;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab {
+  display: inline-flex !important;
+  flex-direction: column;
+  gap: 3px;
+  width: 88px;
+  height: 60px !important;
+  min-height: 60px !important;
+  padding: 7px 10px !important;
+  border-color: transparent !important;
+  border-radius: var(--ux-radius-md);
+  background-color: transparent !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:hover {
+  border-color: transparent !important;
+  background-color: var(--ux-home-surface-soft) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab.active,
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab:active {
+  border-color: transparent !important;
+  background-color: var(--ux-home-accent-soft) !important;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab-icon {
+  display: inline-flex;
+  width: 23px;
+  height: 23px;
+  color: currentColor;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab-label {
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+body.ux-dashboard-v2-mode .ux-dashboard-v2-tab-badge {
+  top: 3px;
+  right: 17px;
+  border: 2px solid var(--ux-home-header-surface);
+}
+
+@media (forced-colors: active) {
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-header,
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-section,
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-stats,
+  body.ux-dashboard-v2-mode .ux-select-list,
+  body.ux-dashboard-v2-mode .ux-dashboard-v2-account-menu,
+  .ux-datetime-panel,
+  .ux-trash-modal {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
 }
