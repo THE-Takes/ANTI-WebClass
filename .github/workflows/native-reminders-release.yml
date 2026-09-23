@@ -1,0 +1,103 @@
+name: WebClass Reminders release
+
+on:
+  push:
+    tags:
+      - "webclass-reminders-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check release tag
+        run: |
+          set -euo pipefail
+          VERSION="$(cat NativeReminders/VERSION)"
+          TAG="webclass-reminders-v$VERSION"
+          if [[ "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match product version $VERSION." >&2
+            exit 1
+          fi
+
+      - name: Import Developer ID certificate
+        env:
+          DEVELOPER_ID_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          DEVELOPER_ID_CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          BUILD_KEYCHAIN_PASSWORD: ${{ secrets.BUILD_KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH="$RUNNER_TEMP/developer-id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/webclass-build.keychain-db"
+          printf '%s' "$DEVELOPER_ID_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          security create-keychain -p "$BUILD_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$BUILD_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -P "$DEVELOPER_ID_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$BUILD_KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/Developer ID Application:/ {gsub(/"/, "", $2); print $2; exit}')
+          if [[ -z "$IDENTITY" ]]; then
+            echo "No Developer ID signing identity was imported." >&2
+            exit 1
+          fi
+          echo "REMINDERS_SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Build signed universal installer archive
+        run: bash NativeReminders/scripts/package-release.sh
+
+      - name: Notarize, staple, and rebuild archive
+        env:
+          APPLE_NOTARY_KEY_BASE64: ${{ secrets.APPLE_NOTARY_KEY_BASE64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          VERSION="$(cat NativeReminders/VERSION)"
+          ARCHIVE="NativeReminders/dist/WebClass-Reminders-v$VERSION.zip"
+          HOST_APP="NativeReminders/dist/build/WebClass Reminders.app"
+          INSTALLER_APP="NativeReminders/dist/build/Install WebClass Reminders.app"
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$APPLE_NOTARY_KEY_ID.p8"
+          HOST_ARCHIVE="$RUNNER_TEMP/WebClass-Reminders-host.zip"
+          printf '%s' "$APPLE_NOTARY_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+
+          ditto -c -k --sequesterRsrc --keepParent "$HOST_APP" "$HOST_ARCHIVE"
+          xcrun notarytool submit "$HOST_ARCHIVE" --key "$KEY_PATH" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple "$HOST_APP"
+
+          rm -rf "$INSTALLER_APP/Contents/Resources/WebClass Reminders.app"
+          ditto "$HOST_APP" "$INSTALLER_APP/Contents/Resources/WebClass Reminders.app"
+          codesign --force --options runtime --timestamp --sign "$REMINDERS_SIGN_IDENTITY" "$INSTALLER_APP"
+          codesign --verify --deep --strict "$INSTALLER_APP"
+          rm -f "$ARCHIVE"
+          ditto -c -k --sequesterRsrc --keepParent "$INSTALLER_APP" "$ARCHIVE"
+          xcrun notarytool submit "$ARCHIVE" --key "$KEY_PATH" --key-id "$APPLE_NOTARY_KEY_ID" --issuer "$APPLE_NOTARY_ISSUER_ID" --wait
+          xcrun stapler staple "$INSTALLER_APP"
+          rm -f "$ARCHIVE"
+          ditto -c -k --sequesterRsrc --keepParent "$INSTALLER_APP" "$ARCHIVE"
+          shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+          rm -f "$HOST_ARCHIVE"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="$(cat NativeReminders/VERSION)"
+          TAG="webclass-reminders-v$VERSION"
+          if [[ "$GITHUB_REF_NAME" != "$TAG" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match product version $VERSION." >&2
+            exit 1
+          fi
+          ARCHIVE="NativeReminders/dist/WebClass-Reminders-v$VERSION.zip"
+          gh release create "$TAG" "$ARCHIVE" "$ARCHIVE.sha256" --verify-tag --title "WebClass Reminders v$VERSION" --prerelease --notes "Universal macOS helper app. The setup wizard supports macOS 14+ and Google Chrome. Marked as a prerelease until native host lookup, real Reminders permission behavior, and iCloud propagation have been verified."
+
+      - name: Remove signing credentials
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/webclass-build.keychain-db" || true
+          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/AuthKey_"*.p8

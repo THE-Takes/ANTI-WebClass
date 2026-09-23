@@ -36,6 +36,7 @@
 - 課題取得の再試行、通信失敗時の既存データ保護、コース遷移時の取得停止
 - Microsoft To Do、Google Tasks、Todoist の旧連携用ホスト権限は削除しました。
 - Appleリマインダー用補助アプリはこのリポジトリ・配布ZIPに含まれません。拡張機能単体では利用できません。
+- 補助アプリは公開用GitHub Releases（https://github.com/THE-Takes/ANTI-WebClass/releases）のWebClass Reminders pre-releaseから別途ダウンロードできます。
 
 ### 4. 資料ページ・ダウンロード改善
 
