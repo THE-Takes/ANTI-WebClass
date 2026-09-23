@@ -1,12 +1,12 @@
 # WebClass Reminders
 
-[日本語の更新手順（メモ短縮版への移行・バックアップ）](README.ja.md)
+[Build from source](BUILD_FROM_SOURCE.md) · [ソースからビルドする（日本語）](BUILD_FROM_SOURCE.ja.md) · [日本語の更新手順（メモ短縮版への移行・バックアップ）](README.ja.md)
 
 macOS 14+ / Google Chrome. The extension remains cross-platform. This host is only used when Apple Reminders is selected and the user grants the optional `nativeMessaging` permission.
 
-## Public installation
+## Build and install on your Mac
 
-Download and expand the latest `WebClass-Reminders` ZIP from the [ANTI-WebClass Releases page](https://github.com/THE-Takes/ANTI-WebClass/releases). Open the installer app, paste the extension ID shown at `chrome://extensions`, and click **Install**. No Xcode tools or terminal commands are required. The installer registers the native host for that exact Chrome extension ID, then copies the host app to `~/Applications`.
+There is no prebuilt helper download. Each user builds the helper locally from the public source. Follow [Build from source](BUILD_FROM_SOURCE.md) or the [Japanese guide](BUILD_FROM_SOURCE.ja.md). A local self-build does not require an Apple Developer membership, Developer ID certificate, or notarization credentials.
 
 The installer app also removes the host and Chrome registration. Uninstalling keeps the WebClass Reminders list and metadata files. The extension ID is written only to Chrome's local native messaging manifest.
 
@@ -56,17 +56,15 @@ bash NativeReminders/scripts/build.sh
 
 The build is extension-ID independent; the optional ID argument only catches typos. `install.sh` writes the selected ID to Chrome's registration, and the host checks that registration when Chrome starts it. Protocol tests link Foundation only and never load EventKit or request permission.
 
-## Packaging and public release
+## Local build package
 
-The packaging script creates a Universal 2 ZIP containing a guided installer app. A local build is ad-hoc signed by default and is only for development review:
+The packaging script creates a Universal ZIP with a guided installer for the user who built it. It uses an ad-hoc signature and is not a binary release for redistribution:
 
 ```sh
 bash NativeReminders/scripts/package-release.sh
 ```
 
-Public distribution uses a separate Developer ID-signed and notarized build. The release workflow and its credentials are configured only in the public `THE-Takes/ANTI-WebClass` repository; local ad-hoc ZIP files must not be distributed.
-
-The public package is built for Apple Silicon and Intel and requires macOS 14+. Before announcing a release, verify native-host lookup in Chrome, Reminders permission attribution and persistence across updates, task edits in a real test list, iCloud propagation, browser restart, older macOS rejection, Windows settings, and both CPU architectures. Source-only build checks do not replace those real-environment checks.
+The generated files are under `NativeReminders/dist/`, which is ignored by Git. Each user should build and install the helper on the Mac where it will run.
 
 ## Protocol
 

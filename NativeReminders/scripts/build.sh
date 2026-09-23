@@ -19,7 +19,7 @@ for ARCH in arm64 x86_64; do
         -o "$OUTPUT/WebClassReminders-$ARCH"
 done
 lipo -create "$OUTPUT/WebClassReminders-arm64" "$OUTPUT/WebClassReminders-x86_64" -output "$APP/Contents/MacOS/WebClassReminders"
-# Ad-hoc signing is for local development. Set a Developer ID identity for a distributable build.
+# Ad-hoc signing is intended for apps each user builds and installs locally.
 SIGN_OPTIONS=(--force --options runtime --entitlements "$ROOT/Reminders.entitlements" --sign "${REMINDERS_SIGN_IDENTITY:--}")
 if [[ "${REMINDERS_SIGN_IDENTITY:--}" != "-" ]]; then SIGN_OPTIONS+=(--timestamp); fi
 codesign "${SIGN_OPTIONS[@]}" "$APP"

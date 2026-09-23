@@ -1,11 +1,11 @@
 # WebClass Reminders の導入
 
-WebClassの課題をAppleリマインダーと同期するmacOS用の補助アプリです。macOS 14以降とGoogle Chromeが必要です。ANTI-WebClass拡張機能本体は別途インストールしてください。配布ZIPは[公開用GitHub Releases](https://github.com/THE-Takes/ANTI-WebClass/releases)から入手します。
+WebClassの課題をAppleリマインダーと同期するmacOS用の補助アプリです。macOS 14以降とGoogle Chromeが必要です。ビルド済みアプリは配布していないため、利用者が自分のMacで[公開ソースからビルド](BUILD_FROM_SOURCE.ja.md)してください。ANTI-WebClass拡張機能本体は別途インストールしてください。
 
 ## インストール
 
 1. Chromeで `chrome://extensions` を開き、右上の「デベロッパーモード」をオンにしてANTI-WebClassの拡張機能IDをコピーします。
-2. ダウンロードしたZIPを展開し、「Install WebClass Reminders」を起動します。
+2. ビルド手順で生成された「Install WebClass Reminders」を起動します。
 3. 拡張機能IDを貼り付けて「インストール」を押します。
 4. ChromeのANTI-WebClass設定で外部ToDo連携を有効にし、連携先にAppleリマインダーを選びます。
 5. 「Appleリマインダーに接続」を押し、ChromeとmacOSに表示されるアクセス要求を許可します。
@@ -28,4 +28,4 @@ WebClassの課題をAppleリマインダーと同期するmacOS用の補助ア�
 - 接続できない場合は、Chromeの拡張機能IDとインストーラーに入力したIDが一致していることを確認します。
 - アクセス要求を閉じてしまった場合は、macOSの「システム設定」→「プライバシーとセキュリティ」→「リマインダー」で許可します。
 - 同期中の表示が続く場合は、先の同期が完了してから再試行します。
-- 更新では最新版のZIPを展開し、同じ拡張機能IDでインストールします。
+- 更新では[ソースビルド手順](BUILD_FROM_SOURCE.ja.md)に従って再ビルドし、同じ拡張機能IDで生成したインストーラーを実行します。
