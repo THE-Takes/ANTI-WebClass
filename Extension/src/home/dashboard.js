@@ -691,7 +691,11 @@ async function renderDashboardLayout() {
 
         if (rightCol) rightCol.style.display = showCourse ? 'flex' : 'none';
         if (centerCol) centerCol.style.gridColumn = showCourse ? '' : '1 / -1';
-        if (showCourse) requestCourseLayoutSync();
+        if (showCourse) {
+            requestCourseLayoutSync();
+        } else {
+            document.body.classList.remove('ux-dashboard-v2-stacked-layout');
+        }
     };
 
     const activateDashboardMainTab = (tabId) => {
@@ -2149,7 +2153,19 @@ async function renderDashboardLayout() {
             if (dashboardTimetableElement) {
                 dashboardTimetableElement.classList.remove(...TIMETABLE_DENSITY_CLASSES);
             }
-            if (isDashboardStackedLayout()) {
+            const stackedLayout = isDashboardStackedLayout();
+            const courseViewVisible =
+                window.getComputedStyle(timetableSection).display !== 'none' &&
+                window.getComputedStyle(rightColumn).display !== 'none';
+            document.body.classList.toggle(
+                'ux-dashboard-v2-stacked-layout',
+                stackedLayout && courseViewVisible
+            );
+
+            if (stackedLayout) {
+                if (timetableBody) {
+                    timetableBody.classList.add('ux-scroll-managed-natural');
+                }
                 return;
             }
             syncDashboardOutOfScheduleSectionHeight();
@@ -2275,6 +2291,9 @@ async function renderDashboardLayout() {
 
         renderToDoList(filtered, todoListContainer, {
             viewMode: 'dashboard',
+            onAvailabilityChange: async () => {
+                await renderDashboardTodos(await loadAssignments(), { syncLayout: false });
+            },
             onStatusChange: () => {
                 updateAssignments({ forceRemote: false });
             }

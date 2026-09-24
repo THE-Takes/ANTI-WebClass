@@ -57,6 +57,16 @@ body.ux-dashboard-v2-mode .ux-dashboard-v2-outside-courses-body {
   overscroll-behavior: none;
 }
 
+/* In the stacked course view, let vertical gestures reach the page at scroll boundaries. */
+html:has(> body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout),
+body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout,
+body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout .ux-dashboard-v2-timetable,
+body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout .ux-dashboard-v2-timetable-body,
+body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout .ux-dashboard-v2-todo,
+body.ux-dashboard-v2-mode.ux-dashboard-v2-stacked-layout .ux-dashboard-v2-todo-list {
+  overscroll-behavior-y: auto;
+}
+
 /* Dashboard V2 Mode Body */
 body.ux-dashboard-v2-mode {
   background: var(--ux-home-page-bg);
@@ -723,7 +733,8 @@ body.ux-dashboard-v2-mode {
   --ux-home-accent: var(--ux-color-accent);
   --ux-home-accent-emphasis: var(--ux-color-accent-active);
   --ux-home-accent-soft: var(--ux-color-info-surface);
-  --ux-home-timetable-today-cell-background: var(--ux-home-accent-soft);
+  /* Keep the light-theme timetable highlight independent from dark-theme tokens. */
+  --ux-home-timetable-today-cell-background: #EAF4FF;
   --ux-home-accent-softer: var(--ux-color-surface-subtle);
   --ux-home-current-slot-background: #4699F8;
   --ux-home-success: var(--ux-color-success);

@@ -61,6 +61,7 @@ const setShortcutInputDisplayValue = (shortcut) => {
 };
 
 const TODO_API_ENABLED_KEY = 'todoApiEnabled';
+const TODO_API_INCLUDE_NOT_YET_STARTED_KEY = 'todoApiIncludeNotYetStarted';
 const TODO_API_TASK_TITLE_FORMAT_KEY = 'todoApiTaskTitleFormat';
 const TODO_API_ULTRA_SHORT_MAP_KEY = 'todoApiUltraShortCourseMap';
 const TICKTICK_TODO_CLIENT_ID_KEY = 'ticktickTodoClientId';

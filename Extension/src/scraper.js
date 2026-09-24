@@ -586,6 +586,7 @@ const Scraper = {
                         titleEdited: false,
                         url: preferredUrl,
                         fallbackUrl: doContentsUrl || preferredUrl,
+                        startDate: startDate || '',
                         deadline: deadline || "期限なし",
                         originalDeadline: deadline || "期限なし",  // 初期設定期限（ユーザー変更しても保持）
                         category: category,

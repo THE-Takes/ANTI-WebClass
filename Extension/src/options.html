@@ -271,6 +271,18 @@
             </div>
           </div>
         </div>
+        <div class="setting-group">
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="todoApiIncludeNotYetStarted">
+              <span class="switch-label">
+                <span class="item-title">開始前の課題も外部ToDoに連携する</span>
+              </span>
+              <input type="checkbox" id="todoApiIncludeNotYetStarted" class="ios-switch" aria-label="開始前の課題も外部ToDoに連携する">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">初期設定はOFFです。ONにすると開始前の課題も連携します。外部ToDoの期限には通常の締切日時だけを使い、開始日時は期限として連携しません。</p>
+        </div>
         <div class="setting-group" id="appleRemindersFields" hidden>
           <p class="setting-title">Appleリマインダー設定</p>
           <div class="ios-list">

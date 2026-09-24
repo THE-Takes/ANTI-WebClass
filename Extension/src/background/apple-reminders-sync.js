@@ -24,6 +24,7 @@ function createAppleRemindersProvider(bridge, pendingMutations) {
         async loadSettings() {
             const settings = await storageGet({
                 todoApiEnabled: false, todoApiProvider: 'ticktick', appleRemindersConnected: false,
+                [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
                 appleRemindersItemIds: {}, todoApiTaskTitleFormat: 'task_only', todoApiUltraShortCourseMap: {},
                 assignments: [], webclass_todo_trash: []
             });

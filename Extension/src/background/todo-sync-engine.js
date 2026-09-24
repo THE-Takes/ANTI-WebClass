@@ -68,6 +68,7 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
             : [];
         const initialAssignments = assignments.map((assignment) => ({ ...assignment }));
         const trashSet = new Set(Array.isArray(syncSettings[TODO_TRASH_STORAGE_KEY]) ? syncSettings[TODO_TRASH_STORAGE_KEY] : []);
+        const includeNotYetStarted = syncSettings[TODO_API_INCLUDE_NOT_YET_STARTED_KEY] === true;
 
         let assignmentsChanged = false;
         let trashChanged = false;
@@ -87,6 +88,9 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
 
         const assignmentMap = new Map();
         assignments.forEach((assignment) => {
+            const isRemoved = assignment?.isDeleted === true || isAssignmentInTrashSet(assignment, trashSet);
+            if (!includeNotYetStarted && !isRemoved && isAssignmentNotYetStarted(assignment)) return;
+
             const syncIdentity = getTickTickAssignmentSyncIdentity(assignment);
             if (!syncIdentity.stableId) return;
 
@@ -466,4 +470,3 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
         todoSyncRuntimeState.running = false;
     }
 }
-

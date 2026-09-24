@@ -1,8 +1,21 @@
 // home/todo-controls.js
 // ToDo sorting, title scrolling, and deadline input controls.
 
+function getTodoStartDate(todo) {
+    const startDateText = typeof todo?.startDate === 'string' ? todo.startDate.trim() : '';
+    if (!startDateText) return null;
+    const startDate = new Date(startDateText);
+    return Number.isNaN(startDate.getTime()) ? null : startDate;
+}
+
+function isTodoNotYetStarted(todo, now = getWebClassNow()) {
+    const startDate = getTodoStartDate(todo);
+    return startDate instanceof Date && startDate > now;
+}
+
 function getTodoPriority(todo) {
     if (todo.isCompleted) return 'Done';
+    if (isTodoNotYetStarted(todo)) return 'Low';
     const now = getWebClassNow();
     const deadline = todo.deadline && todo.deadline !== '期限なし' ? new Date(todo.deadline) : null;
     if (!deadline || isNaN(deadline.getTime())) return 'Low';

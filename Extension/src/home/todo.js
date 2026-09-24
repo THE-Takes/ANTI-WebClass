@@ -1,7 +1,48 @@
 // home/todo.js
 // ToDo list rendering and item interactions.
 
+const uxTodoAvailabilityRefreshTimers = new WeakMap();
+
+function clearTodoAvailabilityRefresh(container) {
+    const timer = uxTodoAvailabilityRefreshTimers.get(container);
+    if (timer !== undefined) {
+        clearTimeout(timer);
+        uxTodoAvailabilityRefreshTimers.delete(container);
+    }
+}
+
+function scheduleTodoAvailabilityRefresh(assignments, container, renderOptions) {
+    clearTodoAvailabilityRefresh(container);
+    const now = getWebClassNow();
+    const nextStartTimestamp = assignments
+        .filter((todo) => !todo.isDeleted && !isInTrashBin(todo))
+        .map(getTodoStartDate)
+        .filter((startDate) => startDate instanceof Date && startDate > now)
+        .reduce((earliest, startDate) => Math.min(earliest, startDate.getTime()), Number.POSITIVE_INFINITY);
+
+    if (!Number.isFinite(nextStartTimestamp)) return;
+
+    const maxTimeout = 2_147_000_000;
+    const delay = Math.min(Math.max(0, nextStartTimestamp - now.getTime() + 1000), maxTimeout);
+    const timer = setTimeout(async () => {
+        uxTodoAvailabilityRefreshTimers.delete(container);
+        if (!container.isConnected) return;
+
+        if (typeof renderOptions.onAvailabilityChange === 'function') {
+            await renderOptions.onAvailabilityChange();
+            return;
+        }
+
+        const currentAssignments = await loadAssignments();
+        renderToDoList(currentAssignments, container, renderOptions);
+        applyTimetableColorsFromTodo(currentAssignments);
+    }, delay);
+
+    uxTodoAvailabilityRefreshTimers.set(container, timer);
+}
+
 function renderToDoList(assignments, container, renderOptions = {}) {
+    clearTodoAvailabilityRefresh(container);
     closeDatetimePopover();
     cleanupTodoTitleAutoScroll();
     container.innerHTML = '';
@@ -35,6 +76,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         li.style.alignItems = 'center';
         li.style.gap = '12px';
         li.style.backgroundColor = 'var(--ux-home-surface)';
+        const isNotYetStarted = isTodoNotYetStarted(todo);
 
         const refreshDashboardList = async () => {
             if (renderOptions.onStatusChange) {
@@ -51,7 +93,9 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         let pColor = 'var(--ux-home-quaternary-label)';
         let priorityLabel = priority;
         const isDashboardExpired = viewMode === 'dashboard' && expiredTodoKeys.has(getTodoIdentity(todo));
-        if (isDashboardExpired) {
+        if (isNotYetStarted) {
+            priorityLabel = '開始前';
+        } else if (isDashboardExpired) {
             pColor = 'var(--ux-home-purple-foreground)';
             priorityLabel = 'end';
         } else {
@@ -117,7 +161,9 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         titleInput.style.padding = '2px 0';
         titleInput.style.fontSize = '0.95em';
         titleInput.style.fontWeight = '500';
-        titleInput.style.color = todo.isCompleted ? 'var(--ux-home-quaternary-label)' : 'var(--ux-home-label)';
+        titleInput.style.color = todo.isCompleted || isNotYetStarted
+            ? 'var(--ux-home-quaternary-label)'
+            : 'var(--ux-home-label)';
         titleInput.style.backgroundColor = 'transparent';
         titleInput.style.overflow = 'hidden';
         titleInput.style.textDecoration = todo.isCompleted ? 'line-through' : 'none';
@@ -169,6 +215,9 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         deadlineLine.style.gap = '0.4em';
         deadlineLine.style.flexWrap = 'nowrap';
         deadlineLine.style.whiteSpace = 'nowrap';
+        const deadlineLabel = document.createElement('span');
+        deadlineLabel.textContent = isNotYetStarted ? '開始: ' : '期限: ';
+        deadlineLine.appendChild(deadlineLabel);
 
         const dateOnlyInput = document.createElement('input');
         dateOnlyInput.type = 'text';
@@ -231,12 +280,12 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         };
 
         let currentDeadline = null;
-        if (todo.deadline && todo.deadline !== '期限なし') {
-            const d = new Date(todo.deadline);
-            if (!isNaN(d.getTime())) {
-                currentDeadline = d;
-                updateDeadlineDisplay(d);
-            }
+        const dashboardDateToDisplay = isNotYetStarted
+            ? getTodoStartDate(todo)
+            : (todo.deadline && todo.deadline !== '期限なし' ? new Date(todo.deadline) : null);
+        if (dashboardDateToDisplay && !Number.isNaN(dashboardDateToDisplay.getTime())) {
+            currentDeadline = dashboardDateToDisplay;
+            updateDeadlineDisplay(dashboardDateToDisplay);
         }
         if (!currentDeadline) {
             updateDeadlineDisplay(null);
@@ -295,18 +344,30 @@ function renderToDoList(assignments, container, renderOptions = {}) {
             });
         };
 
-        dateOnlyInput.addEventListener('click', openPicker);
-        timeOnlyInput.addEventListener('click', openPicker);
-        dateOnlyInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                openPicker(event);
-            }
-        });
-        timeOnlyInput.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                openPicker(event);
-            }
-        });
+        if (isNotYetStarted) {
+            dateOnlyInput.readOnly = true;
+            dateOnlyInput.disabled = true;
+            dateOnlyInput.style.cursor = 'default';
+            dateOnlyInput.style.borderBottomColor = 'transparent';
+            dateOnlyInput.setAttribute('aria-label', '課題の開始日');
+            timeOnlyInput.style.cursor = 'default';
+            timeOnlyInput.disabled = true;
+            timeOnlyInput.style.borderBottomColor = 'transparent';
+            timeOnlyInput.setAttribute('aria-label', '課題の開始時刻');
+        } else {
+            dateOnlyInput.addEventListener('click', openPicker);
+            timeOnlyInput.addEventListener('click', openPicker);
+            dateOnlyInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    openPicker(event);
+                }
+            });
+            timeOnlyInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    openPicker(event);
+                }
+            });
+        }
 
         deadlineLine.appendChild(dateOnlyInput);
         deadlineLine.appendChild(timeOnlyInput);
@@ -360,6 +421,12 @@ function renderToDoList(assignments, container, renderOptions = {}) {
     oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 
     activeAssignments.forEach(todo => {
+        if (isTodoNotYetStarted(todo, now)) {
+            delete todo._isReminderExpired;
+            normal.push(todo);
+            return;
+        }
+
         // 期限切れ判定には「初期設定期限（originalDeadline）」を使用
         // ユーザーが期限を変更しても、システム上の本来の期限で判断する
         const deadlineForExpiredCheck = todo.originalDeadline || todo.deadline;
@@ -416,6 +483,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         }
 
         const { isExpired = false, isReminderExpired = false, isCompleted = false, showDeleteButton = false } = options;
+        const isNotYetStarted = isTodoNotYetStarted(todo);
 
         const li = document.createElement('li');
         li.style.padding = '10px 15px';
@@ -425,16 +493,15 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         li.style.gap = '10px';
         li.style.backgroundColor = 'var(--ux-home-surface)'; // デフォルト背景
 
-        // 期限切れの場合はグレー背景
-        if (isExpired) {
+        if (!isNotYetStarted && isExpired) {
             li.style.backgroundColor = 'var(--ux-home-surface-muted)';
         }
         // 任意期限が過ぎているが初期設定期限はまだの場合は紫背景
-        if (todo._isReminderExpired) {
+        if (!isNotYetStarted && todo._isReminderExpired) {
             li.style.backgroundColor = 'var(--ux-home-purple-soft)';
         }
         // 期限に基づいて背景色を設定 (通常リストのみ、または全リストで適用？ -> 全リストで適用しても良いが、期限なしは白)
-        else if (!todo.isCompleted && todo.deadline && todo.deadline !== '期限なし') {
+        else if (!isNotYetStarted && !todo.isCompleted && todo.deadline && todo.deadline !== '期限なし') {
             const deadlineDate = new Date(todo.deadline);
             const hoursRemaining = (deadlineDate - getWebClassNow()) / (1000 * 60 * 60);
 
@@ -518,7 +585,9 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         titleInput.style.padding = '2px 0';
         titleInput.style.fontSize = '1.02em';
         titleInput.style.fontWeight = 'bold';
-        titleInput.style.color = 'var(--ux-home-label)';
+        titleInput.style.color = isNotYetStarted
+            ? 'var(--ux-home-quaternary-label)'
+            : 'var(--ux-home-label)';
         titleInput.style.backgroundColor = 'transparent';
         titleInput.style.overflow = 'hidden';
         titleInput.style.transition = 'border-color 0.2s, background-color 0.2s';
@@ -571,7 +640,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         deadlineLine.style.alignItems = 'center';
         deadlineLine.style.gap = '5px';
         const deadlineLabel = document.createElement('span');
-        deadlineLabel.textContent = '期限: ';
+        deadlineLabel.textContent = isNotYetStarted ? '開始: ' : '期限: ';
         deadlineLine.appendChild(deadlineLabel);
 
         // 日付入力 (Flatpickr - Date Only)
@@ -606,22 +675,22 @@ function renderToDoList(assignments, container, renderOptions = {}) {
 
         // 初期値パース
         let currentDeadline = null;
-        if (todo.deadline && todo.deadline !== '期限なし') {
-            const d = new Date(todo.deadline);
-            if (!isNaN(d.getTime())) {
-                currentDeadline = d;
-                dateOnlyInput.value = d.toLocaleDateString(); // YYYY/MM/DD or similar
+        const normalDateToDisplay = isNotYetStarted
+            ? getTodoStartDate(todo)
+            : (todo.deadline && todo.deadline !== '期限なし' ? new Date(todo.deadline) : null);
+        if (normalDateToDisplay && !Number.isNaN(normalDateToDisplay.getTime())) {
+                currentDeadline = normalDateToDisplay;
+                dateOnlyInput.value = normalDateToDisplay.toLocaleDateString(); // YYYY/MM/DD or similar
 
                 // Format time for display: AM/PM hh:mm
-                let hours = d.getHours();
-                const minutes = d.getMinutes();
+                let hours = normalDateToDisplay.getHours();
+                const minutes = normalDateToDisplay.getMinutes();
                 const ampm = hours >= 12 ? '午後' : '午前';
                 hours = hours % 12;
                 hours = hours ? hours : 12; // the hour '0' should be '12'
                 const strTime = ampm + ' ' + hours + ':' + (minutes < 10 ? '0' + minutes : minutes);
                 timeOnlyInput.value = strTime;
                 timeOnlyInput.style.display = '';
-            }
         }
 
         // 保存処理ヘルパー
@@ -631,7 +700,22 @@ function renderToDoList(assignments, container, renderOptions = {}) {
             timeOnlyInput.style.display = 'none';
         }
 
+        if (isNotYetStarted) {
+            dateOnlyInput.readOnly = true;
+            dateOnlyInput.disabled = true;
+            dateOnlyInput.style.borderColor = 'transparent';
+            dateOnlyInput.style.backgroundColor = 'transparent';
+            dateOnlyInput.style.cursor = 'default';
+            dateOnlyInput.setAttribute('aria-label', '課題の開始日');
+            timeOnlyInput.style.borderColor = 'transparent';
+            timeOnlyInput.style.backgroundColor = 'transparent';
+            timeOnlyInput.style.cursor = 'default';
+            timeOnlyInput.disabled = true;
+            timeOnlyInput.setAttribute('aria-label', '課題の開始時刻');
+        }
+
         const saveCombinedDeadline = async () => {
+            if (isNotYetStarted) return;
             const dateStr = dateOnlyInput.value; // YYYY/MM/DD
             const timeStr = timeOnlyInput.value; // AM 8:00
 
@@ -685,7 +769,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         };
         // Flatpickr (Date)
         try {
-            if (typeof flatpickr !== 'undefined') {
+            if (!isNotYetStarted && typeof flatpickr !== 'undefined') {
                 flatpickr(dateOnlyInput, {
                     locale: 'ja',
                     dateFormat: "Y/m/d",
@@ -695,7 +779,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
                         await saveCombinedDeadline();
                     }
                 });
-            } else {
+            } else if (!isNotYetStarted) {
                 uxDebugWarn('WebClass UX: flatpickr is not defined');
             }
         } catch (e) {
@@ -712,7 +796,7 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         // Wrap in setTimeout to ensure element is in DOM
         setTimeout(() => {
             // Check if element still exists (in case of rapid re-renders)
-            if (!document.getElementById(timeInputId)) return;
+            if (isNotYetStarted || !document.getElementById(timeInputId)) return;
 
             try {
                 if (typeof MobileSelect === 'undefined') {
@@ -984,6 +1068,8 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         expiredWrapper.appendChild(expiredContent);
         container.appendChild(expiredWrapper);
     }
+
+    scheduleTodoAvailabilityRefresh(assignments, container, renderOptions);
 }
 
 /**

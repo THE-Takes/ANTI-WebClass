@@ -2,6 +2,7 @@
 // TickTick constants, identity matching, deadlines, and task payload mapping.
 
 const TODO_API_ENABLED_KEY = 'todoApiEnabled';
+const TODO_API_INCLUDE_NOT_YET_STARTED_KEY = 'todoApiIncludeNotYetStarted';
 const TODO_API_TASK_TITLE_FORMAT_KEY = 'todoApiTaskTitleFormat';
 const TODO_API_ULTRA_SHORT_MAP_KEY = 'todoApiUltraShortCourseMap';
 const TODO_API_LAST_MANUAL_RELOAD_KEY = 'todoApiLastManualReloadAt';
@@ -226,6 +227,13 @@ function parseLocalDeadline(deadline) {
     const result = new Date(year, month - 1, day, hour, minute, second);
     if (Number.isNaN(result.getTime())) return null;
     return result;
+}
+
+function isAssignmentNotYetStarted(assignment, now = new Date()) {
+    const startDate = parseLocalDeadline(assignment?.startDate);
+    return startDate instanceof Date
+        && !Number.isNaN(startDate.getTime())
+        && startDate > now;
 }
 
 function formatTickTickDateTimeForApi(date) {

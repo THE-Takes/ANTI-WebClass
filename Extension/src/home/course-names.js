@@ -487,6 +487,7 @@ function applyTimetableColorsFromTodo(assignments) {
     activeAssignments.forEach(todo => {
         const courseName = todo.course;
         if (!courseName) return;
+        if (isTodoNotYetStarted(todo, now)) return;
         const hasDangerOutline = getTodoPriority(todo) === 'High';
 
         const rememberCourseStyle = (priority, color, dangerOutline) => {

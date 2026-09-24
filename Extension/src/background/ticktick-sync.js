@@ -5,6 +5,7 @@ function createTickTickTodoProvider() {
         async loadSettings() {
             return loadSecureLocalStrings({
                 [TODO_API_ENABLED_KEY]: false,
+                [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
                 [TODO_API_TASK_TITLE_FORMAT_KEY]: TODO_TITLE_FORMAT_TASK_ONLY,
                 [TODO_API_ULTRA_SHORT_MAP_KEY]: {},
                 [TICKTICK_TODO_PROJECT_NAME_KEY]: TICKTICK_DEFAULT_PROJECT_NAME,

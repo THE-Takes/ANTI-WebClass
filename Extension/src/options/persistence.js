@@ -88,6 +88,7 @@ const saveOptions = async ({
         shikenSelectVisibleCount = String(parsedSelectCount);
     }
     const todoApiEnabled = !!document.getElementById('todoApiEnabled')?.checked;
+    const todoApiIncludeNotYetStarted = !!document.getElementById('todoApiIncludeNotYetStarted')?.checked;
     let ticktickTodoClientId = (document.getElementById('ticktickTodoClientId')?.value || '').trim();
     let ticktickTodoClientSecret = (document.getElementById('ticktickTodoClientSecret')?.value || '').trim();
     const ticktickTodoProjectName = TODO_DEFAULT_PROJECT_NAME;
@@ -138,6 +139,7 @@ const saveOptions = async ({
             useShortCourseNameEnabled: null,
             shikenSelectVisibleCount,
             [TODO_API_ENABLED_KEY]: todoApiEnabled,
+            [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: todoApiIncludeNotYetStarted,
             todoApiProvider: selectedTodoProvider(),
             [TICKTICK_TODO_PROJECT_NAME_KEY]: ticktickTodoProjectName,
             [TICKTICK_TODO_CLIENT_ID_KEY]: ticktickTodoClientId,
@@ -211,6 +213,7 @@ const restoreOptions = () => {
             useShortCourseNameEnabled: null,
             shikenSelectVisibleCount: '12',
             [TODO_API_ENABLED_KEY]: false,
+            [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
             todoApiProvider: 'ticktick',
             [TICKTICK_TODO_PROJECT_NAME_KEY]: TODO_DEFAULT_PROJECT_NAME,
             [TICKTICK_TODO_CLIENT_ID_KEY]: '',
@@ -317,6 +320,7 @@ const restoreOptions = () => {
             document.getElementById('shikenSelectVisibleCount').value = items.shikenSelectVisibleCount;
             const todoApiEnabled = items[TODO_API_ENABLED_KEY] === true;
             document.getElementById('todoApiEnabled').checked = todoApiEnabled;
+            document.getElementById('todoApiIncludeNotYetStarted').checked = items[TODO_API_INCLUDE_NOT_YET_STARTED_KEY] === true;
             document.getElementById('todoApiProvider').value = items.todoApiProvider === 'apple_reminders' ? 'apple_reminders' : 'ticktick';
             const ticktickClientIdInput = document.getElementById('ticktickTodoClientId');
             if (ticktickClientIdInput) ticktickClientIdInput.value = items[TICKTICK_TODO_CLIENT_ID_KEY] || '';

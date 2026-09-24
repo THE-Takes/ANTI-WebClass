@@ -2,7 +2,7 @@
 
 `ANTI-WebClass` は、神奈川大学の WebClass (`https://kulms.kanagawa-u.ac.jp/webclass/*`) を対象にした Google Chrome / Chromium 向け Manifest V3 拡張機能です。
 
-現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.4.0` です。
+現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.4.1` です。
 
 ## 現在の実装内容
 
@@ -103,7 +103,7 @@
 
 ## インストール
 
-1. [最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) の `ANTI-WebClass-ver.0.4.0.zip` をダウンロードして展開するか、このリポジトリを取得します。
+1. [最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) の `ANTI-WebClass-ver.0.4.1.zip` をダウンロードして展開するか、このリポジトリを取得します。
 2. Chrome または Chromium で `chrome://extensions/` を開きます。
 3. 右上の「デベロッパーモード」を有効にします。
 4. 「パッケージ化されていない拡張機能を読み込む」から [`Extension`](./Extension) を選択します。
