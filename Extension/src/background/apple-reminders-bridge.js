@@ -1,17 +1,37 @@
 // Native Messaging is only available to the extension, never to a WebClass page.
-const APPLE_REMINDERS_HOST = 'jp.anti_webclass.reminders';
+const APPLE_REMINDERS_HOST_PREFIX = 'jp.anti_webclass.reminders';
 const APPLE_REMINDERS_PROTOCOL = 1;
+const APPLE_REMINDERS_UNSUPPORTED_BROWSER_MESSAGE = 'Appleリマインダー連携はGoogle ChromeまたはDiaに対応しています。';
+
+function supportsAppleRemindersInCurrentBrowser() {
+    const brands = new Set(navigator.userAgentData?.brands?.map(({ brand }) => brand) || []);
+    const isGoogleChrome = brands.has('Google Chrome');
+    const otherChromiumBrand = ['Microsoft Edge', 'Brave', 'Opera', 'Vivaldi', 'Yandex', 'Arc']
+        .some((brand) => brands.has(brand));
+    const isDiaChromium = brands.has('Chromium') && !otherChromiumBrand;
+    return (isGoogleChrome || isDiaChromium)
+        && typeof chrome.permissions?.contains === 'function'
+        && typeof chrome.runtime?.connectNative === 'function';
+}
+
+function appleRemindersNativeHostName() {
+    const brands = new Set(navigator.userAgentData?.brands?.map(({ brand }) => brand) || []);
+    return `${APPLE_REMINDERS_HOST_PREFIX}.${brands.has('Google Chrome') ? 'chrome' : 'dia'}`;
+}
 
 async function assertAppleRemindersAvailable() {
     const platform = await chrome.runtime.getPlatformInfo();
     if (platform.os !== 'mac') throw new Error('Appleリマインダー連携はmacOS限定です。');
+    if (!supportsAppleRemindersInCurrentBrowser()) {
+        throw new Error(APPLE_REMINDERS_UNSUPPORTED_BROWSER_MESSAGE);
+    }
     const granted = await chrome.permissions.contains({ permissions: ['nativeMessaging'] });
     if (!granted) throw new Error('設定画面でAppleリマインダーへの接続を許可してください。');
 }
 
 async function openAppleRemindersBridge() {
     await assertAppleRemindersAvailable();
-    const port = chrome.runtime.connectNative(APPLE_REMINDERS_HOST);
+    const port = chrome.runtime.connectNative(appleRemindersNativeHostName());
     const pending = new Map();
     let closed = false;
     const failAll = (error) => {
@@ -24,7 +44,11 @@ async function openAppleRemindersBridge() {
     };
     port.onDisconnect.addListener(() => {
         const detail = chrome.runtime.lastError?.message || 'Native host disconnected';
-        failAll(new Error(`補助アプリとの接続が切れました。導入状態を確認してください。 (${detail})`));
+        const hostMissing = /specified native messaging host not found|native messaging host.*not found/i.test(detail);
+        const message = hostMissing
+            ? '補助アプリはGoogle ChromeまたはDiaのどちらか1つにだけ登録できます。このブラウザーを使う場合は、インストーラーで対象を選び直してください。'
+            : `補助アプリとの接続が切れました。導入状態を確認してください。 (${detail})`;
+        failAll(new Error(message));
     });
     port.onMessage.addListener((message) => {
         const entry = pending.get(message?.requestId);
@@ -88,7 +112,7 @@ async function handleAppleRemindersMessage(message, sender, sendResponse) {
         sendResponse({ success: true, ...result, connected: saved.appleRemindersConnected && result?.authorized === true && !!result.listId,
             lastSyncAt: saved.appleRemindersLastSyncAt, lastError: saved.appleRemindersLastError });
     } catch (error) {
-        sendResponse({ success: false, error: error.message });
+        sendResponse({ success: false, error: error instanceof Error ? error.message : String(error) });
     } finally {
         bridge?.close();
     }

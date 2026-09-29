@@ -3,11 +3,13 @@ import Foundation
 
 @main
 final class InstallerDelegate: NSObject, NSApplicationDelegate {
-    private let nativeHostName = "jp.anti_webclass.reminders"
     private let nativeHostBundleName = "WebClass Reminders.app"
     private let nativeHostExecutableName = "WebClassReminders"
+    private let browserPicker = NSPopUpButton(frame: .zero, pullsDown: false)
+    private let instructionsLabel = NSTextField(wrappingLabelWithString: "Google ChromeまたはDiaの一方だけに登録します。対象ブラウザーを選んでください。")
+    private let extensionIDLabel = NSTextField(labelWithString: "拡張機能 ID")
     private let installerWindow = NSWindow(
-        contentRect: NSRect(x: 0, y: 0, width: 560, height: 410),
+        contentRect: NSRect(x: 0, y: 0, width: 560, height: 440),
         styleMask: [.titled, .closable],
         backing: .buffered,
         defer: false
@@ -36,45 +38,80 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         let content = installerWindow.contentView!
         let heading = NSTextField(labelWithString: "WebClass Reminders をインストール")
         heading.font = .systemFont(ofSize: 22, weight: .semibold)
-        heading.frame = NSRect(x: 28, y: 350, width: 500, height: 30)
+        heading.frame = NSRect(x: 28, y: 390, width: 500, height: 30)
         content.addSubview(heading)
 
-        let instructions = NSTextField(wrappingLabelWithString: "macOS 14以降のGoogle Chromeで、chrome://extensions を開き、右上の「デベロッパーモード」をオンにしてANTI-WebClassの拡張機能IDをコピーしてください。IDは32文字の英小文字です。")
-        instructions.frame = NSRect(x: 28, y: 282, width: 500, height: 56)
-        content.addSubview(instructions)
+        instructionsLabel.frame = NSRect(x: 28, y: 331, width: 500, height: 48)
+        content.addSubview(instructionsLabel)
 
-        let idLabel = NSTextField(labelWithString: "Chrome 拡張機能 ID")
-        idLabel.font = .systemFont(ofSize: 13, weight: .medium)
-        idLabel.frame = NSRect(x: 28, y: 248, width: 500, height: 20)
-        content.addSubview(idLabel)
+        let browserLabel = NSTextField(labelWithString: "対象ブラウザー（1つ選択）")
+        browserLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        browserLabel.frame = NSRect(x: 28, y: 300, width: 500, height: 20)
+        content.addSubview(browserLabel)
 
+        browserPicker.addItem(withTitle: "ブラウザーを選択…")
+        browserPicker.item(at: 0)?.tag = 0
+        browserPicker.addItem(withTitle: BrowserTarget.googleChrome.displayName)
+        browserPicker.item(at: 1)?.tag = BrowserTarget.googleChrome.rawValue
+        browserPicker.addItem(withTitle: BrowserTarget.dia.displayName)
+        browserPicker.item(at: 2)?.tag = BrowserTarget.dia.rawValue
+        browserPicker.selectItem(at: 0)
+        browserPicker.target = self
+        browserPicker.action = #selector(browserTargetChanged)
+        browserPicker.frame = NSRect(x: 28, y: 266, width: 500, height: 28)
+        content.addSubview(browserPicker)
+
+        extensionIDLabel.font = .systemFont(ofSize: 13, weight: .medium)
+        extensionIDLabel.frame = NSRect(x: 28, y: 235, width: 500, height: 20)
+        content.addSubview(extensionIDLabel)
         extensionIDField.placeholderString = "例: abcdefghijklmnopqrstuvwxyzabcdef"
         extensionIDField.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
-        extensionIDField.frame = NSRect(x: 28, y: 210, width: 500, height: 30)
+        extensionIDField.frame = NSRect(x: 28, y: 199, width: 500, height: 30)
         content.addSubview(extensionIDField)
 
-        let privacyNote = NSTextField(wrappingLabelWithString: "IDはこのMac上のChromeの接続設定にだけ保存されます。WebClassや外部サーバーには送信しません。同期中の場合は、同期を止めてからインストールしてください。")
-        privacyNote.frame = NSRect(x: 28, y: 150, width: 500, height: 48)
+        let privacyNote = NSTextField(wrappingLabelWithString: "選択したブラウザー1つだけに登録します。切り替え時は前のブラウザーの登録を解除します。IDはこのMacに保存され、WebClassや外部サーバーには送信しません。同期を止めてからインストールしてください。")
+        privacyNote.frame = NSRect(x: 28, y: 128, width: 500, height: 50)
         content.addSubview(privacyNote)
 
         let installButton = NSButton(title: "インストール", target: self, action: #selector(install))
         installButton.keyEquivalent = "\r"
         installButton.bezelStyle = .rounded
-        installButton.frame = NSRect(x: 386, y: 92, width: 142, height: 32)
+        installButton.frame = NSRect(x: 386, y: 72, width: 142, height: 32)
         content.addSubview(installButton)
 
         let uninstallButton = NSButton(title: "アンインストール", target: self, action: #selector(uninstall))
         uninstallButton.bezelStyle = .rounded
-        uninstallButton.frame = NSRect(x: 28, y: 92, width: 142, height: 32)
+        uninstallButton.frame = NSRect(x: 28, y: 72, width: 142, height: 32)
         content.addSubview(uninstallButton)
 
         statusLabel.stringValue = "既存のリマインダーと同期データはインストール時に変更されません。"
         statusLabel.lineBreakMode = .byWordWrapping
-        statusLabel.frame = NSRect(x: 28, y: 28, width: 500, height: 48)
+        statusLabel.frame = NSRect(x: 28, y: 18, width: 500, height: 44)
         content.addSubview(statusLabel)
     }
 
+    @objc private func browserTargetChanged() {
+        extensionIDField.stringValue = ""
+        statusLabel.stringValue = ""
+        guard let browser = selectedBrowser else {
+            instructionsLabel.stringValue = "Google ChromeまたはDiaの一方だけに登録します。対象ブラウザーを選んでください。"
+            extensionIDLabel.stringValue = "拡張機能 ID"
+            return
+        }
+        instructionsLabel.stringValue = "\(browser.displayName)で \(browser.extensionsPageURL) を開き、ANTI-WebClassの拡張機能IDをコピーしてください。IDは32文字の英小文字です。"
+        extensionIDLabel.stringValue = "\(browser.displayName)の拡張機能 ID"
+    }
+
+    private var selectedBrowser: BrowserTarget? {
+        guard let selectedItem = browserPicker.selectedItem else { return nil }
+        return BrowserTarget(rawValue: selectedItem.tag)
+    }
+
     @objc private func install() {
+        guard let browser = selectedBrowser else {
+            showStatus("Google ChromeまたはDiaのどちらか1つを選択してください。", isError: true)
+            return
+        }
         let extensionID = extensionIDField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard extensionID.range(of: #"^[a-p]{32}$"#, options: .regularExpression) != nil else {
             showStatus("拡張機能IDは a〜p の英小文字32文字で入力してください。", isError: true)
@@ -82,8 +119,8 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         }
 
         do {
-            try installNativeHost(for: extensionID)
-            showStatus("インストールしました。Chromeを開き、ANTI-WebClassの設定でAppleリマインダーに接続してください。", isError: false)
+            try installNativeHost(for: browser, extensionID: extensionID)
+            showStatus("\(browser.displayName)用にインストールしました。同じブラウザーでANTI-WebClassの設定を開いて接続してください。", isError: false)
         } catch {
             showStatus("インストールできませんでした: \(error.localizedDescription)", isError: true)
         }
@@ -92,7 +129,7 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
     @objc private func uninstall() {
         let alert = NSAlert()
         alert.messageText = "WebClass Reminders をアンインストールしますか？"
-        alert.informativeText = "同期を停止してから実行してください。補助アプリとChromeの接続設定を削除します。Appleリマインダーの項目と同期データは残ります。"
+        alert.informativeText = "同期を停止してから実行してください。補助アプリとChrome・Diaにあるこの連携の登録を削除します。Appleリマインダーの項目と同期データは残ります。"
         alert.addButton(withTitle: "アンインストール")
         alert.addButton(withTitle: "キャンセル")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -105,7 +142,7 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func installNativeHost(for extensionID: String) throws {
+    private func installNativeHost(for browser: BrowserTarget, extensionID: String) throws {
         guard let resourcesURL = Bundle.main.resourceURL else {
             throw InstallerError("インストーラーのリソースが見つかりません。")
         }
@@ -142,14 +179,22 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
 
         let hostExecutable = installedApp.appendingPathComponent("Contents/MacOS/\(nativeHostExecutableName)")
         let manifest: [String: Any] = [
-            "name": nativeHostName,
+            "name": browser.nativeHostName,
             "description": "WebClass Apple Reminders bridge",
             "path": hostExecutable.path,
             "type": "stdio",
             "allowed_origins": ["chrome-extension://\(extensionID)/"]
         ]
         let manifestData = try JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted, .sortedKeys])
-        let manifestURL = nativeHostManifestURL
+        let manifestURL = browser.manifestURL(hostName: browser.nativeHostName)
+        for registeredBrowser in BrowserTarget.allCases {
+            for hostName in BrowserTarget.managedNativeHostNames {
+                let registeredManifestURL = registeredBrowser.manifestURL(hostName: hostName)
+                if fileManager.fileExists(atPath: registeredManifestURL.path) {
+                    try fileManager.removeItem(at: registeredManifestURL)
+                }
+            }
+        }
         try fileManager.createDirectory(at: manifestURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         try manifestData.write(to: manifestURL, options: .atomic)
     }
@@ -159,19 +204,17 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         let installedApp = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent("Applications", isDirectory: true)
             .appendingPathComponent(nativeHostBundleName, isDirectory: true)
-        let manifestURL = nativeHostManifestURL
-        if fileManager.fileExists(atPath: manifestURL.path) {
-            try fileManager.removeItem(at: manifestURL)
+        for browser in BrowserTarget.allCases {
+            for hostName in BrowserTarget.managedNativeHostNames {
+                let manifestURL = browser.manifestURL(hostName: hostName)
+                if fileManager.fileExists(atPath: manifestURL.path) {
+                    try fileManager.removeItem(at: manifestURL)
+                }
+            }
         }
         if fileManager.fileExists(atPath: installedApp.path) {
             try fileManager.removeItem(at: installedApp)
         }
-    }
-
-    private var nativeHostManifestURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Google/Chrome/NativeMessagingHosts", isDirectory: true)
-            .appendingPathComponent("\(nativeHostName).json")
     }
 
     private func showStatus(_ message: String, isError: Bool) {

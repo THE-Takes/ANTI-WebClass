@@ -2,28 +2,35 @@
 
 [Build from source](BUILD_FROM_SOURCE.md) · [ソースからビルドする（日本語）](BUILD_FROM_SOURCE.ja.md) · [日本語の更新手順（メモ短縮版への移行・バックアップ）](README.ja.md)
 
-macOS 14+ / Google Chrome. The extension remains cross-platform. This host is only used when Apple Reminders is selected and the user grants the optional `nativeMessaging` permission.
+macOS 14+ / Google Chrome or Dia. The extension remains cross-platform. This host is only used when Apple Reminders is selected and the user grants the optional `nativeMessaging` permission. The helper is registered for exactly one of the two browsers at a time.
 
 ## Build and install on your Mac
 
 There is no prebuilt helper download. Each user builds the helper locally from the public source. Follow [Build from source](BUILD_FROM_SOURCE.md) or the [Japanese guide](BUILD_FROM_SOURCE.ja.md). A local self-build does not require an Apple Developer membership, Developer ID certificate, or notarization credentials.
 
-The installer app also removes the host and Chrome registration. Uninstalling keeps the WebClass Reminders list and metadata files. The extension ID is written only to Chrome's local native messaging manifest.
+The installer app also removes the host and both possible browser registrations when uninstalling. Uninstalling keeps the WebClass Reminders list and metadata files. During installation, the extension ID is written only to the selected browser's local native messaging manifest; choosing the other browser replaces the previous registration.
 
 ## Development setup
 
 From the repository root on macOS, with Xcode Command Line Tools installed:
 
 ```sh
-bash NativeReminders/scripts/build.sh [32-character-Chrome-extension-ID]
-bash NativeReminders/scripts/install.sh <32-character-Chrome-extension-ID>
+bash NativeReminders/scripts/build.sh
+bash NativeReminders/scripts/install.sh <chrome|dia> <32-character-extension-ID>
 ```
 
-The optional ID argument is checked for typos; the install script writes the selected ID to Chrome's `allowed_origins` manifest. The build script creates a Universal 2 `.app` (arm64 + x86_64) and ad-hoc signs it for local development. At launch the host verifies that Chrome's registration lists the requesting origin and points to the installed executable. The installer only supports Google Chrome, not other Chromium browsers.
+The install script writes exactly one extension ID to the selected browser's `allowed_origins` manifest and removes this helper's registration from the other supported browser. The build script creates a Universal 2 `.app` (arm64 + x86_64) and ad-hoc signs it for local development. At launch the host verifies that exactly one supported browser registration exists and that it lists only the requesting origin.
 
-The install script copies the app to `~/Applications/WebClass Reminders.app` and registers `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/jp.anti_webclass.reminders.json`. It does not install or launch the EventKit host during a build.
+The installer copies the app to `~/Applications/WebClass Reminders.app` and registers one of these locations:
 
-Enable external ToDo integration in extension settings, choose Apple Reminders and click Connect. Accept Chrome's native permission and macOS's reminder permission. A dedicated `WebClass` list is created in the default Reminders account. A same-named personal list is never adopted. Connecting does not retrieve WebClass pages or export tasks; the existing home synchronization flow does that.
+```text
+Google Chrome: ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/jp.anti_webclass.reminders.chrome.json
+Dia:           ~/Library/Application Support/Dia/NativeMessagingHosts/jp.anti_webclass.reminders.dia.json
+```
+
+It does not install or launch the EventKit host during a build.
+
+In the browser selected during installation, enable external ToDo integration in extension settings, choose Apple Reminders and click Connect. Accept the browser's native permission and macOS's reminder permission. A dedicated `WebClass` list is created in the default Reminders account. A same-named personal list is never adopted. Connecting does not retrieve WebClass pages or export tasks; the existing home synchronization flow does that.
 
 ## Behavior and ownership
 
@@ -54,17 +61,17 @@ bash NativeReminders/scripts/test.sh
 bash NativeReminders/scripts/build.sh
 ```
 
-The build is extension-ID independent; the optional ID argument only catches typos. `install.sh` writes the selected ID to Chrome's registration, and the host checks that registration when Chrome starts it. Protocol tests link Foundation only and never load EventKit or request permission.
+The build is browser- and extension-ID independent. `install.sh` takes one target browser and one extension ID; the host rejects registrations if both supported browser manifests exist or if a manifest permits multiple extension IDs. Protocol tests link Foundation only and never load EventKit or request permission.
 
 ## Local build package
 
-The packaging script creates a Universal ZIP with a guided installer for the user who built it. It uses an ad-hoc signature and is not a binary release for redistribution:
+The packaging script creates a Universal ZIP with a guided installer and ad-hoc signature for local builds. A WebClass Reminders v0.3.1 installer ZIP is available in the project’s [latest GitHub release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest). Packages built locally are intended for installation on the Mac where they were created:
 
 ```sh
 bash NativeReminders/scripts/package-release.sh
 ```
 
-The generated files are under `NativeReminders/dist/`, which is ignored by Git. Each user should build and install the helper on the Mac where it will run.
+Locally generated files are under `NativeReminders/dist/`, which is ignored by Git. For source builds, install the helper on the Mac where it will run.
 
 ## Protocol
 

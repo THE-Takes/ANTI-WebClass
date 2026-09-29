@@ -14,7 +14,7 @@ WC_SYNC_ID:wc_v1_0123456789abcdef
 ## 必要なもの
 
 - macOS 14以降のMac（Apple Silicon／Intel共通の手順）。
-- Google Chromeと、現在利用しているANTI-WebClass拡張機能。
+- Google ChromeまたはDiaと、現在利用しているANTI-WebClass拡張機能。補助アプリはどちらか1つに登録します。
 - 今回の変更を含むリポジトリのソースコード。
 - Xcode Command Line Tools。既に補助アプリをビルドできていれば、その環境を使用できます。
 
@@ -30,7 +30,7 @@ WC_SYNC_ID:wc_v1_0123456789abcdef
 
 ## 2. 現在の拡張機能IDを確認する
 
-Chromeのアドレス欄に `chrome://extensions` を入力し、デベロッパーモードをONにして、ANTI-WebClassの「ID」をコピーします。
+使うブラウザーをGoogle ChromeかDiaから1つ選びます。Chromeでは `chrome://extensions`、Diaでは `dia://extensions` を開いて、ANTI-WebClassの「ID」をコピーします。
 
 IDは英小文字32文字です。更新時も**現在利用中の拡張機能と同じID**を使います。テスト用の `aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` は使わないでください。
 
@@ -56,16 +56,17 @@ IDは英小文字32文字です。更新時も**現在利用中の拡張機能�
 cd ~/dev/ANTI-WebClass-Dev
 ```
 
-次の引用符の中を、手順2で確認した実際のIDに置き換えて実行します。以降は同じターミナルで作業してください。
+次のブラウザー名と引用符の中を、手順2で選んだブラウザー（`chrome` または `dia`）と、そのブラウザーで確認した実際のIDに置き換えて実行します。以降は同じターミナルで作業してください。
 
 ```sh
+REMINDERS_BROWSER='chrome'
 REMINDERS_EXTENSION_ID='ここを実際の32文字の拡張機能IDに置き換える'
 ```
 
 ビルドします。
 
 ```sh
-bash NativeReminders/scripts/build.sh "$REMINDERS_EXTENSION_ID"
+bash NativeReminders/scripts/build.sh
 ```
 
 **エラーが出た場合はインストールへ進まず、原因を解消してください。** 成功すると、生成した `WebClass Reminders.app` のパスが最後に表示されます。
@@ -73,20 +74,16 @@ bash NativeReminders/scripts/build.sh "$REMINDERS_EXTENSION_ID"
 続けてインストールします。
 
 ```sh
-bash NativeReminders/scripts/install.sh "$REMINDERS_EXTENSION_ID"
+bash NativeReminders/scripts/install.sh "$REMINDERS_BROWSER" "$REMINDERS_EXTENSION_ID"
 ```
 
-次のメッセージが表示されればインストールは完了です。
-
-```text
-Installed. Open extension settings and connect Apple Reminders.
-```
+`Installed for Google Chrome only.` または `Installed for Dia only.` と表示されればインストールは完了です。ブラウザーを切り替えると、前のブラウザーの登録は解除されます。
 
 補助アプリは `~/Applications/WebClass Reminders.app` に上書きされます。既存のリマインダーや同期情報は削除されません。補助アプリをFinderから手動で起動する必要はありません。
 
 ## 5. 拡張機能を再読み込みして同期を再開する
 
-1. `chrome://extensions` でANTI-WebClassの再読み込みボタンを押します。
+1. 選んだブラウザーの拡張機能ページ（Chromeは `chrome://extensions`、Diaは `dia://extensions`）でANTI-WebClassの再読み込みボタンを押します。
 2. 拡張機能の設定を開き、「外部ToDoと連携する」をONにします。
 3. 連携先が「Appleリマインダー」になっていることを確認します。
 4. 「状態を確認」を押します。未接続なら「Appleリマインダーに接続」を押し、アクセス要求が出た場合は許可します。
@@ -114,9 +111,9 @@ Macのリマインダーで「WebClass」リストを開き、次の項目を確
 | 状況 | 確認すること |
 |---|---|
 | ビルドでツールが見つからない | Xcode Command Line Toolsが必要です。未導入なら `xcode-select --install` で導入し、完了後に再実行します。 |
-| `Usage: ...` と表示される | IDが英小文字32文字になっているか確認します。ビルドのIDは省略できますが、インストール時には必要です。変数設定も同じターミナルで実行してください。 |
+| `Usage: ...` と表示される | ブラウザー名に `chrome` または `dia` を指定し、IDが英小文字32文字になっているか確認します。変数設定も同じターミナルで実行してください。 |
 | `Rebuild for this extension ID first.` と表示される | 古いスクリプトを使っている可能性があります。今回のソースの `build.sh` と `install.sh` を使って同じIDでやり直すか、[ソースビルド手順](BUILD_FROM_SOURCE.ja.md)に従ってインストーラーを作成します。 |
-| 補助アプリが見つからない・接続できない | インストールが成功したか、Chromeの拡張機能IDとビルド時のIDが同じかを確認します。 |
+| 補助アプリが見つからない・接続できない | インストーラーで選んだブラウザーと、入力した拡張機能IDが一致しているか確認します。登録できるブラウザーは一度に1つです。 |
 | アクセス権限のエラー | macOSのシステム設定で、プライバシーとセキュリティのリマインダー権限を確認し、拡張機能から再接続します。更新後に再許可が必要になる場合があります。 |
 | 別の同期が実行中と表示される | 先の同期や接続確認が終わるのを待ち、再試行します。 |
 | メモが長いまま | 拡張機能だけでなく、補助アプリも今回のソースで再ビルド・インストールしたか確認し、その後に同期します。 |

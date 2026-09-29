@@ -4,12 +4,13 @@
 <body>
 <main>
 <h1>Appleリマインダー連携</h1>
-<p>macOS 14以降とGoogle Chromeが必要です。Xcodeやターミナルでのビルドは不要です。</p>
+<p>macOS 14以降とGoogle ChromeまたはDiaが必要です。補助アプリの登録先はどちらか1つです。Xcodeやターミナルでのビルドは不要です。</p>
 <ol>
 <li><a href="https://github.com/THE-Takes/ANTI-WebClass/releases">最新リリース</a>からWebClass RemindersのZIPをダウンロードして展開します。</li>
 <li>「Install WebClass Reminders」を起動します。</li>
-<li>Chromeで <code>chrome://extensions</code> を開き、右上の「デベロッパーモード」をオンにしてANTI-WebClassの拡張機能IDをコピーし、インストーラーに貼り付けます。</li>
-<li>「インストール」を押し、この設定画面で連携先をAppleリマインダーにして「接続」を押します。ChromeとmacOSのアクセス要求を許可します。</li>
+<li>使うブラウザーをGoogle ChromeかDiaから1つ選び、Chromeでは <code>chrome://extensions</code>、Diaでは <code>dia://extensions</code> を開いてANTI-WebClassの拡張機能IDをコピーします。</li>
+<li>インストーラーで同じブラウザーを1つ選択し、拡張機能IDを貼り付けて「インストール」を押します。登録先を切り替えると、前のブラウザーの登録は解除されます。</li>
+<li>選んだブラウザーでこの設定画面を開き、連携先をAppleリマインダーにして「接続」を押します。ブラウザーとmacOSのアクセス要求を許可します。</li>
 <li>ログイン済みのWebClassホーム画面で、通常のToDo同期を実行します。</li>
 </ol>
 <p>接続できない場合は、拡張機能ID・補助アプリの導入状態・システム設定の「プライバシーとセキュリティ」のリマインダー権限を確認してください。</p>

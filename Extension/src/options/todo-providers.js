@@ -1,5 +1,18 @@
 // Provider-specific settings stay separate from TickTick OAuth and common task formatting.
 let appleRemindersSettingsBusy = false;
+const APPLE_REMINDERS_SUPPORTED_BROWSER_MESSAGE = 'Appleリマインダー連携はGoogle ChromeまたはDiaに対応しています。補助アプリはどちらか1つのブラウザーにだけ登録してください。';
+
+function supportsAppleRemindersInCurrentBrowser() {
+    const brands = new Set(navigator.userAgentData?.brands?.map(({ brand }) => brand) || []);
+    const isGoogleChrome = brands.has('Google Chrome');
+    const otherChromiumBrand = ['Microsoft Edge', 'Brave', 'Opera', 'Vivaldi', 'Yandex', 'Arc']
+        .some((brand) => brands.has(brand));
+    const isDiaChromium = brands.has('Chromium') && !otherChromiumBrand;
+    return (isGoogleChrome || isDiaChromium)
+        && typeof chrome.permissions?.contains === 'function'
+        && typeof chrome.permissions?.request === 'function'
+        && typeof chrome.runtime?.connectNative === 'function';
+}
 
 function selectedTodoProvider() {
     return document.getElementById('todoApiProvider').value;
@@ -8,15 +21,18 @@ function selectedTodoProvider() {
 function updateTodoProviderUI() {
     const apple = selectedTodoProvider() === 'apple_reminders';
     const mac = runtimePlatformOs === 'mac';
+    const browserSupported = supportsAppleRemindersInCurrentBrowser();
     const enabled = document.getElementById('todoApiEnabled').checked;
-    document.querySelector('#todoApiProvider option[value="apple_reminders"]').disabled = !mac;
+    document.querySelector('#todoApiProvider option[value="apple_reminders"]').disabled = !mac || !browserSupported;
     document.getElementById('ticktickTodoFields').hidden = apple;
     document.getElementById('appleRemindersFields').hidden = !apple;
-    for (const id of ['appleRemindersConnectBtn', 'appleRemindersDisconnectBtn', 'appleRemindersRefreshBtn']) {
-        document.getElementById(id).disabled = !mac || !enabled || appleRemindersSettingsBusy;
-    }
+    document.getElementById('appleRemindersConnectBtn').disabled = !mac || !enabled || !browserSupported || appleRemindersSettingsBusy;
+    document.getElementById('appleRemindersDisconnectBtn').disabled = !mac || !enabled || appleRemindersSettingsBusy;
+    document.getElementById('appleRemindersRefreshBtn').disabled = !mac || !enabled || !browserSupported || appleRemindersSettingsBusy;
     document.getElementById('todoApiProvider').disabled = !enabled || appleRemindersSettingsBusy;
-    if (apple && !mac) {
+    if (apple && !browserSupported) {
+        document.getElementById('appleRemindersStatus').textContent = APPLE_REMINDERS_SUPPORTED_BROWSER_MESSAGE;
+    } else if (apple && !mac) {
         document.getElementById('appleRemindersStatus').textContent = 'Appleリマインダー連携はmacOS限定です。この端末ではTickTickを選択してください。';
     }
 }
@@ -28,10 +44,14 @@ async function refreshTodoProviderStatus() {
     }
     if (runtimePlatformOs !== 'mac') return;
     const status = document.getElementById('appleRemindersStatus');
+    if (!supportsAppleRemindersInCurrentBrowser()) {
+        status.textContent = APPLE_REMINDERS_SUPPORTED_BROWSER_MESSAGE;
+        return;
+    }
     try {
         const granted = await chrome.permissions.contains({ permissions: ['nativeMessaging'] });
         if (!granted) {
-            status.textContent = '未接続。「接続」を押して補助アプリへのアクセスを許可してください。';
+            status.textContent = '未接続。「Appleリマインダーに接続」を押して補助アプリへのアクセスを許可してください。';
             return;
         }
         const result = await chrome.runtime.sendMessage({ type: 'APPLE_REMINDERS_GET_STATUS' });
@@ -47,6 +67,10 @@ async function refreshTodoProviderStatus() {
 async function connectAppleReminders() {
     const status = document.getElementById('appleRemindersStatus');
     if (runtimePlatformOs !== 'mac' || appleRemindersSettingsBusy) return;
+    if (!supportsAppleRemindersInCurrentBrowser()) {
+        status.textContent = APPLE_REMINDERS_SUPPORTED_BROWSER_MESSAGE;
+        return;
+    }
     appleRemindersSettingsBusy = true;
     updateTodoProviderUI();
     try {
