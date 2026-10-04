@@ -27,10 +27,10 @@ The installer copies the app to `~/Applications/WebClass Reminders Google Chrome
 
 ```text
 Google Chrome: ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/jp.anti_webclass.reminders.chrome.json
-Dia:           ~/Library/Application Support/Dia/NativeMessagingHosts/jp.anti_webclass.reminders.dia.json
+Dia:           ~/Library/Application Support/Google/Chrome/NativeMessagingHosts/jp.anti_webclass.reminders.dia.json
 ```
 
-It does not install or launch the EventKit host during a build.
+Dia reads Chrome's native messaging directory. The browser-specific filenames keep both registrations separate. Reinstalling the Dia helper removes its old registration under `Dia/NativeMessagingHosts`; installing or uninstalling either helper preserves the other browser's registration. A build does not install or launch the EventKit host.
 
 In the browser selected during installation, enable external ToDo integration in extension settings, choose Apple Reminders and click Connect. Accept the browser's native permission and macOS's reminder permission. The helper enumerates writable Reminders lists and asks the user to choose one. A list already linked to another extension cannot be selected. Connecting does not retrieve WebClass pages or export tasks; the existing home synchronization flow does that.
 

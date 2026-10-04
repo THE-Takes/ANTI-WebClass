@@ -24,7 +24,7 @@ done
 
 for ARCH in arm64 x86_64; do
     xcrun swiftc -swift-version 5 -parse-as-library -target "$ARCH-apple-macos14.0" -module-cache-path "$MODULE_CACHE" -O \
-        "$ROOT/Sources/BrowserTarget.swift" "$ROOT/Sources/InstallerMenu.swift" "$ROOT/Sources/InstallerCompletion.swift" "$ROOT/Sources/Installer.swift" -o "$BUILD/WebClassRemindersInstaller-$ARCH"
+        "$ROOT/Sources/BrowserTarget.swift" "$ROOT/Sources/NativeHostRegistration.swift" "$ROOT/Sources/InstallerMenu.swift" "$ROOT/Sources/InstallerCompletion.swift" "$ROOT/Sources/Installer.swift" -o "$BUILD/WebClassRemindersInstaller-$ARCH"
 done
 lipo -create "$BUILD/WebClassRemindersInstaller-arm64" "$BUILD/WebClassRemindersInstaller-x86_64" \
     -output "$INSTALLER_APP/Contents/MacOS/WebClassRemindersInstaller"

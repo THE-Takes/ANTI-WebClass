@@ -12,3 +12,6 @@ xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/modu
 xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/module-cache" \
     "$ROOT/Sources/Protocol.swift" "$ROOT/Sources/ListSelection.swift" "$ROOT/Tests/ListSelectionTests.swift" -o "$OUTPUT/list-selection-tests"
 "$OUTPUT/list-selection-tests"
+xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/module-cache" \
+    "$ROOT/Sources/BrowserTarget.swift" "$ROOT/Sources/NativeHostRegistration.swift" "$ROOT/Tests/RegistrationTests.swift" -o "$OUTPUT/registration-tests"
+"$OUTPUT/registration-tests"

@@ -182,21 +182,7 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
             throw error
         }
         let hostExecutable = installedApp.appendingPathComponent("Contents/MacOS/\(nativeHostExecutableName)")
-        let manifest: [String: Any] = [
-            "name": browser.nativeHostName,
-            "description": "WebClass Apple Reminders bridge",
-            "path": hostExecutable.path,
-            "type": "stdio",
-            "allowed_origins": ["chrome-extension://\(extensionID)/"]
-        ]
-        let manifestData = try JSONSerialization.data(withJSONObject: manifest, options: [.prettyPrinted, .sortedKeys])
-        let manifestURL = browser.manifestURL(hostName: browser.nativeHostName)
-        try fileManager.createDirectory(at: manifestURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try manifestData.write(to: manifestURL, options: .atomic)
-        for hostName in BrowserTarget.managedNativeHostNames where hostName != browser.nativeHostName {
-            let oldManifest = browser.manifestURL(hostName: hostName)
-            if fileManager.fileExists(atPath: oldManifest.path) { try fileManager.removeItem(at: oldManifest) }
-        }
+        try NativeHostRegistration.install(for: browser, executableURL: hostExecutable, extensionID: extensionID)
         if hadPreviousApp { try fileManager.removeItem(at: previousApp) }
     }
 
@@ -205,12 +191,7 @@ final class InstallerDelegate: NSObject, NSApplicationDelegate {
         let installedApp = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent("Applications", isDirectory: true)
             .appendingPathComponent(browser.appName, isDirectory: true)
-        for hostName in BrowserTarget.managedNativeHostNames {
-            let manifestURL = browser.manifestURL(hostName: hostName)
-            if fileManager.fileExists(atPath: manifestURL.path) {
-                try fileManager.removeItem(at: manifestURL)
-            }
-        }
+        try NativeHostRegistration.uninstall(for: browser)
         if fileManager.fileExists(atPath: installedApp.path) {
             try fileManager.removeItem(at: installedApp)
         }

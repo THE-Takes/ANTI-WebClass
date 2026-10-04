@@ -13,7 +13,7 @@ case "$TARGET_BROWSER" in
         ;;
     dia)
         BROWSER_NAME='Dia'
-        HOST_RELATIVE_DIR='Dia/NativeMessagingHosts'
+        HOST_RELATIVE_DIR='Google/Chrome/NativeMessagingHosts'
         HOST_NAME='jp.anti_webclass.reminders.dia'
         APP_NAME='WebClass Reminders Dia.app'
         ;;
@@ -48,9 +48,9 @@ trap 'rm -f "$MANIFEST_TMP"; rm -rf "$STAGED_APP"' EXIT
 /usr/bin/plutil -insert allowed_origins -json "[\"chrome-extension://$EXTENSION_ID/\"]" "$MANIFEST_TMP"
 /usr/bin/plutil -convert json "$MANIFEST_TMP"
 mv "$MANIFEST_TMP" "$HOST_DIR/$HOST_NAME.json"
-rm -f "$HOST_DIR/jp.anti_webclass.reminders.json"
 case "$TARGET_BROWSER" in
-    chrome) rm -f "$HOST_DIR/jp.anti_webclass.reminders.dia.json" ;;
-    dia) rm -f "$HOST_DIR/jp.anti_webclass.reminders.chrome.json" ;;
+    chrome) rm -f "$HOST_DIR/jp.anti_webclass.reminders.json" ;;
+    dia) rm -f "$USER_HOME/Library/Application Support/Dia/NativeMessagingHosts/$HOST_NAME.json" \
+        "$USER_HOME/Library/Application Support/Dia/NativeMessagingHosts/jp.anti_webclass.reminders.json" ;;
 esac
 echo "Installed for $BROWSER_NAME. Open its extension settings, connect Apple Reminders, and select a list."

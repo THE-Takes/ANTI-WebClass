@@ -81,6 +81,8 @@ bash NativeReminders/scripts/install.sh "$REMINDERS_BROWSER" "$REMINDERS_EXTENSI
 
 補助アプリは `~/Applications/WebClass Reminders Google Chrome.app` または `~/Applications/WebClass Reminders Dia.app` に保存されます。既存のリマインダーや同期情報は削除されません。補助アプリをFinderから手動で起動する必要はありません。
 
+接続用の登録ファイルは、Chrome用・Dia用ともに `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/` に保存されます。Diaもこの場所を参照するためです。ファイル名は `jp.anti_webclass.reminders.chrome.json` と `jp.anti_webclass.reminders.dia.json` に分かれます。Dia用を再インストールすると、旧 `Dia/NativeMessagingHosts/` のDia用登録は削除され、Chrome用登録は保持されます。
+
 ## 5. 拡張機能を再読み込みして同期を再開する
 
 1. 選んだブラウザーの拡張機能ページ（Chromeは `chrome://extensions`、Diaは `dia://extensions`）でANTI-WebClassの再読み込みボタンを押します。

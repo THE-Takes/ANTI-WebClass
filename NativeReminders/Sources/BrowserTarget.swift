@@ -4,14 +4,6 @@ enum BrowserTarget: Int, CaseIterable {
     case googleChrome = 1
     case dia = 2
 
-    static var managedNativeHostNames: [String] {
-        [
-            "jp.anti_webclass.reminders",
-            "jp.anti_webclass.reminders.chrome",
-            "jp.anti_webclass.reminders.dia"
-        ]
-    }
-
     var displayName: String {
         switch self {
         case .googleChrome: return "Google Chrome"
@@ -44,16 +36,22 @@ enum BrowserTarget: Int, CaseIterable {
         }
     }
 
-    private var nativeMessagingDirectory: String {
-        switch self {
-        case .googleChrome: return "Google/Chrome/NativeMessagingHosts"
-        case .dia: return "Dia/NativeMessagingHosts"
-        }
+    func manifestURL(hostName: String, homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
+        // Dia reads Chrome's native-host directory; distinct host names keep registrations separate.
+        homeDirectory
+            .appendingPathComponent("Library/Application Support/Google/Chrome/NativeMessagingHosts", isDirectory: true)
+            .appendingPathComponent("\(hostName).json")
     }
 
-    func manifestURL(hostName: String, homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
-        homeDirectory
-            .appendingPathComponent("Library/Application Support/\(nativeMessagingDirectory)", isDirectory: true)
-            .appendingPathComponent("\(hostName).json")
+    func obsoleteManifestURLs(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) -> [URL] {
+        switch self {
+        case .googleChrome:
+            return [manifestURL(hostName: "jp.anti_webclass.reminders", homeDirectory: homeDirectory)]
+        case .dia:
+            let legacyDirectory = homeDirectory.appendingPathComponent("Library/Application Support/Dia/NativeMessagingHosts", isDirectory: true)
+            return [nativeHostName, "jp.anti_webclass.reminders"].map {
+                legacyDirectory.appendingPathComponent("\($0).json")
+            }
+        }
     }
 }
