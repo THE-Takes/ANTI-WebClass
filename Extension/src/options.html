@@ -35,7 +35,7 @@
           <span class="chevron" aria-hidden="true">›</span>
         </button>
         <button type="button" class="nav-item" data-open-section="todo">
-          <span>ToDo API 連携</span>
+          <span>ToDo</span>
           <span class="chevron" aria-hidden="true">›</span>
         </button>
         <button type="button" class="nav-item" data-open-section="material">
@@ -128,20 +128,6 @@
             </div>
           </div>
           <p class="helper-text setting-helper">6x6 のボックスで、開始セルまたは終了セルをドラッグしてホーム時間割に表示する範囲を調整します。</p>
-        </div>
-
-        <div class="setting-group">
-          <p class="setting-title">ホーム表示項目: ToDo 強調</p>
-          <div class="ios-list">
-            <label class="ios-item switch-row" for="dashboardDangerTodoOutlineEnabled">
-              <span class="switch-label">
-                <span class="item-title">期限が近い講義マスを赤く縁取る</span>
-              </span>
-              <input type="checkbox" id="dashboardDangerTodoOutlineEnabled" class="ios-switch" aria-label="期限が近い講義マスを赤く縁取る">
-              <span class="switch-ui" aria-hidden="true"></span>
-            </label>
-          </div>
-          <p class="helper-text setting-helper">My TODOs で赤く表示される期限間近のタスクがある講義だけ、時間割マスに薄い赤のアウトラインを表示します。</p>
         </div>
 
         <div class="setting-group">
@@ -241,9 +227,46 @@
     <section class="settings-detail" data-section="todo" hidden>
       <div class="detail-header">
         <button type="button" class="back-button" data-back>‹ 戻る</button>
-        <h2>ToDo API 連携</h2>
+        <h2>ToDo</h2>
       </div>
       <div class="settings-groups">
+        <div class="setting-group">
+          <p class="setting-title">ホーム表示項目: 開始前のToDo</p>
+          <div class="ios-list">
+            <label class="ios-item" for="todoUpcomingVisibilityDays">
+              <span class="item-title">開始何日前から表示するか（日）</span>
+              <input type="number" id="todoUpcomingVisibilityDays" min="0" max="365" step="1" value="7">
+            </label>
+          </div>
+          <p class="helper-text setting-helper">初期設定は7日です。0にすると開始日時まで表示しません。期限から3日を超えた未完了タスクは、未完了のまま「完了済み」に表示します。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">ホーム表示項目: ToDo 強調</p>
+          <div class="ios-list">
+            <label class="ios-item switch-row" for="dashboardDangerTodoOutlineEnabled">
+              <span class="switch-label">
+                <span class="item-title">期限が近い講義マス・時間外科目を赤く縁取る</span>
+              </span>
+              <input type="checkbox" id="dashboardDangerTodoOutlineEnabled" class="ios-switch" aria-label="期限が近い講義マス・時間外科目を赤く縁取る">
+              <span class="switch-ui" aria-hidden="true"></span>
+            </label>
+          </div>
+          <p class="helper-text setting-helper">My TODOs で赤く表示される期限間近のタスクがある講義だけ、時間割マスと時間外科目のカードに薄い赤のアウトラインを表示します。</p>
+        </div>
+
+        <div class="setting-group">
+          <p class="setting-title">ToDoデータの削除</p>
+          <div class="ios-list">
+            <div class="ios-item ios-item--stacked">
+              <button type="button" id="deleteAllTodoData" class="btn-danger btn-block">すべてのToDoタスクデータを削除</button>
+              <p id="todoDataDeletionStatus" class="status-text" aria-live="polite"></p>
+            </div>
+          </div>
+          <p class="helper-text setting-helper">この拡張機能に保存されたタスク（完了済み・ゴミ箱・デバッグ用を含む）をすべて削除します。設定と外部サービス上のタスクは残ります。WebClassの課題は次回の取得で再登録されます。</p>
+        </div>
+
+        <h3 class="setting-title">ToDo API 連携</h3>
         <p class="setting-description">Smart ToDo と外部ToDoサービスを同期します。</p>
 
         <div class="setting-group">
@@ -287,7 +310,7 @@
           <p class="setting-title">Appleリマインダー設定</p>
           <div class="ios-list">
             <div class="ios-item ios-item--stacked">
-              <p class="helper-text">macOS 14以降のGoogle ChromeまたはDiaと、WebClass Reminders補助アプリが必要です。補助アプリはどちらか1つに登録し、専用リスト「WebClass」と課題名・締切・完了状態を同期します。</p>
+              <p class="helper-text">macOS 14以降のGoogle ChromeまたはDiaと、WebClass Reminders補助アプリが必要です。Chrome用とDia用を同じMacに導入できます。接続時にリマインダーリストを1つ選び、課題名・締切・完了状態を同期します。</p>
               <a href="reminders-setup.html" target="_blank" rel="noopener noreferrer">補助アプリの導入手順</a>
               <div class="button-row">
                 <button type="button" id="appleRemindersConnectBtn" class="btn-primary">Appleリマインダーに接続</button>
@@ -550,6 +573,18 @@
             </label>
           </div>
           <p class="helper-text setting-helper">ON時のみdevdev系・デバッグ系UIとデバッグログを表示します。</p>
+          <div class="debug-only-setting" hidden>
+            <div class="ios-list">
+              <label class="ios-item switch-row" for="debugTodoApiSyncEnabled">
+                <span class="switch-label">
+                  <span class="item-title">デバッグ中もToDoを外部サービスと同期する</span>
+                </span>
+                <input type="checkbox" id="debugTodoApiSyncEnabled" class="ios-switch" checked aria-describedby="debugTodoApiSyncHelp">
+                <span class="switch-ui" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p id="debugTodoApiSyncHelp" class="helper-text setting-helper">OFFの間は外部ToDo連携の自動・手動同期を停止します。タスクの追加・編集・完了・削除はローカルに保存されます。デバッグモードを終了すると通常の同期に戻ります。</p>
+          </div>
         </div>
       </div>
     </section>
@@ -600,11 +635,14 @@
     <div id="status" aria-live="polite"></div>
   </main>
 
+  <script src="ui/components.js"></script>
+  <script src="todo-policy.js"></script>
   <script src="secure-storage.js"></script>
   <script src="options/core.js"></script>
   <script src="options/persistence.js"></script>
   <script src="options/integrations.js"></script>
   <script src="options/todo-providers.js"></script>
+  <script src="options/todo-data.js"></script>
   <script src="options/navigation.js"></script>
   <script src="options.js"></script>
 </body>

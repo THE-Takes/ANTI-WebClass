@@ -42,7 +42,7 @@ async function mergeTickTickSyncAssignmentsWithLatestLocalChanges(initialAssignm
 }
 
 async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual', localMutation = null } = {}) {
-    if (todoSyncRuntimeState.running) {
+    if (todoSyncRuntimeState.running || todoSyncRuntimeState.clearing) {
         return { success: true, skipped: true, reason: 'sync_in_progress' };
     }
 
@@ -56,6 +56,9 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
         const syncSettings = await provider.loadSettings();
         if (syncSettings[TODO_API_ENABLED_KEY] !== true) {
             return { success: true, skipped: true, reason: 'integration_disabled' };
+        }
+        if (WebClassTodoPolicy.isExternalSyncPaused(syncSettings)) {
+            return { success: true, skipped: true, reason: 'debug_sync_disabled' };
         }
         await provider.prepare(syncSettings);
 
@@ -88,6 +91,7 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
 
         const assignmentMap = new Map();
         assignments.forEach((assignment) => {
+            if (WebClassTodoPolicy.shouldSkipSync(assignment)) return;
             const isRemoved = assignment?.isDeleted === true || isAssignmentInTrashSet(assignment, trashSet);
             if (!includeNotYetStarted && !isRemoved && isAssignmentNotYetStarted(assignment)) return;
 
@@ -117,6 +121,14 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
             markAssignmentDeleted(existingAssignment);
             assignmentMap.set(syncIdentity.stableId, { assignment, syncIdentity });
         });
+
+        const excludedLookups = assignments
+            .filter(assignment => WebClassTodoPolicy.shouldSkipSync(assignment))
+            .map(assignment => provider.buildLookup({ assignment, syncIdentity: getTickTickAssignmentSyncIdentity(assignment) }));
+        const excludedIds = new Set(excludedLookups.map(lookup => lookup.storedTaskId).filter(Boolean));
+        const excludedStableIds = new Set(excludedLookups.flatMap(lookup => lookup.stableIds));
+        const excludedUrls = new Set(excludedLookups.flatMap(lookup => lookup.normalizedUrls));
+        const excludedSemanticKeys = new Set(excludedLookups.map(lookup => lookup.semanticKey).filter(Boolean));
 
         const listInfo = await provider.ensureList();
         const remoteTasks = await provider.fetchActive(listInfo.id);
@@ -180,6 +192,9 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
                 ...(forceCompleted ? { status: 2 } : {})
             };
             const lookup = buildTickTickRemoteLookup(normalizedTask);
+            // Archived tasks must also be protected from duplicate/legacy cleanup.
+            if (excludedIds.has(taskId) || excludedStableIds.has(lookup.stableId)
+                || excludedUrls.has(lookup.normalizedUrl) || excludedSemanticKeys.has(lookup.semanticKey)) return;
             if (!lookup.stableId) {
                 if (allowLegacyDelete) {
                     remoteTaskDeleteReasons.set(taskId, 'legacy');
@@ -336,7 +351,7 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
         };
 
         for (const [stableId, entry] of assignmentMap.entries()) {
-            if (provider.skipPull?.(entry.assignment) || (normalizedMode === 'local_mutation' && mutationStableId && stableId === mutationStableId)) {
+            if (WebClassTodoPolicy.shouldSkipSync(entry.assignment) || provider.skipPull?.(entry.assignment) || (normalizedMode === 'local_mutation' && mutationStableId && stableId === mutationStableId)) {
                 continue;
             }
             let remoteTask = findMatchingTickTickRemoteTask(entry);
@@ -357,7 +372,7 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
             const assignment = entry?.assignment;
             const syncIdentity = entry?.syncIdentity;
             if (!assignment || !syncIdentity?.stableId) return;
-            if (isLocalOnlyAssignment(assignment)) return;
+            if (isLocalOnlyAssignment(assignment) || WebClassTodoPolicy.shouldSkipSync(assignment)) return;
 
             let remoteTask = findMatchingTickTickRemoteTask(entry);
             if (!remoteTask) {

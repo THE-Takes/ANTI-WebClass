@@ -33,6 +33,17 @@ enum BrowserTarget: Int, CaseIterable {
         }
     }
 
+    var appName: String {
+        "WebClass Reminders \(displayName).app"
+    }
+
+    var bundleIdentifier: String {
+        switch self {
+        case .googleChrome: return "jp.anti-webclass.reminders.chrome"
+        case .dia: return "jp.anti-webclass.reminders.dia"
+        }
+    }
+
     private var nativeMessagingDirectory: String {
         switch self {
         case .googleChrome: return "Google/Chrome/NativeMessagingHosts"

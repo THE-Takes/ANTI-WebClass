@@ -4,13 +4,13 @@
 <body>
 <main>
 <h1>Appleリマインダー連携</h1>
-<p>macOS 14以降とGoogle ChromeまたはDiaが必要です。補助アプリの登録先はどちらか1つです。Xcodeやターミナルでのビルドは不要です。</p>
+<p>macOS 14以降とGoogle ChromeまたはDiaが必要です。Chrome用とDia用の補助アプリを同じMacに導入できます。</p>
 <ol>
-<li><a href="https://github.com/THE-Takes/ANTI-WebClass/releases">最新リリース</a>からWebClass RemindersのZIPをダウンロードして展開します。</li>
-<li>「Install WebClass Reminders」を起動します。</li>
+<li><a href="https://github.com/THE-Takes/ANTI-WebClass/blob/main/NativeReminders/BUILD_FROM_SOURCE.ja.md" target="_blank" rel="noopener noreferrer">ソースからビルドする手順</a>に従い、このMacで補助アプリをビルドします。GitとXcode Command Line Toolsが必要です。</li>
+<li>ビルドで生成された「Install WebClass Reminders」を起動します。</li>
 <li>使うブラウザーをGoogle ChromeかDiaから1つ選び、Chromeでは <code>chrome://extensions</code>、Diaでは <code>dia://extensions</code> を開いてANTI-WebClassの拡張機能IDをコピーします。</li>
-<li>インストーラーで同じブラウザーを1つ選択し、拡張機能IDを貼り付けて「インストール」を押します。登録先を切り替えると、前のブラウザーの登録は解除されます。</li>
-<li>選んだブラウザーでこの設定画面を開き、連携先をAppleリマインダーにして「接続」を押します。ブラウザーとmacOSのアクセス要求を許可します。</li>
+<li>インストーラーで対象ブラウザーを選択し、そのブラウザーの拡張機能IDを貼り付けて「インストール」を押します。両方を使う場合は、それぞれのブラウザーで繰り返します。</li>
+<li>選んだブラウザーでこの設定画面を開き、連携先をAppleリマインダーにして「接続」を押します。ブラウザーとmacOSのアクセス要求を許可し、表示されたリマインダーリストから同期先を1つ選びます。もう一方の拡張機能では別のリストを選んでください。</li>
 <li>ログイン済みのWebClassホーム画面で、通常のToDo同期を実行します。</li>
 </ol>
 <p>接続できない場合は、拡張機能ID・補助アプリの導入状態・システム設定の「プライバシーとセキュリティ」のリマインダー権限を確認してください。</p>

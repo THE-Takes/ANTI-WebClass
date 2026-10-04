@@ -15,6 +15,7 @@ const uxExtensionVisualState = {
         return true;
     })()
 };
+var todoUpcomingVisibilityDays = 7;
 const uxDebugModeChangeListeners = new Set();
 
 function uxSetExtensionVisualEnabled(enabled) {
@@ -179,4 +180,19 @@ function getRequestedHomeDashboardTab() {
         // Ignore malformed or unavailable location state.
     }
     return 'tab-course';
+}
+
+function showUxExtensionReloadNotice(needsExtensionReload = false) {
+    return showUxReloadRequiredPopup({
+        titleText: '拡張機能の再読み込みが必要です',
+        descriptionText: needsExtensionReload
+            ? 'Chromeの拡張機能画面でANTI-WebClassを再読み込みしてから、このページを再読み込みしてください。'
+            : '拡張機能が更新されました。このページを再読み込みして続行してください。'
+    });
+}
+
+function handleUxExtensionContextError(error) {
+    if (!/extension context invalidated/i.test(String(error?.message || error || ''))) return false;
+    showUxExtensionReloadNotice();
+    return true;
 }

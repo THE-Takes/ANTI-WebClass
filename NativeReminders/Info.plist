@@ -5,9 +5,10 @@
   <key>CFBundleName</key><string>WebClass Reminders</string>
   <key>CFBundleExecutable</key><string>WebClassReminders</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>Reminders.icns</string>
   <key>CFBundleVersion</key><string>4</string>
-  <key>CFBundleShortVersionString</key><string>0.3.1</string>
+  <key>CFBundleShortVersionString</key><string>0.4.0</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
-  <key>NSRemindersFullAccessUsageDescription</key><string>WebClassの課題を専用リストと同期し、課題名・締切・完了状態を反映します。</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>選択したリマインダーリストとWebClassの課題を同期し、課題名・締切・完了状態を反映します。</string>
 </dict></plist>

@@ -4,29 +4,39 @@ import Foundation
 @MainActor
 final class ReminderStore {
     private let store = EKEventStore()
-    private let defaults: UserDefaults
     private var snapshot: [[String: Any]]?
-    private let listKey: String
+    private let selection: ListSelection
+    private let legacyListID: String?
     private let metadata: ReminderMetadataStore
 
     init(origin: String, metadataDirectory: URL) throws {
-        guard let extensionID = URL(string: origin)?.host else { throw HostError("Invalid extension origin.") }
-        metadata = try ReminderMetadataStore(file: metadataDirectory.appendingPathComponent("metadata-" + extensionID + ".json"))
-        defaults = UserDefaults.standard
-        listKey = "managedList." + origin
+        guard let extensionID = URL(string: origin)?.host,
+              let browser = BrowserTarget.allCases.first(where: { $0.bundleIdentifier == Bundle.main.bundleIdentifier }) else {
+            throw HostError("Invalid extension origin or helper identity.")
+        }
+        let metadataFile = metadataDirectory.appendingPathComponent("metadata-\(browser.nativeHostName)-\(extensionID).json")
+        let oldMetadataFile = metadataDirectory.appendingPathComponent("metadata-\(extensionID).json")
+        if !FileManager.default.fileExists(atPath: metadataFile.path), FileManager.default.fileExists(atPath: oldMetadataFile.path) {
+            let oldData = try Data(contentsOf: oldMetadataFile)
+            try oldData.write(to: metadataFile, options: .atomic)
+        }
+        metadata = try ReminderMetadataStore(file: metadataFile)
+        selection = ListSelection(directory: metadataDirectory, origin: browser.bundleIdentifier + "|" + origin)
+        legacyListID = UserDefaults(suiteName: "jp.anti-webclass.reminders")?.string(forKey: "managedList." + origin)
     }
 
     private var authorized: Bool { EKEventStore.authorizationStatus(for: .reminder) == .fullAccess }
 
-    private func managedList() -> EKCalendar? {
-        guard let id = defaults.string(forKey: listKey) else { return nil }
+    private func managedList() throws -> EKCalendar? {
+        guard let id = try selection.selectedID() else { return nil }
         return store.calendar(withIdentifier: id)
     }
 
-    private func status() -> [String: Any] {
-        let list = authorized ? managedList() : nil
+    private func status() throws -> [String: Any] {
+        let list = authorized ? try managedList() : nil
         return ["authorized": authorized, "listId": list?.calendarIdentifier ?? "", "listName": list?.title ?? "",
-                "hostVersion": "0.2.0", "compactNotes": true, "authorizationStatus": EKEventStore.authorizationStatus(for: .reminder).rawValue]
+                "hostVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
+                "compactNotes": true, "authorizationStatus": EKEventStore.authorizationStatus(for: .reminder).rawValue]
     }
 
     private func connect() async throws -> [String: Any] {
@@ -35,20 +45,23 @@ final class ReminderStore {
                 throw HostError("リマインダーへのアクセスを許可してください。システム設定のプライバシーとセキュリティから変更できます。")
             }
         }
-        if let list = managedList() {
-            guard list.allowsContentModifications else { throw HostError("同期先リストは読み取り専用です。") }
-        } else {
-            // Create our own list. A user-created list with the same name is not implicitly adopted.
-            guard let source = store.defaultCalendarForNewReminders()?.source else {
-                throw HostError("リマインダーで書き込み可能なアカウントを設定してください。")
-            }
-            let calendar = EKCalendar(for: .reminder, eventStore: store)
-            calendar.title = "WebClass"
-            calendar.source = source
-            try store.saveCalendar(calendar, commit: true)
-            defaults.set(calendar.calendarIdentifier, forKey: listKey)
+        let lists = store.calendars(for: .reminder)
+            .filter(\.allowsContentModifications)
+            .sorted { $0.source.title == $1.source.title ? $0.title < $1.title : $0.source.title < $1.source.title }
+        let sources = store.sources
+            .filter { $0.sourceType == .local || $0.sourceType == .calDAV }
+            .sorted { $0.title < $1.title }
+        guard !lists.isEmpty || !sources.isEmpty else {
+            throw HostError("利用可能なリマインダーリストや保存先がありません。リマインダーアプリでアカウントを設定してください。")
         }
-        return status()
+        let currentID = try selection.selectedID() ?? legacyListID
+        let preferredSourceID = lists.first(where: { $0.calendarIdentifier == currentID })?.source.sourceIdentifier
+            ?? store.defaultCalendarForNewReminders()?.source.sourceIdentifier
+        let chosen = try ListPicker.choose(from: lists, selectedID: currentID, canCreate: !sources.isEmpty) {
+            ListCreation.create(in: store, sources: sources, preferredSourceID: preferredSourceID)
+        }
+        try selection.select(chosen.calendarIdentifier)
+        return try status()
     }
 
     private func reminders(in list: EKCalendar) async throws -> [EKReminder] {
@@ -122,10 +135,10 @@ final class ReminderStore {
     }
 
     func handle(_ request: NativeRequest) async throws -> [String: Any] {
-        if request.command == "status" { return status() }
+        if request.command == "status" { return try status() }
         if request.command == "connect" { return try await connect() }
         guard authorized else { throw HostError("リマインダーのアクセス権限がありません。設定画面で再接続してください。") }
-        guard let list = managedList(), list.allowsContentModifications,
+        guard let list = try managedList(), list.allowsContentModifications,
               request.fields["listId"] as? String == list.calendarIdentifier else {
             throw HostError("同期先リストが見つかりません。設定画面で再接続してください。")
         }

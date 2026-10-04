@@ -15,12 +15,6 @@ uxRefreshStyle.textContent = `
         50% { opacity: 1; }
         100% { opacity: 0.3; }
     }
-    @keyframes ux-check-draw {
-        0% { stroke-dashoffset: 24; }
-        30% { stroke-dashoffset: 15.5; }
-        60% { stroke-dashoffset: 15.5; }
-        100% { stroke-dashoffset: 0; }
-    }
     @keyframes ux-icon-swap-in {
         0% { opacity: 0; transform: scale(0.72) rotate(-18deg); }
         100% { opacity: 1; transform: scale(1) rotate(0deg); }
@@ -31,7 +25,7 @@ uxRefreshStyle.textContent = `
         justify-content: center;
         gap: 6px;
     }
-    .ux-refresh-btn svg {
+    .ux-refresh-btn svg:not(.ux-check-icon) {
         width: 16px;
         height: 16px;
         fill: currentColor;
@@ -41,20 +35,6 @@ uxRefreshStyle.textContent = `
     }
     .ux-refresh-btn.ux-success svg {
         animation: ux-icon-swap-in 0.18s ease-out forwards;
-    }
-    .ux-check-btn svg {
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 3;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-    }
-    .ux-check-btn svg path {
-        stroke-dasharray: 24;
-        stroke-dashoffset: 0;
-    }
-    .ux-check-btn.ux-drawing svg path {
-        animation: ux-check-draw 0.4s ease-out forwards;
     }
     .ux-todo-title-marquee-wrap {
         position: relative;

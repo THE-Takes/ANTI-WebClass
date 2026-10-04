@@ -287,6 +287,8 @@ function appendDebugTodoCreator(container, options = {}) {
             status.textContent = 'ローカル保存完了';
         } else if (syncError) {
             status.textContent = `保存済み / API同期失敗: ${syncError.message || '設定を確認してください'}`;
+        } else if (syncResult?.skipped && syncResult.reason === 'debug_sync_disabled') {
+            status.textContent = '保存済み / デバッグ設定によりAPI同期停止中';
         } else if (syncResult?.skipped && syncResult.reason === 'integration_disabled') {
             status.textContent = 'API連携対象として保存（連携OFFのため未送信）';
         } else if (syncResult?.success === true) {

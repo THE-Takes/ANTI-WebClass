@@ -2,12 +2,12 @@
 
 [English version](BUILD_FROM_SOURCE.md)
 
-Appleリマインダー用補助アプリは、利用者が自分のMacでビルドします。このリポジトリでは、ビルド済みアプリを配布しません。拡張機能はGoogle ChromeまたはDiaのどちらか一方にインストールしてください。
+Appleリマインダー用補助アプリは、利用者が自分のMacでビルドします。ビルド済みインストーラーは[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)から取得できます。この手順は自分のMacでソースからビルドする場合のものです。ChromeとDiaでそれぞれ拡張機能を利用できます。各ブラウザーの拡張機能IDには、そのブラウザー用の補助アプリを1つ登録します。
 
 ## 必要なもの
 
 - macOS 14以降のMac
-- Google ChromeまたはDia（補助アプリはどちらか一方だけに登録できます）
+- Google ChromeまたはDia（両方への登録も可能です）
 - GitとXcode Command Line Tools（Xcode本体は不要）
 - 自分のMacでビルドして使うだけなら、Apple Developer Programへの登録、Developer ID証明書、公証用の資格情報は不要です。
 
@@ -30,7 +30,7 @@ xcode-select --install
 
 ## 2. 使うブラウザーを1つ選び、IDをコピーする
 
-Appleリマインダー連携に使うブラウザーをGoogle ChromeかDiaから1つ選びます。両方を選ぶことはできません。後で切り替えると、前のブラウザーの登録は解除されます。
+まず対象ブラウザーを1つ選びます。両方で使う場合は、各ブラウザーの拡張機能IDを控え、インストール手順をそれぞれ実行します。
 
 選んだブラウザーにANTI-WebClassがまだ入っていない場合:
 
@@ -52,7 +52,7 @@ bash NativeReminders/scripts/package-release.sh
 Apple SiliconとIntelの両方に対応したアプリと、次のZIPが生成されます。
 
 ```text
-NativeReminders/dist/WebClass-Reminders-v0.3.1.zip
+NativeReminders/dist/WebClass-Reminders-v0.4.0.zip
 NativeReminders/dist/build/Install WebClass Reminders.app
 ```
 
@@ -62,11 +62,11 @@ NativeReminders/dist/build/Install WebClass Reminders.app
 open "NativeReminders/dist/build/Install WebClass Reminders.app"
 ```
 
-手順2で選んだブラウザーと同じものを選び、コピーしたIDを貼り付けて「インストール」を押します。補助アプリは `~/Applications/WebClass Reminders.app` にコピーされ、選択したブラウザーだけに登録されます。
+手順2で選んだブラウザーと同じものを選び、コピーしたIDを貼り付けて「インストール」を押します。補助アプリは `~/Applications/WebClass Reminders Google Chrome.app` または `~/Applications/WebClass Reminders Dia.app` にコピーされます。他方の補助アプリと登録は保持されます。
 
 ## 4. Appleリマインダーに接続する
 
-選んだブラウザーでANTI-WebClassの設定を開き、外部ToDo連携を有効にし、連携先にAppleリマインダーを選びます。「Appleリマインダーに接続」を押し、ブラウザーのNative Messaging要求とmacOSのリマインダーアクセス要求を許可します。その後、ログイン済みのWebClassホーム画面から通常のToDo同期を実行します。
+選んだブラウザーでANTI-WebClassの設定を開き、外部ToDo連携を有効にし、連携先にAppleリマインダーを選びます。「Appleリマインダーに接続」を押し、ブラウザーのNative Messaging要求とmacOSのリマインダーアクセス要求を許可します。補助アプリが取得した書き込み可能なリストから同期先を1つ選びます。もう一方の拡張機能では別のリストを選んでください。その後、ログイン済みのWebClassホーム画面から通常のToDo同期を実行します。
 
 ## 更新・アンインストール
 
@@ -78,10 +78,10 @@ bash NativeReminders/scripts/package-release.sh
 open "NativeReminders/dist/build/Install WebClass Reminders.app"
 ```
 
-同じブラウザーを選び、同じ拡張機能IDを入力して補助アプリを更新します。別のブラウザーを選ぶと登録先が切り替わります。アンインストールする場合は、インストーラーを開いて「アンインストール」を選びます。Appleリマインダーと同期メタデータは保持されます。
+同じブラウザーを選び、同じ拡張機能IDを入力して補助アプリを更新します。別のブラウザーを選ぶ場合は、そのブラウザーの拡張機能IDでもインストールします。アンインストールする場合は、インストーラーで削除するブラウザーを選んで「アンインストール」を押します。Appleリマインダーと同期メタデータは保持されます。
 
 ## 注意事項
 
 - この手順は、自分のMacでビルドして使うためのものです。コンパイルしたアプリやZIPを他の人へ配布する手順ではありません。
-- 補助アプリはGoogle ChromeまたはDiaに対応し、macOS 14以降、Apple Silicon／IntelのMacで動作します。同時に登録できるのは、インストーラーで選択した1つのブラウザーだけです。
+- 補助アプリはGoogle ChromeまたはDiaに対応し、macOS 14以降、Apple Silicon／IntelのMacで動作します。Chrome用とDia用は同じMacに共存できます。各ブラウザーに登録できる拡張機能IDは1つです。
 - 同期の仕様、バックアップ、詳しいトラブルシューティングは[README.md](README.md)と[日本語の更新手順](README.ja.md)を参照してください。

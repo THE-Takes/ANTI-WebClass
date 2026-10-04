@@ -759,6 +759,7 @@ const Scraper = {
                     title: assignment.title,
                     sourceTitle: assignment.sourceTitle,
                     titleEdited: assignment.titleEdited === true,
+                    externalSyncExcluded: assignment.externalSyncExcluded,
                     ticktickTaskId: assignment.ticktickTaskId,
                 };
             }
@@ -859,6 +860,7 @@ const Scraper = {
                 }
             }
 
+            WebClassTodoPolicy.initializeAcquisition(assignment, existingState);
             return assignment;
         });
 
@@ -885,6 +887,7 @@ const Scraper = {
                 }
             });
         }
+        throwIfAssignmentUpdateCancelled(updateRun);
         uxDebugLog('[Scraper] 全ての課題を取得しました:', allAssignments);
         uxDebugLog(`[Scraper] 合計 ${allAssignments.length} 件の課題`);
 
@@ -928,6 +931,7 @@ const Scraper = {
                 title: assignment.title,
                 sourceTitle: assignment.sourceTitle,
                 titleEdited: assignment.titleEdited === true,
+                externalSyncExcluded: assignment.externalSyncExcluded,
                 ticktickTaskId: assignment.ticktickTaskId,
             };
             if (assignment.url) latestStateMap[assignment.url] = state;
@@ -943,6 +947,7 @@ const Scraper = {
             'title',
             'sourceTitle',
             'titleEdited',
+            'externalSyncExcluded',
             'ticktickTaskId',
         ];
         allAssignments.forEach((assignment) => {
@@ -979,3 +984,12 @@ const Scraper = {
 };
 
 window.WebClassScraper = Scraper;
+
+// Cancel stale retrieval before it can restore tasks after a settings reset.
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local' || !changes.todoDataResetToken) return;
+    const updateRun = Scraper._activeAssignmentUpdateRun;
+    if (!updateRun) return;
+    updateRun.cancelled = true;
+    updateRun.cancelPendingDelay?.();
+});

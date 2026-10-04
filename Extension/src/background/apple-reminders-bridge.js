@@ -46,7 +46,7 @@ async function openAppleRemindersBridge() {
         const detail = chrome.runtime.lastError?.message || 'Native host disconnected';
         const hostMissing = /specified native messaging host not found|native messaging host.*not found/i.test(detail);
         const message = hostMissing
-            ? '補助アプリはGoogle ChromeまたはDiaのどちらか1つにだけ登録できます。このブラウザーを使う場合は、インストーラーで対象を選び直してください。'
+            ? 'このブラウザー用の補助アプリが見つかりません。インストーラーでこのブラウザーと拡張機能IDを登録してください。'
             : `補助アプリとの接続が切れました。導入状態を確認してください。 (${detail})`;
         failAll(new Error(message));
     });
@@ -71,7 +71,7 @@ async function openAppleRemindersBridge() {
                 const timer = setTimeout(() => {
                     failAll(new Error('補助アプリの応答がタイムアウトしました。権限と接続を確認してください。'));
                     port.disconnect();
-                }, command === 'connect' ? 120000 : 30000);
+                }, command === 'connect' ? 300000 : 30000);
                 pending.set(requestId, { resolve, reject, timer });
                 try {
                     port.postMessage({ ...fields, version: APPLE_REMINDERS_PROTOCOL, requestId, command });

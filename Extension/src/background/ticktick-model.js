@@ -35,6 +35,8 @@ const pendingDownloads = new Map();
 const urlToFilename = new Map();
 const todoSyncRuntimeState = {
     running: false,
+    clearing: false,
+    activeRequests: 0,
     lastRunAt: 0
 };
 

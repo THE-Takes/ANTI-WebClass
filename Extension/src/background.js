@@ -2,8 +2,10 @@
 // Background service-worker entry point and event routing.
 
 importScripts(
+  chrome.runtime.getURL('src/todo-policy.js'),
   chrome.runtime.getURL('src/background/core.js'),
   chrome.runtime.getURL('src/background/ticktick-model.js'),
+  chrome.runtime.getURL('src/background/todo-data.js'),
   chrome.runtime.getURL('src/background/ticktick-client.js'),
   chrome.runtime.getURL('src/background/todo-sync-engine.js'),
   chrome.runtime.getURL('src/background/ticktick-sync.js'),
@@ -144,6 +146,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
         case 'TICKTICK_TODO_GET_STATUS':
             handleTickTickTodoGetStatus(sendResponse);
+            return true;
+        case 'TODO_DELETE_ALL_LOCAL_DATA':
+            handleDeleteAllLocalTodoData(sender, sendResponse);
             return true;
         case 'TODO_API_RUN_SYNC':
             handleTodoApiRunSync(message, sendResponse);

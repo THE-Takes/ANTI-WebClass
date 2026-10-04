@@ -1791,13 +1791,14 @@ async function renderDashboardLayout() {
     todoToolbar.appendChild(todoHeader);
 
     let dashboardAssignments = [];
+    let todoDataResetRevision = 0;
     let viewCompleted = false;
     let activeTodoApiSyncPipelinePromise = null;
     let isManualTodoReloadRunning = false;
     let todoReloadAnimationToken = 0;
     const TODO_RELOAD_SUCCESS_VISIBLE_MS = 5000;
     const TODO_RELOAD_ICON_REFRESH = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>';
-    const TODO_RELOAD_ICON_CHECK = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"><path d="M4 12l6 6L20 6"/></svg>';
+    const TODO_RELOAD_ICON_CHECK = WebClassUxComponents.checkIconMarkup();
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -2272,9 +2273,9 @@ async function renderDashboardLayout() {
         // Filter
         let filtered = [...visibleAssignments];
         if (viewCompleted) {
-            filtered = filtered.filter(a => a.isCompleted);
+            filtered = filtered.filter(a => WebClassTodoPolicy.isInCompletedView(a, getWebClassNow()));
         } else {
-            filtered = filtered.filter(a => !a.isCompleted);
+            filtered = filtered.filter(a => !WebClassTodoPolicy.isInCompletedView(a, getWebClassNow()));
         }
 
         // Custom sort for dashboard: High -> Medium -> Low -> Done
@@ -2298,7 +2299,7 @@ async function renderDashboardLayout() {
                 updateAssignments({ forceRemote: false });
             }
         });
-        applyTimetableColorsFromTodo(filtered);
+        applyTimetableColorsFromTodo(dashboardAssignments);
         if (syncLayout) {
             scheduleCourseLayoutSync();
         }
@@ -2311,11 +2312,25 @@ async function renderDashboardLayout() {
         await renderDashboardTodos(dashboardAssignments);
         requestCourseLayoutSync();
     };
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== 'local') return;
+        if (changes.todoDataResetToken) {
+            todoDataResetRevision += 1;
+            resetTodoMemoryCache();
+            todoReloadAnimationToken += 1;
+            void renderDashboardTodos([]);
+            return;
+        }
+        if (!changes[WebClassTodoPolicy.upcomingDaysKey]) return;
+        todoUpcomingVisibilityDays = WebClassTodoPolicy.normalizeUpcomingDays(changes[WebClassTodoPolicy.upcomingDaysKey].newValue);
+        void renderDashboardTodos(dashboardAssignments);
+    });
     onUxDebugModeChange(() => {
         void renderDashboardTodos(dashboardAssignments);
     });
 
     const updateAssignments = async ({ forceRemote = false, fallbackRemoteWhenEmpty = false } = {}) => {
+        const resetRevision = todoDataResetRevision;
         if (isManualTodoReloadRunning) {
             setTodoRefreshButtonLoading();
         } else {
@@ -2344,8 +2359,13 @@ async function renderDashboardLayout() {
             }
 
             await dashboardTimetableNameApplyPromise;
+            if (resetRevision !== todoDataResetRevision) assignments = await loadAssignments();
             await renderDashboardTodos(assignments);
         } catch (error) {
+            if (handleUxExtensionContextError(error)) {
+                todoStatus.textContent = 'ページを再読み込みしてください。';
+                return;
+            }
             if (error?.isAssignmentFetchStopped) {
                 todoStatus.textContent = '';
                 return;
@@ -2485,6 +2505,7 @@ async function renderDashboardLayout() {
                 setTodoRefreshButtonIdle();
             }
         } catch (error) {
+            if (handleUxExtensionContextError(error)) return;
             uxDebugWarn('[WebClass UX] manual reload sync failed', error);
             alert(`ToDo同期に失敗しました: ${error?.message || 'Unknown error'}`);
             setTodoRefreshButtonIdle();
@@ -2518,7 +2539,9 @@ async function renderDashboardLayout() {
             const courseBox = link.closest('.course-data-box-normal') || link.closest('li') || link.parentElement;
             const fullName = normalizeDevdevCourseText(link.textContent || '');
             const detailText = normalizeDashboardCourseMetaText(courseBox?.querySelector('.course-info')?.textContent || '');
-            const noticeText = normalizeDashboardCourseMetaText(courseBox?.querySelector('.course-contents-info')?.textContent || '');
+            const noticeText = normalizeDashboardCourseMetaText(courseBox?.querySelector('.course-contents-info')?.textContent || '')
+                .replace(/(?:締切|期限)が近い課題があります[。.]?/g, '')
+                .trim();
             const shouldTreatAsOutOfSchedule =
                 !scheduledCourseIds.has(courseId) ||
                 /時間外/.test(fullName) ||
@@ -2716,7 +2739,7 @@ async function renderDashboardLayout() {
     const markAllReadBtn = createMessageToolbarButton({
         label: '既読にする',
         icon: UX_MESSAGE_ICONS.check,
-        className: 'ux-message-mark-read ux-button--primary'
+        className: 'ux-message-mark-read ux-button--primary ux-check-btn'
     });
 
     const messagePagination = document.createElement('div');
@@ -2984,6 +3007,7 @@ async function renderDashboardLayout() {
                 [STORAGE_KEY_TODO_API_LAST_AUTO_SYNC]: new Date().toISOString()
             });
         } catch (error) {
+            if (handleUxExtensionContextError(error)) return;
             uxDebugWarn('[WebClass UX] page load todo sync failed', error);
         }
     })();

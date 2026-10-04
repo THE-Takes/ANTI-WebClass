@@ -344,7 +344,7 @@ function ensureUxSessionExpiredStyles(targetDocument) {
     (targetDocument.head || targetDocument.documentElement).appendChild(style);
 }
 
-function showUxSessionExpiredPopup() {
+function showUxReloadRequiredPopup({ titleText, descriptionText }) {
     var targetDocument = getUxTopDocument();
     var existingPopup = targetDocument.getElementById(UX_SESSION_EXPIRED_POPUP_ID);
     if (existingPopup) {
@@ -371,11 +371,11 @@ function showUxSessionExpiredPopup() {
 
     var title = targetDocument.createElement('h2');
     title.id = 'webclass-ux-session-expired-title';
-    title.textContent = 'セッションの有効期限が切れました';
+    title.textContent = titleText;
 
     var description = targetDocument.createElement('p');
     description.id = 'webclass-ux-session-expired-description';
-    description.textContent = 'ページを再読み込みして、WebClassに再接続してください。';
+    description.textContent = descriptionText;
 
     var reloadButton = targetDocument.createElement('button');
     reloadButton.type = 'button';
@@ -395,6 +395,13 @@ function showUxSessionExpiredPopup() {
     (targetDocument.body || targetDocument.documentElement).appendChild(overlay);
     reloadButton.focus();
     return overlay;
+}
+
+function showUxSessionExpiredPopup() {
+    return showUxReloadRequiredPopup({
+        titleText: 'セッションの有効期限が切れました',
+        descriptionText: 'ページを再読み込みして、WebClassに再接続してください。'
+    });
 }
 
 globalThis.showUxSessionExpiredPopup = showUxSessionExpiredPopup;

@@ -2,6 +2,30 @@
 // Options save and restore behavior.
 
 let debugModeSettingRevision = 0;
+let debugTodoApiSyncSettingRevision = 0;
+
+const syncDebugTodoApiSyncSettingUi = (enabled) => {
+    const toggle = document.getElementById('debugTodoApiSyncEnabled');
+    if (toggle) toggle.checked = enabled !== false;
+};
+
+const saveDebugTodoApiSyncSetting = async (enabled) => {
+    const saveRevision = ++debugTodoApiSyncSettingRevision;
+    try {
+        await storageLocalSetAsync({ debugTodoApiSyncEnabled: enabled === true });
+    } catch (error) {
+        console.error('[WebClass UX] Failed to save debug ToDo sync setting', error);
+        try {
+            const stored = await storageLocalGetAsync(WebClassTodoPolicy.debugSyncSettingsDefaults);
+            if (saveRevision === debugTodoApiSyncSettingRevision) {
+                syncDebugTodoApiSyncSettingUi(stored.debugTodoApiSyncEnabled);
+            }
+        } catch (restoreError) {
+            console.error('[WebClass UX] Failed to restore debug ToDo sync setting', restoreError);
+        }
+        showStatusMessage('設定の保存に失敗しました。', 'var(--options-danger)', 2500);
+    }
+};
 
 const markDebugModeSettingChanged = () => {
     debugModeSettingRevision += 1;
@@ -130,6 +154,7 @@ const saveOptions = async ({
             [EXTENSION_VISUAL_ENABLED_KEY]: extensionVisualEnabled,
             [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: extensionUpdateCheckEnabled,
             appearanceTheme,
+            [WebClassTodoPolicy.upcomingDaysKey]: WebClassTodoPolicy.normalizeUpcomingDays(document.getElementById('todoUpcomingVisibilityDays')?.value),
             [DASHBOARD_DANGER_TODO_OUTLINE_ENABLED_KEY]: dashboardDangerTodoOutlineEnabled,
             [COURSE_QUICK_NAV_COLLAPSED_KEY]: courseQuickNavCollapsed,
             viewToggleShortcut: shortcutToPersist,
@@ -193,14 +218,16 @@ const saveOptions = async ({
 // stored in chrome.storage.
 const restoreOptions = () => {
     const restoreDebugModeRevision = debugModeSettingRevision;
+    const restoreDebugTodoApiSyncRevision = debugTodoApiSyncSettingRevision;
     chrome.storage.local.get(
         {
             autoLoginEnabled: false,
-            debugModeEnabled: false,
+            ...WebClassTodoPolicy.debugSyncSettingsDefaults,
             username: '',
             password: '',
             defaultViewVersion: '2',
             appearanceTheme: 'light',
+            [WebClassTodoPolicy.upcomingDaysKey]: 7,
             currentView: 'dashboard',
             [EXTENSION_VISUAL_ENABLED_KEY]: true,
             [EXTENSION_UPDATE_CHECK_ENABLED_KEY]: true,
@@ -287,6 +314,7 @@ const restoreOptions = () => {
                     [TICKTICK_TODO_CLIENT_SECRET_KEY]: ticktickTodoClientSecret
                 };
 
+                document.getElementById('todoUpcomingVisibilityDays').value = WebClassTodoPolicy.normalizeUpcomingDays(items[WebClassTodoPolicy.upcomingDaysKey]);
                 const appearanceTheme = ['light', 'dark', 'system'].includes(items.appearanceTheme)
                     ? items.appearanceTheme
                     : 'light';
@@ -297,6 +325,9 @@ const restoreOptions = () => {
                 const debugModeEnabled = !!items.debugModeEnabled;
                 if (restoreDebugModeRevision === debugModeSettingRevision) {
                     syncDebugModeSettingUi(debugModeEnabled);
+                }
+                if (restoreDebugTodoApiSyncRevision === debugTodoApiSyncSettingRevision) {
+                    syncDebugTodoApiSyncSettingUi(items.debugTodoApiSyncEnabled);
                 }
                 document.getElementById('username').value = items.username;
                 resetAutoLoginPasswordState({ stored: autoLoginPasswordStoredNext });

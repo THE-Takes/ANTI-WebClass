@@ -2,12 +2,12 @@
 
 [日本語版](BUILD_FROM_SOURCE.ja.md)
 
-The Apple Reminders helper is built on each user's Mac. This repository does not provide a prebuilt helper app. The Chrome-compatible extension is installed separately in Google Chrome or Dia.
+The Apple Reminders helper is built on each user's Mac. A prebuilt installer is available in the [latest GitHub release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest). This guide covers building it from source on your own Mac. The Chrome-compatible extension is installed separately in Google Chrome or Dia.
 
 ## Requirements
 
 - A Mac running macOS 14 or later.
-- Google Chrome or Dia. The helper is registered in only one of them at a time.
+- Google Chrome or Dia. Separate Chrome and Dia helpers can be registered on the same Mac.
 - Git and the Xcode Command Line Tools. A full Xcode installation is not required.
 - No Apple Developer Program membership, Developer ID certificate, or Apple notarization credentials are needed for a personal build on the same Mac.
 
@@ -28,9 +28,9 @@ Install the Xcode Command Line Tools if needed:
 xcode-select --install
 ```
 
-## 2. Choose one browser and copy its extension ID
+## 2. Copy each browser extension ID
 
-Choose the browser where you want to use Apple Reminders. Do not select both browsers; installing for one replaces the helper registration for the other.
+Choose a browser where you want to use Apple Reminders. To use both browsers, note the extension ID in each and repeat installation for each browser.
 
 If ANTI-WebClass is not already installed in that browser:
 
@@ -52,7 +52,7 @@ bash NativeReminders/scripts/package-release.sh
 The script builds a Universal macOS app for Apple silicon and Intel and creates:
 
 ```text
-NativeReminders/dist/WebClass-Reminders-v0.3.1.zip
+NativeReminders/dist/WebClass-Reminders-v0.4.0.zip
 NativeReminders/dist/build/Install WebClass Reminders.app
 ```
 
@@ -62,11 +62,11 @@ The installer asks which browser to target and for that browser's extension ID, 
 open "NativeReminders/dist/build/Install WebClass Reminders.app"
 ```
 
-Select the same browser as in step 2, paste its extension ID, and select **Install**. The helper is copied to `~/Applications/WebClass Reminders.app` and registered only for that browser. Switching the selection later removes the previous browser registration.
+Select the same browser as in step 2, paste its extension ID, and select **Install**. The helper is copied to `~/Applications/WebClass Reminders Google Chrome.app` or `~/Applications/WebClass Reminders Dia.app`. Installing one leaves the other in place.
 
 ## 4. Connect Apple Reminders
 
-In the selected browser, open ANTI-WebClass settings, enable external ToDo integration, select Apple Reminders, and choose **Connect to Apple Reminders**. Allow the browser's native messaging request and the macOS Reminders access prompt. Then run the normal ToDo sync from a logged-in WebClass home page.
+In the selected browser, open ANTI-WebClass settings, enable external ToDo integration, select Apple Reminders, and choose **Connect to Apple Reminders**. Allow the browser's native messaging request and the macOS Reminders access prompt. Choose one writable Reminders list in the helper dialog. Choose a different list for the other browser. Then run the normal ToDo sync from a logged-in WebClass home page.
 
 ## Update or uninstall
 
@@ -78,10 +78,10 @@ bash NativeReminders/scripts/package-release.sh
 open "NativeReminders/dist/build/Install WebClass Reminders.app"
 ```
 
-Select the same browser and enter its extension ID to replace the helper. Selecting the other browser switches the single registration. To uninstall, open the installer app and select **Uninstall**. Existing Reminders and sync metadata are retained.
+Select the same browser and enter its extension ID to replace the helper. To use the other browser, install again with its extension ID. To uninstall, select that browser in the installer and choose **Uninstall**. Existing Reminders and sync metadata are retained.
 
 ## Notes
 
 - This guide is for building and running the app locally on your own Mac, not for distributing compiled binaries.
-- The helper supports Google Chrome or Dia, macOS 14 or later, and Apple silicon and Intel Macs. Only the browser selected in the installer can connect.
+- The helper supports Google Chrome or Dia, macOS 14 or later, and Apple silicon and Intel Macs. Both browsers can connect when each has its own registration and selected Reminders list.
 - For sync behavior, backups, and troubleshooting, see [README.md](README.md) and [the Japanese update guide](README.ja.md).

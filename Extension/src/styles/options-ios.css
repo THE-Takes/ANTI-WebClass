@@ -620,6 +620,18 @@ button:disabled {
   color: var(--ux-color-on-accent, #ffffff);
 }
 
+.btn-danger {
+  border-color: var(--ux-color-danger);
+  background: var(--options-surface);
+  color: var(--ux-color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--ux-color-danger);
+  background: var(--ux-color-danger-surface);
+  color: var(--ux-color-danger);
+}
+
 .btn-reset {
   border-color: var(--options-border);
   background: var(--options-surface-subtle);
@@ -629,6 +641,19 @@ button:disabled {
 .btn-reset:hover:not(:disabled) {
   border-color: var(--options-border-hover);
   background: var(--options-surface-subtle);
+}
+
+#appleRemindersRefreshBtn.ux-check-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  color: var(--options-success);
+}
+
+#appleRemindersRefreshBtn.ux-check-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .btn-block {

@@ -3,7 +3,12 @@
 
 (function initializeWebClassUxComponents(global) {
   var existing = global.WebClassUxComponents;
-  if (existing && existing.version >= 1) return;
+  if (existing && existing.version >= 2) return;
+
+  function checkIconMarkup(size) {
+    var dimension = Number(size) > 0 ? Number(size) : 18;
+    return '<svg class="ux-check-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' + dimension + '" height="' + dimension + '" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path fill="none" pathLength="1" d="M4 12l6 6L20 6"/></svg>';
+  }
 
   function noop() {}
 
@@ -247,7 +252,8 @@
   }
 
   global.WebClassUxComponents = {
-    version: 1,
+    version: 2,
+    checkIconMarkup: checkIconMarkup,
     createElement: createElement,
     createButton: createButton,
     createIconButton: createIconButton,

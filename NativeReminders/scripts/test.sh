@@ -9,3 +9,6 @@ xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/modu
 xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/module-cache" \
     "$ROOT/Sources/Protocol.swift" "$ROOT/Sources/ReminderMetadata.swift" "$ROOT/Tests/MetadataTests.swift" -o "$OUTPUT/metadata-tests"
 "$OUTPUT/metadata-tests"
+xcrun swiftc -swift-version 5 -parse-as-library -module-cache-path "$OUTPUT/module-cache" \
+    "$ROOT/Sources/Protocol.swift" "$ROOT/Sources/ListSelection.swift" "$ROOT/Tests/ListSelectionTests.swift" -o "$OUTPUT/list-selection-tests"
+"$OUTPUT/list-selection-tests"

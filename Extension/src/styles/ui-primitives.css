@@ -1,5 +1,36 @@
 /* Shared extension-owned controls. Every selector is class-scoped. */
 
+@keyframes ux-check-draw {
+  0% { stroke-dashoffset: 1; }
+  30% { stroke-dashoffset: 0.65; }
+  60% { stroke-dashoffset: 0.65; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.ux-check-btn svg.ux-check-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ux-check-btn svg.ux-check-icon path {
+  fill: none;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.ux-check-btn.ux-drawing svg.ux-check-icon path {
+  animation: ux-check-draw 0.4s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ux-check-btn.ux-drawing svg.ux-check-icon path {
+    animation: none;
+  }
+}
+
 .ux-button,
 .ux-icon-button {
   align-items: center;

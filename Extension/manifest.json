@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ANTI-WebClass",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Improve WebClass UX/UI.",
   "permissions": [
     "storage",
@@ -73,6 +73,7 @@
         "lib/flatpickr.min.js",
         "lib/ja.js",
         "lib/mobile-select.js",
+        "src/todo-policy.js",
         "src/scraper.js",
         "src/home/core.js",
         "src/home/course-navigation.js",

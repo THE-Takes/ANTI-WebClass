@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCustomUserIconControls();
     initSettingsBackupControls();
     initTodoProviderControls();
+    initTodoDataControls();
     restoreOptions();
     initAutoSave();
 
@@ -61,6 +62,9 @@ document.getElementById('clearStoredPasswordButton').addEventListener('click', a
         updateAutoLoginPasswordUi();
     }
 });
+document.getElementById('debugTodoApiSyncEnabled').addEventListener('change', async (e) => {
+    await saveDebugTodoApiSyncSetting(e.target.checked);
+});
 document.getElementById('debugModeEnabled').addEventListener('change', async (e) => {
     await saveDebugModeSetting(e.target.checked);
 });
@@ -78,6 +82,10 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (Object.prototype.hasOwnProperty.call(changes, 'debugModeEnabled')) {
         markDebugModeSettingChanged();
         syncDebugModeSettingUi(changes.debugModeEnabled.newValue === true);
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, 'debugTodoApiSyncEnabled')) {
+        debugTodoApiSyncSettingRevision += 1;
+        syncDebugTodoApiSyncSettingUi(changes.debugTodoApiSyncEnabled.newValue);
     }
     if (Object.keys(changes).some((key) => EXTENSION_UPDATE_STATUS_KEYS.has(key))) {
         refreshExtensionUpdateStatus();

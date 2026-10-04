@@ -23,6 +23,7 @@ function createAppleRemindersProvider(bridge, pendingMutations) {
         deleteLegacy: false,
         async loadSettings() {
             const settings = await storageGet({
+                ...WebClassTodoPolicy.debugSyncSettingsDefaults,
                 todoApiEnabled: false, todoApiProvider: 'ticktick', appleRemindersConnected: false,
                 [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
                 appleRemindersItemIds: {}, todoApiTaskTitleFormat: 'task_only', todoApiUltraShortCourseMap: {},
@@ -41,7 +42,7 @@ function createAppleRemindersProvider(bridge, pendingMutations) {
             const status = await bridge.request('status');
             if (!status?.authorized || !status.listId) throw new Error('リマインダーの権限または同期先リストを確認してください。');
             compactNotes = status.compactNotes === true;
-            list = { id: status.listId, name: 'WebClass' };
+            list = { id: status.listId, name: status.listName || 'WebClass' };
             snapshot = [];
             let offset = 0;
             do {
@@ -96,6 +97,7 @@ function runAppleRemindersSync(options = {}) {
     // Serialize requests; only external synchronization is queued, never WebClass page retrieval.
     const execute = async () => {
         const settings = await storageGet({
+            ...WebClassTodoPolicy.debugSyncSettingsDefaults,
             todoApiEnabled: false, todoApiProvider: 'ticktick',
             appleRemindersConnected: false, appleRemindersPendingMutations: []
         });
@@ -107,6 +109,9 @@ function runAppleRemindersSync(options = {}) {
         if (localKey) {
             pending.add(localKey);
             await storageSet({ appleRemindersPendingMutations: [...pending] });
+        }
+        if (WebClassTodoPolicy.isExternalSyncPaused(settings)) {
+            return { success: true, skipped: true, reason: 'debug_sync_disabled' };
         }
         // Selecting a provider does not establish a connection. Keep local edits for the next connected sync.
         if (!settings.appleRemindersConnected) {

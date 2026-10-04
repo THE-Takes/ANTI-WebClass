@@ -4,6 +4,7 @@ function createTickTickTodoProvider() {
         deleteLegacy: true,
         async loadSettings() {
             return loadSecureLocalStrings({
+                ...WebClassTodoPolicy.debugSyncSettingsDefaults,
                 [TODO_API_ENABLED_KEY]: false,
                 [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
                 [TODO_API_TASK_TITLE_FORMAT_KEY]: TODO_TITLE_FORMAT_TASK_ONLY,
@@ -36,12 +37,20 @@ async function runTickTickTodoSync(options = {}) {
 }
 
 async function runTodoApiSync({ mode = 'full', trigger = 'manual', localMutation = null } = {}) {
-    const settings = await storageGet({ todoApiProvider: 'ticktick' });
-    if (settings.todoApiProvider === 'apple_reminders') {
-        return runAppleRemindersSync({ mode, trigger, localMutation });
+    if (todoSyncRuntimeState.clearing) {
+        return { success: true, skipped: true, reason: 'data_reset_in_progress' };
     }
-    if (settings.todoApiProvider !== 'ticktick') throw new Error('Unknown ToDo provider.');
-    return runTickTickTodoSync({ mode, trigger, localMutation });
+    todoSyncRuntimeState.activeRequests = (todoSyncRuntimeState.activeRequests || 0) + 1;
+    try {
+        const settings = await storageGet({ todoApiProvider: 'ticktick' });
+        if (settings.todoApiProvider === 'apple_reminders') {
+            return await runAppleRemindersSync({ mode, trigger, localMutation });
+        }
+        if (settings.todoApiProvider !== 'ticktick') throw new Error('Unknown ToDo provider.');
+        return await runTickTickTodoSync({ mode, trigger, localMutation });
+    } finally {
+        todoSyncRuntimeState.activeRequests -= 1;
+    }
 }
 
 function extractErrorMessage(error, fallback) {

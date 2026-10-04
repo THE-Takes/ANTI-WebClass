@@ -454,6 +454,11 @@ function fallbackCourseName(fullName) {
     return (fullName || '').replace(/^»\s*/, '').trim();
 }
 
+function setCourseTodoDangerOutline(element, enabled) {
+    element.style.outline = enabled ? '2px solid rgba(255, 69, 58, 0.42)' : '';
+    element.style.outlineOffset = enabled ? '-2px' : '';
+}
+
 /**
  * スマートToDoリストの背景色を時間割表のコマに反映する
  * 優先度: 紫(リマインダー期限切れ) > 赤(48時間以内) > 黄(7日以内)
@@ -461,7 +466,9 @@ function fallbackCourseName(fullName) {
  */
 function applyTimetableColorsFromTodo(assignments) {
     const scheduleTables = Array.from(document.querySelectorAll('table.schedule-table, table.ux-dashboard-v2-schedule-table'));
-    if (scheduleTables.length === 0) {
+    const outsideCourseItems = Array.from(document.querySelectorAll('.ux-dashboard-v2-outside-course-item'));
+    outsideCourseItems.forEach(item => setCourseTodoDangerOutline(item, false));
+    if (scheduleTables.length === 0 && outsideCourseItems.length === 0) {
         uxDebugLog('[WebClass UX] 時間割表が見つかりません（色反映スキップ）');
         return;
     }
@@ -487,7 +494,7 @@ function applyTimetableColorsFromTodo(assignments) {
     activeAssignments.forEach(todo => {
         const courseName = todo.course;
         if (!courseName) return;
-        if (isTodoNotYetStarted(todo, now)) return;
+        if (isTodoNotYetStarted(todo, now) || WebClassTodoPolicy.isArchived(todo, now)) return;
         const hasDangerOutline = getTodoPriority(todo) === 'High';
 
         const rememberCourseStyle = (priority, color, dangerOutline) => {
@@ -580,16 +587,25 @@ function applyTimetableColorsFromTodo(assignments) {
                     if (color) {
                         cell.style.backgroundColor = color;
                     }
-                    if (dashboardDangerTodoOutlineEnabled && hasDangerOutline) {
-                        cell.style.outline = '2px solid rgba(255, 69, 58, 0.42)';
-                        cell.style.outlineOffset = '-2px';
-                    }
+                    setCourseTodoDangerOutline(cell, dashboardDangerTodoOutlineEnabled && hasDangerOutline);
                     uxDebugLog(`[WebClass UX] 時間割セルに色を適用: ${courseName.substring(0, 20)}... → ${color}`);
                     break; // 最初にマッチしたものを適用
                 }
             }
         });
         applyTimetableDayTimeHighlight(scheduleTable);
+    });
+
+    outsideCourseItems.forEach(item => {
+        const displayedName = item.querySelector('.ux-dashboard-v2-outside-course-title')?.textContent || '';
+        const originalName = item.dataset.originalName || '';
+        const hasDangerOutline = Array.from(courseColorMap).some(([courseName, style]) =>
+            style.hasDangerOutline && (
+                matchCourseNameToCell(courseName, originalName)
+                || matchCourseNameToCell(courseName, displayedName)
+            )
+        );
+        setCourseTodoDangerOutline(item, dashboardDangerTodoOutlineEnabled && hasDangerOutline);
     });
 }
 
@@ -601,8 +617,7 @@ function resetTimetableColors(scheduleTable) {
     const cells = scheduleTable.querySelectorAll('tbody td:not(.schedule-table-class_order)');
 
     cells.forEach(cell => {
-        cell.style.outline = '';
-        cell.style.outlineOffset = '';
+        setCourseTodoDangerOutline(cell, false);
         // 元の背景色がデータ属性に保存されていれば復元
         if (cell.dataset.originalBgColor) {
             cell.style.backgroundColor = cell.dataset.originalBgColor;

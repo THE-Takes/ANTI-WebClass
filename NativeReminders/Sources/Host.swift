@@ -18,10 +18,13 @@ struct RemindersHost {
             let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
                 .appendingPathComponent("ANTI-WebClass/Reminders", isDirectory: true)
             try FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
-            let lock = open(support.appendingPathComponent("host.lock").path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+            let extensionID = URL(string: arguments[1])!.host!
+            let appID = Bundle.main.bundleIdentifier ?? "unknown"
+            let lockName = "host-\(appID)-\(extensionID).lock"
+            let lock = open(support.appendingPathComponent(lockName).path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
             guard lock >= 0 else { throw HostError("Cannot open native host lock.") }
             defer { close(lock) }
-            // A single process owns EventKit writes across Chrome profiles and extension versions.
+            // Serialize each extension while allowing different browser helpers to sync separate lists.
             let locked = flock(lock, LOCK_EX | LOCK_NB) == 0
             defer { if locked { flock(lock, LOCK_UN) } }
             let store = try ReminderStore(origin: arguments[1], metadataDirectory: support)

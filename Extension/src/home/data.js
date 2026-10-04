@@ -18,6 +18,10 @@ async function saveAssignments(assignments) {
 // 再スクレイピングでも復活しないようにする。
 let cachedTrashBin = [];
 
+function resetTodoMemoryCache() {
+    cachedTrashBin = [];
+}
+
 async function loadTrashBin() {
     const data = await chrome.storage.local.get([STORAGE_KEY_TRASH]);
     cachedTrashBin = data[STORAGE_KEY_TRASH] || [];

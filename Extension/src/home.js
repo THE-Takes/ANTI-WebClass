@@ -5,11 +5,18 @@ if (!isHomePage) {
   uxDebugLog('WebClass UX Improver: Not home page, skipping home.js');
 } else {
     async function initHome() {
+        // Unpacked updates can load new sources with the previous registered manifest.
+        if (typeof WebClassTodoPolicy === 'undefined') {
+            showUxExtensionReloadNotice(true);
+            return;
+        }
         uxDebugLog("WebClass UX Improver: Initializing Home");
         const globalSettings = await chrome.storage.local.get({
             [STORAGE_KEY_EXTENSION_VISUAL_ENABLED]: true,
+            [WebClassTodoPolicy.upcomingDaysKey]: 7,
             [STORAGE_KEY_DASHBOARD_DANGER_TODO_OUTLINE_ENABLED]: true
         });
+        todoUpcomingVisibilityDays = WebClassTodoPolicy.normalizeUpcomingDays(globalSettings[WebClassTodoPolicy.upcomingDaysKey]);
         uxSetExtensionVisualEnabled(globalSettings[STORAGE_KEY_EXTENSION_VISUAL_ENABLED] !== false);
         dashboardDangerTodoOutlineEnabled = globalSettings[STORAGE_KEY_DASHBOARD_DANGER_TODO_OUTLINE_ENABLED] !== false;
 
@@ -51,11 +58,18 @@ if (!isHomePage) {
         }
     }
 
+    function initializeHomeWithRecovery() {
+        return initHome().catch(error => {
+            if (handleUxExtensionContextError(error)) return;
+            console.error('[WebClass UX] Home initialization failed', error);
+        });
+    }
+
     // Run
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHome);
+        document.addEventListener('DOMContentLoaded', initializeHomeWithRecovery);
     } else {
-        initHome();
+        void initializeHomeWithRecovery();
     }
 
 }

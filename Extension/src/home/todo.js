@@ -16,9 +16,8 @@ function scheduleTodoAvailabilityRefresh(assignments, container, renderOptions) 
     const now = getWebClassNow();
     const nextStartTimestamp = assignments
         .filter((todo) => !todo.isDeleted && !isInTrashBin(todo))
-        .map(getTodoStartDate)
-        .filter((startDate) => startDate instanceof Date && startDate > now)
-        .reduce((earliest, startDate) => Math.min(earliest, startDate.getTime()), Number.POSITIVE_INFINITY);
+        .map(todo => WebClassTodoPolicy.nextTransition(todo, todoUpcomingVisibilityDays, now))
+        .reduce((earliest, timestamp) => Math.min(earliest, timestamp), Number.POSITIVE_INFINITY);
 
     if (!Number.isFinite(nextStartTimestamp)) return;
 
@@ -28,14 +27,20 @@ function scheduleTodoAvailabilityRefresh(assignments, container, renderOptions) 
         uxTodoAvailabilityRefreshTimers.delete(container);
         if (!container.isConnected) return;
 
-        if (typeof renderOptions.onAvailabilityChange === 'function') {
-            await renderOptions.onAvailabilityChange();
-            return;
-        }
+        try {
+            if (typeof renderOptions.onAvailabilityChange === 'function') {
+                await renderOptions.onAvailabilityChange();
+                return;
+            }
 
-        const currentAssignments = await loadAssignments();
-        renderToDoList(currentAssignments, container, renderOptions);
-        applyTimetableColorsFromTodo(currentAssignments);
+            const currentAssignments = await loadAssignments();
+            renderToDoList(currentAssignments, container, renderOptions);
+            applyTimetableColorsFromTodo(currentAssignments);
+        } catch (error) {
+            if (!handleUxExtensionContextError(error)) {
+                console.error('[WebClass UX] ToDo availability refresh failed', error);
+            }
+        }
     }, delay);
 
     uxTodoAvailabilityRefreshTimers.set(container, timer);
@@ -92,12 +97,12 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         const priority = getTodoPriority(todo);
         let pColor = 'var(--ux-home-quaternary-label)';
         let priorityLabel = priority;
-        const isDashboardExpired = viewMode === 'dashboard' && expiredTodoKeys.has(getTodoIdentity(todo));
+        const isDashboardExpired = viewMode === 'dashboard' && (expiredTodoKeys.has(getTodoIdentity(todo)) || (!todo.isCompleted && WebClassTodoPolicy.isArchived(todo, getWebClassNow())));
         if (isNotYetStarted) {
             priorityLabel = '開始前';
         } else if (isDashboardExpired) {
             pColor = 'var(--ux-home-purple-foreground)';
-            priorityLabel = 'end';
+            priorityLabel = WebClassTodoPolicy.isArchived(todo, getWebClassNow()) ? '未完了・期限切れ' : '期限切れ';
         } else {
             if (priority === 'High') pColor = 'var(--ux-home-danger)';
             if (priority === 'Medium') pColor = 'var(--ux-home-warning)';
@@ -216,7 +221,8 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         deadlineLine.style.flexWrap = 'nowrap';
         deadlineLine.style.whiteSpace = 'nowrap';
         const deadlineLabel = document.createElement('span');
-        deadlineLabel.textContent = isNotYetStarted ? '開始: ' : '期限: ';
+        deadlineLabel.textContent = !todo.isCompleted && WebClassTodoPolicy.isArchived(todo, getWebClassNow())
+            ? '未完了・期限切れ: ' : (isNotYetStarted ? '開始: ' : '期限: ');
         deadlineLine.appendChild(deadlineLabel);
 
         const dateOnlyInput = document.createElement('input');
@@ -407,9 +413,10 @@ function renderToDoList(assignments, container, renderOptions = {}) {
 
     // 1. 分類ロジック
     // 削除済み(isDeleted)またはゴミ箱に入っているタスクは表示しない
-    const visibleAssignments = assignments.filter(a => !a.isDeleted && !isInTrashBin(a));
-    const activeAssignments = visibleAssignments.filter(a => !a.isCompleted);
-    const completedAssignments = visibleAssignments.filter(a => a.isCompleted);
+    const visibleAssignments = assignments.filter(a => !a.isDeleted && !isInTrashBin(a)
+        && !WebClassTodoPolicy.isBeyondUpcomingWindow(a, todoUpcomingVisibilityDays, getWebClassNow()));
+    const activeAssignments = visibleAssignments.filter(a => !WebClassTodoPolicy.isInCompletedView(a, getWebClassNow()));
+    const completedAssignments = visibleAssignments.filter(a => WebClassTodoPolicy.isInCompletedView(a, getWebClassNow()));
 
     const normal = [];
     const farFuture = [];
@@ -640,7 +647,8 @@ function renderToDoList(assignments, container, renderOptions = {}) {
         deadlineLine.style.alignItems = 'center';
         deadlineLine.style.gap = '5px';
         const deadlineLabel = document.createElement('span');
-        deadlineLabel.textContent = isNotYetStarted ? '開始: ' : '期限: ';
+        deadlineLabel.textContent = !todo.isCompleted && WebClassTodoPolicy.isArchived(todo, getWebClassNow())
+            ? '未完了・期限切れ: ' : (isNotYetStarted ? '開始: ' : '期限: ');
         deadlineLine.appendChild(deadlineLabel);
 
         // 日付入力 (Flatpickr - Date Only)
@@ -968,8 +976,8 @@ function renderToDoList(assignments, container, renderOptions = {}) {
     } else {
         // 1. 通常の課題 (常に表示)
         // ※任意期限が過ぎていても初期設定期限が過ぎていなければここに含まれる
-        if (sortedNormal.length > 0) {
-            container.appendChild(createList(sortedNormal, {}));
+        if (sortedNormal.length > 0 || sortedExpired.length > 0) {
+            container.appendChild(createList(sortTodos([...normal, ...expired]), {}));
         }
 
         // 2. 1カ月以上先の課題 (折りたたみ・デフォルト閉)
@@ -1012,61 +1020,6 @@ function renderToDoList(assignments, container, renderOptions = {}) {
 
         container.appendChild(toggle);
         container.appendChild(completedContainer);
-    }
-
-    // 5. 期限切れの課題 (完了済みの下・折りたたみ・デフォルト閉・削除ボタン付き)
-    if (viewMode !== 'dashboard' && sortedExpired.length > 0) {
-        const expiredWrapper = document.createElement('div');
-        expiredWrapper.style.marginTop = '15px';
-        expiredWrapper.style.border = '1px solid rgba(255, 69, 58, 0.18)';
-        expiredWrapper.style.borderRadius = '4px';
-
-        // 保存された状態を使用（デフォルトは閉じている）
-        const isExpiredOpen = uiState.expiredSectionOpen !== undefined ? uiState.expiredSectionOpen : false;
-
-        const expiredHeader = document.createElement('div');
-        expiredHeader.style.padding = '10px 15px';
-        expiredHeader.style.backgroundColor = 'var(--ux-home-danger-soft)';
-        expiredHeader.style.cursor = 'pointer';
-        expiredHeader.style.display = 'flex';
-        expiredHeader.style.justifyContent = 'space-between';
-        expiredHeader.style.alignItems = 'center';
-        expiredHeader.style.userSelect = 'none';
-        expiredHeader.style.position = 'sticky';
-        expiredHeader.style.top = '0';
-        expiredHeader.style.zIndex = '10';
-        expiredHeader.style.borderBottom = '1px solid rgba(255, 69, 58, 0.18)';
-        expiredHeader.style.borderTopLeftRadius = '4px';
-        expiredHeader.style.borderTopRightRadius = '4px';
-
-        const expiredTitleSpan = document.createElement('span');
-        expiredTitleSpan.style.fontSize = '0.9em';
-        expiredTitleSpan.style.fontWeight = 'bold';
-        expiredTitleSpan.style.color = 'var(--ux-home-danger-foreground)';
-        expiredTitleSpan.textContent = `期限切れの課題 (${sortedExpired.length})`;
-        expiredHeader.appendChild(expiredTitleSpan);
-
-        const expiredIcon = document.createElement('span');
-        expiredIcon.textContent = isExpiredOpen ? '▼' : '▶';
-        expiredIcon.style.fontSize = '0.8em';
-        expiredIcon.style.color = 'var(--ux-home-danger-foreground)';
-        expiredHeader.appendChild(expiredIcon);
-
-        const expiredContent = document.createElement('div');
-        expiredContent.style.display = isExpiredOpen ? 'block' : 'none';
-        expiredContent.style.borderTop = '1px solid rgba(255, 69, 58, 0.18)';
-        expiredContent.appendChild(createList(sortedExpired, { isExpired: true, showDeleteButton: true }));
-
-        expiredHeader.onclick = () => {
-            const currentlyOpen = expiredContent.style.display !== 'none';
-            expiredContent.style.display = currentlyOpen ? 'none' : 'block';
-            expiredIcon.textContent = currentlyOpen ? '▶' : '▼';
-            uiState.expiredSectionOpen = !currentlyOpen;
-        };
-
-        expiredWrapper.appendChild(expiredHeader);
-        expiredWrapper.appendChild(expiredContent);
-        container.appendChild(expiredWrapper);
     }
 
     scheduleTodoAvailabilityRefresh(assignments, container, renderOptions);

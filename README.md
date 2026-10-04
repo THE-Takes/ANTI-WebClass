@@ -2,7 +2,7 @@
 
 `ANTI-WebClass` は、神奈川大学の WebClass (`https://kulms.kanagawa-u.ac.jp/webclass/*`) を対象にした Google Chrome / Chromium 向け Manifest V3 拡張機能です。
 
-現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.4.2` です。
+現在のリポジトリにはビルド工程はなく、[`Extension`](./Extension) をそのまま「パッケージ化されていない拡張機能」として読み込む構成になっています。現在の拡張機能バージョンは [`Extension/manifest.json`](./Extension/manifest.json) の `0.4.3` です。
 
 ## 現在の実装内容
 
@@ -35,8 +35,8 @@
 - タイトル形式や短縮コース名マッピングの設定
 - 課題取得の再試行、通信失敗時の既存データ保護、コース遷移時の取得停止
 - Microsoft To Do、Google Tasks、Todoist の旧連携用ホスト権限は削除しました。
-- Appleリマインダー用補助アプリはこのリポジトリ・配布ZIPに含まれません。拡張機能単体では利用できません。
-- WebClass Reminders v0.3.1のインストーラーZIPは[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)に含まれます。公開ソースから自分のMacでビルドする手順は[日本語](NativeReminders/BUILD_FROM_SOURCE.ja.md)／[English](NativeReminders/BUILD_FROM_SOURCE.md)を参照してください。
+- Appleリマインダー用補助アプリのソースは `NativeReminders` に含まれます。インストーラーは拡張機能ZIPとは別に配布します。
+- WebClass Reminders v0.4.0のインストーラーZIPは[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)に含まれます。公開ソースから自分のMacでビルドする手順は[日本語](NativeReminders/BUILD_FROM_SOURCE.ja.md)／[English](NativeReminders/BUILD_FROM_SOURCE.md)を参照してください。
 
 ### 4. 資料ページ・ダウンロード改善
 
@@ -103,7 +103,7 @@
 
 ## インストール
 
-1. [最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) の `ANTI-WebClass-ver.0.4.2.zip` をダウンロードして展開するか、このリポジトリを取得します。
+1. [最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) の `ANTI-WebClass-ver.0.4.3.zip` をダウンロードして展開するか、このリポジトリを取得します。
 2. Chrome または Chromium で `chrome://extensions/` を開きます。
 3. 右上の「デベロッパーモード」を有効にします。
 4. 「パッケージ化されていない拡張機能を読み込む」から [`Extension`](./Extension) を選択します。

@@ -109,6 +109,7 @@ const initAutoSave = () => {
             target.id === 'viewToggleShortcut'
             || target.id === 'password'
             || target.id === 'debugModeEnabled'
+            || target.id === 'debugTodoApiSyncEnabled'
         ) return;
         scheduleAutoSave();
     });
@@ -116,7 +117,7 @@ const initAutoSave = () => {
     document.addEventListener('change', (event) => {
         const target = event.target;
         if (!isAutoSaveTarget(target)) return;
-        if (target.id === 'viewToggleShortcut' || target.id === 'debugModeEnabled') return;
+        if (['viewToggleShortcut', 'debugModeEnabled', 'debugTodoApiSyncEnabled'].includes(target.id)) return;
         const reloadWebClassTabsAfterSave = shouldReloadWebClassTabsAfterControlChange(target);
         saveOptions({ source: 'auto', showSuccess: false, reloadWebClassTabsAfterSave });
     });
