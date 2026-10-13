@@ -43,6 +43,7 @@
   } catch { }
 })();
 
+var uxShikenBetaEnabled = false;
 let uxExtensionVisualEnabled = true;
 
 function setUxExtensionVisualEnabled(enabled) {
@@ -1476,6 +1477,22 @@ function log(...args) {
  * 現在のページタイプを検出
  * @returns {'shiryou' | 'shiken' | 'course_list' | 'download_window' | 'pdf_viewer' | 'unknown'}
  */
+function isUxShikenPageContext() {
+  let currentWindow = window;
+  for (let depth = 0; depth < 8; depth += 1) {
+    try {
+      if (/\/(?:qstn_frame|dqstn_button|dqstn_question|dqstn_answer(?:_all)?|reslt_description)\.php$/i.test(currentWindow.location.pathname)) {
+        return true;
+      }
+      if (currentWindow.parent === currentWindow) break;
+      currentWindow = currentWindow.parent;
+    } catch {
+      break;
+    }
+  }
+  return false;
+}
+
 function detectPageType() {
   const url = window.location.href;
 

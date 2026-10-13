@@ -230,9 +230,6 @@ function enhanceShikenAnswerFrame() {
             outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
             outline-offset: var(--ux-focus-offset, 2px);
         }
-        body.ux-shiken-parent-layout-vertical .ux-shiken-frame-resize-handle {
-            display: none;
-        }
         body.ux-shiken-frame-resizing,
         body.ux-shiken-frame-resizing * {
             cursor: ns-resize !important;

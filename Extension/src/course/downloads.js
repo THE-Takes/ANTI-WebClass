@@ -53,11 +53,11 @@ function enhanceDownloadLinks() {
  * 直接2つのダウンロードオプションを表示する
  * @param {string} contentName
  */
-function enhanceAttachmentLinks(contentName) {
+function enhanceAttachmentLinks(contentName, root = document) {
   log("Enhancing attachment links");
 
   // file_down.php へのリンクを検出
-  const attachmentLinks = document.querySelectorAll('a[href*="file_down.php"]');
+  const attachmentLinks = root.querySelectorAll('a[href*="file_down.php"]');
 
   log(`Found ${attachmentLinks.length} attachment links`);
 
@@ -122,8 +122,8 @@ function getPrimaryPdfDownloadInfo(textUrl, pageNumber) {
   }
 }
 
-function getPrimaryPdfDownloads() {
-  const jsonData = document.querySelector("#json-data");
+function getPrimaryPdfDownloads(sourceDoc = document) {
+  const jsonData = sourceDoc.querySelector("#json-data");
   if (!jsonData) return [];
 
   try {
@@ -156,12 +156,12 @@ function getTocPageNumber(pageButton) {
   return /^\d+$/.test(value) ? value : null;
 }
 
-function enhancePrimaryPdfLinks(contentName) {
-  const toc = document.querySelector("#TOC");
+function enhancePrimaryPdfLinks(contentName, root = document, sourceDoc = document) {
+  const toc = root.querySelector("#TOC");
   if (!toc) return;
 
   const downloadsByPage = new Map(
-    getPrimaryPdfDownloads().map((download) => [download.pageNumber, download]),
+    getPrimaryPdfDownloads(sourceDoc).map((download) => [download.pageNumber, download]),
   );
   if (downloadsByPage.size === 0) return;
 

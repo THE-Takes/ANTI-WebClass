@@ -7,10 +7,10 @@
 function init() {
   if (!isUxExtensionVisualEnabled()) return;
   log("Initializing...");
+  const pageType = detectPageType();
+  if (!uxShikenBetaEnabled && (pageType === "shiken" || isUxShikenPageContext())) return;
   scheduleCustomUserIconApply(document);
   bindShiryouDisplayMessageListeners();
-
-  const pageType = detectPageType();
   log("Detected page type:", pageType);
 
   // Suppress beforeunload on material pages IMMEDIATELY at document_start
@@ -143,6 +143,7 @@ chrome.storage.local.get(
     [MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY]:
       MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_DEFAULT,
     [CUSTOM_USER_ICON_KEY]: "",
+    shikenBetaEnabled: false,
   },
   (items) => {
     setUxExtensionVisualEnabled(
@@ -153,6 +154,7 @@ chrome.storage.local.get(
         items[MATERIAL_DOWNLOAD_FILENAME_SEPARATOR_KEY],
       );
     setCustomUserIconDataUrl(items[CUSTOM_USER_ICON_KEY]);
+    uxShikenBetaEnabled = items.shikenBetaEnabled === true;
     if (!isUxExtensionVisualEnabled()) {
       log("Global visual modification is disabled. Skipping course.js init.");
       return;

@@ -6,7 +6,7 @@
 // ============================================================
 
 function enhanceShikenPageUI() {
-  if (!isUxExtensionVisualEnabled()) return;
+  if (!isUxExtensionVisualEnabled() || !uxShikenBetaEnabled) return;
   bindShikenVisualReinitMessageListener();
   rememberUxOriginalBodyState(document);
   rememberUxOriginalFrameStructure(document);

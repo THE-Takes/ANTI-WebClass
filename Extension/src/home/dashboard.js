@@ -1736,6 +1736,7 @@ async function renderDashboardLayout() {
     actionsContainer.appendChild(importBtn);
     actionsContainer.appendChild(fileInput);
 
+    let dashboardAssignments = [];
     const exportBtn = document.createElement('button');
     exportBtn.type = 'button';
     exportBtn.className = 'ux-dashboard-v2-todo-action ux-dashboard-v2-todo-export ux-action-btn ux-icon-button';
@@ -1748,10 +1749,10 @@ async function renderDashboardLayout() {
     exportBtn.style.justifyContent = 'center';
     exportBtn.title = 'エクスポート';
     exportBtn.setAttribute('aria-label', 'ToDoをエクスポート');
-    exportBtn.onclick = async () => {
+    exportBtn.disabled = true;
+    exportBtn.onclick = () => {
         try {
-            const assignments = await loadAssignments();
-            const json = JSON.stringify(assignments, null, 2);
+            const json = JSON.stringify(dashboardAssignments, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1764,7 +1765,7 @@ async function renderDashboardLayout() {
             setTimeout(() => {
                 URL.revokeObjectURL(url);
                 a.remove();
-            }, 0);
+            }, 1000);
         } catch (e) {
             console.error('Export failed', e);
             alert('エクスポートに失敗しました');
@@ -1790,7 +1791,6 @@ async function renderDashboardLayout() {
     todoHeader.appendChild(actionsContainer);
     todoToolbar.appendChild(todoHeader);
 
-    let dashboardAssignments = [];
     let todoDataResetRevision = 0;
     let viewCompleted = false;
     let activeTodoApiSyncPipelinePromise = null;
@@ -2262,6 +2262,7 @@ async function renderDashboardLayout() {
 
     const renderDashboardTodos = async (assignments, { syncLayout = true } = {}) => {
         dashboardAssignments = assignments || [];
+        exportBtn.disabled = false;
         const visibleAssignments = uxIsDebugModeEnabled()
             ? dashboardAssignments
             : dashboardAssignments.filter((assignment) =>

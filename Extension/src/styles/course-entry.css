@@ -225,3 +225,295 @@ html.ux-course-entry #WsTitle a:focus-visible {
     background-color: ButtonFace !important;
   }
 }
+
+/* Launch workspace: a quiet course rail and one clear starting point. */
+html.ux-course-entry.ux-course-start {
+  --start-canvas: color-mix(in srgb, var(--ux-color-page) 24%, var(--ux-color-surface));
+  --start-line: color-mix(in srgb, var(--ux-color-border) 65%, transparent);
+}
+html.ux-course-entry.ux-course-start body {
+  padding: 0 !important;
+
+}
+html.ux-course-entry #ux-course-start {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  font-family: var(--ux-font-family);
+  color: var(--ux-color-text);
+
+}
+html.ux-course-entry #ux-course-start * {
+  box-sizing: border-box;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 28px 22px 24px;
+  background: var(--ux-color-surface);
+  border-right: 1px solid var(--start-line);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.5px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--ux-color-accent);
+  color: var(--ux-color-on-accent);
+  font-size: 20px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-back {
+  display: block;
+  margin-top: 34px;
+  padding: 12px 16px;
+  border: 1px solid var(--start-line);
+  border-radius: 999px;
+  text-decoration: none;
+  text-align: center;
+  color: var(--ux-color-text);
+  font-size: 13px;
+  font-weight: 600;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-back:hover {
+  background: var(--start-canvas);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-context {
+  margin-top: 36px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-label {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--ux-color-muted);
+  letter-spacing: .08em;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-course {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.6;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-course-detail {
+  margin: 12px 0 0;
+  color: var(--ux-color-muted);
+  font-size: 11px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+
+}
+html.ux-course-entry #ux-course-start #User {
+  margin: auto 0 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--start-line);
+  font-size: 11px;
+  color: var(--ux-color-muted);
+  white-space: normal;
+  line-height: 1.8;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-main {
+  padding: clamp(60px, 11vh, 130px) 40px 60px;
+  background-color: var(--start-canvas);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-workspace {
+  width: min(100%, 720px);
+  margin: 0 auto;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-eyebrow {
+  margin: 0 0 18px 8px;
+  color: var(--ux-color-muted);
+  font-size: 13px;
+  font-weight: 550;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-form {
+  margin: 0;
+  padding: 6px;
+  background: color-mix(in srgb, var(--ux-color-surface-muted) 65%, transparent);
+  border-radius: 30px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-card {
+  padding: clamp(28px, 4vw, 44px);
+  background: var(--ux-color-surface);
+  border: 1px solid var(--start-line);
+  border-radius: 25px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-title {
+  margin: 0 0 32px;
+  font-size: clamp(24px, 2.4vw, 32px);
+  font-weight: 650;
+  line-height: 1.55;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+
+}
+html.ux-course-entry #ux-course-start #ContentInfo {
+  display: block;
+  width: 100% !important;
+  margin: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  overflow: visible;
+
+}
+html.ux-course-entry #ux-course-start #ContentInfo tbody, html.ux-course-entry #ux-course-start #ContentInfo tr, html.ux-course-entry #ux-course-start #ContentInfo td {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  font-size: 13px;
+  line-height: 1.9;
+
+}
+html.ux-course-entry #ux-course-start #ContentInfo tr[hidden] {
+  display: none;
+
+}
+html.ux-course-entry #ux-course-start #ContentInfo ul {
+  margin: 0;
+  padding: 20px 22px;
+  list-style: none;
+  border-radius: 14px;
+  background: var(--start-canvas);
+  color: var(--ux-color-muted);
+
+}
+html.ux-course-entry #ux-course-start #ContentInfo p:empty {
+  display: none;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--start-line);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-actions input {
+  appearance: none;
+  min-height: 46px;
+  padding: 0 28px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-secondary {
+  color: var(--ux-color-muted);
+  background: var(--ux-color-surface);
+  border: 1px solid var(--start-line);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-primary {
+  color: var(--ux-color-on-accent);
+  background: var(--ux-color-accent);
+  border: 1px solid var(--ux-color-accent);
+  min-width: 136px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-primary:hover {
+  background: var(--ux-color-accent-hover);
+  border-color: var(--ux-color-accent-hover);
+
+}
+html.ux-course-entry #ux-course-start .ux-start-secondary:hover {
+  color: var(--ux-color-text);
+  border-color: var(--ux-color-border-hover);
+
+}
+html.ux-course-entry #ux-course-start :is(a, input):focus-visible {
+  outline: 2px solid var(--ux-color-accent);
+  outline-offset: 4px;
+
+}
+html.ux-course-entry #ux-course-start .ux-start-caption {
+  margin: 22px 8px 0;
+  color: var(--ux-color-muted);
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.8;
+
+}
+@media (max-width: 760px) {
+  html.ux-course-entry #ux-course-start {
+  grid-template-columns: 1fr;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-sidebar {
+  padding: 18px 24px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-right: 0;
+  border-bottom: 1px solid var(--start-line);
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-back {
+  margin: 0;
+  padding: 9px 14px;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-context {
+  width: 100%;
+  margin: 0;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-label, html.ux-course-entry #ux-course-start .ux-start-course-detail, html.ux-course-entry #ux-course-start #User {
+  display: none;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-course {
+  font-size: 13px;
+  color: var(--ux-color-muted);
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-main {
+  padding: 36px 20px 48px;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-card {
+  padding: 26px 22px;
+
+}
+  html.ux-course-entry #ux-course-start .ux-start-actions input {
+  padding: 0 22px;
+
+}
+}
+
+html.ux-course-entry #ux-course-start #ContentInfo li { font-size: 14px; line-height: 1.8; color: var(--ux-color-text); }
+html.ux-course-entry #ux-course-start .ux-start-period-label { display: block; margin-bottom: 6px; font-size: 11px; color: var(--ux-color-muted); }
+html.ux-course-entry #ux-course-start .ux-start-period-value { font-size: 14px; font-variant-numeric: tabular-nums; }
+
+html.ux-course-entry #ux-course-start .ux-start-notices { margin-top: 20px; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+html.ux-course-entry #ux-course-start .ux-start-notices table { width: 100%; }

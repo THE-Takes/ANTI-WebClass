@@ -163,6 +163,7 @@ const WEBCLASS_RELOAD_REQUIRED_CONTROL_IDS = new Set([
     'materialDownloadFilenameSeparatorSpace',
     'materialDownloadFilenameSeparatorUnderscore',
     'tocHoverReveal',
+    'shikenBetaEnabled',
     'shikenSelectVisibleCount'
 ]);
 

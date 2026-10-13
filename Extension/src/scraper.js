@@ -1,3 +1,20 @@
+function areFetchedAssignmentDeadlinesEqual(first, second) {
+    if (first === second) return true;
+    const firstTime = Date.parse(first);
+    const secondTime = Date.parse(second);
+    return Number.isFinite(firstTime) && Number.isFinite(secondTime) && firstTime === secondTime;
+}
+
+function mergeFetchedAssignmentDeadline(assignment, existingState) {
+    const sourceDeadlineChanged = !areFetchedAssignmentDeadlinesEqual(existingState.originalDeadline, assignment.originalDeadline);
+    const deadlineWasEdited = existingState.deadline && existingState.originalDeadline
+        && !areFetchedAssignmentDeadlinesEqual(existingState.deadline, existingState.originalDeadline);
+    if (deadlineWasEdited) assignment.deadline = existingState.deadline;
+    // Refresh the source baseline and protect changed deadlines until the external push succeeds.
+    assignment.webclassDeadlinePending = existingState.webclassDeadlinePending === true
+        || (sourceDeadlineChanged && !deadlineWasEdited);
+}
+
 /**
  * WebClass Scraper
  * コース一覧と課題を取得するロジック
@@ -756,6 +773,7 @@ const Scraper = {
                     deletedAt: assignment.deletedAt,
                     deadline: assignment.deadline,
                     originalDeadline: assignment.originalDeadline,
+                    webclassDeadlinePending: assignment.webclassDeadlinePending === true,
                     title: assignment.title,
                     sourceTitle: assignment.sourceTitle,
                     titleEdited: assignment.titleEdited === true,
@@ -838,13 +856,7 @@ const Scraper = {
                     assignment.deletedAt = existingState.deletedAt;
                 }
 
-                if (existingState.originalDeadline) {
-                    assignment.originalDeadline = existingState.originalDeadline;
-                }
-
-                if (existingState.deadline && existingState.deadline !== existingState.originalDeadline) {
-                    assignment.deadline = existingState.deadline;
-                }
+                mergeFetchedAssignmentDeadline(assignment, existingState);
 
                 const existingTitle = typeof existingState.title === 'string' ? existingState.title : '';
                 const existingSourceTitle = typeof existingState.sourceTitle === 'string' ? existingState.sourceTitle : '';

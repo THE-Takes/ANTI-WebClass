@@ -132,9 +132,6 @@ function enhanceShikenQuestionFrame() {
             outline: var(--ux-focus-width, 2px) solid var(--ux-focus-color, var(--ux-color-accent));
             outline-offset: var(--ux-focus-offset, 2px);
         }
-        body.ux-shiken-parent-layout-vertical .ux-shiken-frame-resize-handle {
-            display: none;
-        }
         body.ux-shiken-frame-resizing,
         body.ux-shiken-frame-resizing * {
             cursor: ns-resize !important;
@@ -859,17 +856,18 @@ function enhanceShikenButtonFrame() {
     finishBtn.textContent = "終了";
     finishBtn.disabled = !hasFinish || isUxControlDisabled(originalFinishBtn);
     finishBtn.addEventListener("click", () => {
+      if (findShikenCompletedAnswerDocument()) {
+        activateShikenFinishAction(null, originalFinishBtn);
+        return;
+      }
       finishBtn.disabled = true;
       finishBtn.textContent = "確認中…";
       finishBtn.setAttribute("aria-busy", "true");
       window.setTimeout(() => {
-        if (submitShikenAnswerGrade()) {
-          return;
-        }
-        if (originalFinishBtn) {
-          originalFinishBtn.click();
-        } else if (typeof window.gradeAndClose === "function") {
-          window.gradeAndClose();
+        if (!activateShikenFinishAction(null, originalFinishBtn)) {
+          finishBtn.disabled = false;
+          finishBtn.textContent = "終了";
+          finishBtn.removeAttribute("aria-busy");
         }
       }, 0);
     });

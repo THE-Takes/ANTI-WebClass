@@ -836,12 +836,10 @@ function enhanceOneByOneShikenAnswerFrame() {
       answerShell.classList.add("ux-onebyone-answer-shell");
       answerShell = answerShell.parentElement;
     }
-    if (isShikenSinglePageActive()) {
-      attachShikenFrameResizeHandle(answerRoot, {
-        frameName: "answer",
-        label: "回答フィールド",
-      });
-    }
+    attachShikenFrameResizeHandle(answerRoot, {
+      frameName: "answer",
+      label: "回答フィールド",
+    });
   }
 
   getShikenAnswerSurfaceProfile(form).textareas.forEach((textarea) => {

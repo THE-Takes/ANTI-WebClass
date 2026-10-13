@@ -414,6 +414,10 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
                     latest = { ...latest, status: 2, completedTime: new Date().toISOString() };
                 }
 
+                if (assignment.webclassDeadlinePending) {
+                    delete assignment.webclassDeadlinePending;
+                    assignmentsChanged = true;
+                }
                 const latestTask = rememberTickTickRemoteTask(latest, syncIdentity);
                 const latestTaskId = normalizeTickTickTaskId(latestTask?.id) || taskId;
                 if (provider.setTaskId(assignment, latestTaskId)) {
@@ -427,6 +431,10 @@ async function runExternalTodoSync(provider, { mode = 'full', trigger = 'manual'
             const created = await provider.createTask(listInfo.id, assignment, taskNameSettings, false, syncIdentity);
             const createdTaskId = normalizeTickTickTaskId(created?.id);
             if (createdTaskId) {
+                if (assignment.webclassDeadlinePending) {
+                    delete assignment.webclassDeadlinePending;
+                    assignmentsChanged = true;
+                }
                 const createdTask = rememberTickTickRemoteTask(
                     { ...(created || {}), id: createdTaskId },
                     syncIdentity

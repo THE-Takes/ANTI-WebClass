@@ -1,11 +1,11 @@
 # WebClass Reminders の導入
 
-WebClassの課題をAppleリマインダーと同期するmacOS用の補助アプリです。macOS 14以降とGoogle ChromeまたはDiaが必要です。Chrome用とDia用の補助アプリを同じMacに登録できます。[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)の `WebClass-Reminders-v0.4.0.zip` をダウンロードして展開してください。自分のMacで[公開ソースからビルド](BUILD_FROM_SOURCE.ja.md)することもできます。ANTI-WebClass拡張機能本体は別途インストールしてください。
+WebClassの課題をAppleリマインダーと同期するmacOS用の補助アプリです。macOS 14以降とGoogle ChromeまたはDiaが必要です。Chrome用とDia用の補助アプリを同じMacに登録できます。[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)からUniversal版インストーラーZIPとSHA-256を取得できます。自分のMacで[公開ソースからビルド](BUILD_FROM_SOURCE.ja.md)することもできます。ANTI-WebClass拡張機能本体は別途インストールしてください。
 
 ## インストール
 
 1. 使うブラウザーをGoogle ChromeかDiaから1つ選びます。Chromeでは `chrome://extensions`、Diaでは `dia://extensions` を開き、ANTI-WebClassの拡張機能IDをコピーします。
-2. ZIPを展開して得られた、または自分でビルドした「Install WebClass Reminders」を起動します。
+2. リリースZIPを展開するか、ビルド手順で生成された「Install WebClass Reminders」を起動します。
 3. インストーラーで同じブラウザーを1つ選び、拡張機能IDを貼り付けて「インストール」を押します。他方のブラウザー登録は保持されます。
 4. 選んだブラウザーのANTI-WebClass設定で外部ToDo連携を有効にし、連携先にAppleリマインダーを選びます。
 5. 「Appleリマインダーに接続」を押し、選んだブラウザーとmacOSに表示されるアクセス要求を許可し、同期先リストを1つ選びます。「新しいリストを作成…」から任意のリスト名と保存先アカウントを指定し、「作成して接続」を押すこともできます。もう一方の拡張機能には別のリストを選んでください。

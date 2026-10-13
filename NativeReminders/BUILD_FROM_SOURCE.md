@@ -2,7 +2,7 @@
 
 [日本語版](BUILD_FROM_SOURCE.ja.md)
 
-The Apple Reminders helper is built on each user's Mac. A prebuilt installer is available in the [latest GitHub release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest). This guide covers building it from source on your own Mac. The Chrome-compatible extension is installed separately in Google Chrome or Dia.
+The Apple Reminders helper can be downloaded as a Universal installer ZIP from the [latest release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest), or built from source on your own Mac by following this guide. The Chrome-compatible extension is installed separately in Google Chrome or Dia.
 
 ## Requirements
 
@@ -11,7 +11,7 @@ The Apple Reminders helper is built on each user's Mac. A prebuilt installer is 
 - Git and the Xcode Command Line Tools. A full Xcode installation is not required.
 - No Apple Developer Program membership, Developer ID certificate, or Apple notarization credentials are needed for a personal build on the same Mac.
 
-The build script applies an ad-hoc code signature. This guide builds and installs the helper on the same Mac; do not distribute the generated app or ZIP.
+The build script uses an ad-hoc code signature by default. This guide is for building and installing your own copy on the same Mac. Use the official release package when installing on another user's Mac; do not redistribute a package you built yourself.
 
 ## 1. Clone the public source
 

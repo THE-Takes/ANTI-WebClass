@@ -6,7 +6,7 @@ macOS 14+ / Google Chrome or Dia. The extension remains cross-platform. This hos
 
 ## Build and install on your Mac
 
-The WebClass Reminders v0.4.0 installer ZIP is available in the [latest GitHub release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest). You can also build the helper locally from the public source. Follow [Build from source](BUILD_FROM_SOURCE.md) or the [Japanese guide](BUILD_FROM_SOURCE.ja.md). A local self-build does not require an Apple Developer membership, Developer ID certificate, or notarization credentials.
+The [latest GitHub release](https://github.com/THE-Takes/ANTI-WebClass/releases/latest) includes a Universal installer ZIP and SHA-256 checksum. You can also build the helper locally from the public source; follow [Build from source](BUILD_FROM_SOURCE.md) or the [Japanese guide](BUILD_FROM_SOURCE.ja.md). A local self-build does not require an Apple Developer membership, Developer ID certificate, or notarization credentials.
 
 The installer removes only the selected browser helper and registration when uninstalling. Uninstalling keeps the selected Reminders list and metadata files. During installation, the extension ID is written only to the selected browser's local native messaging manifest; installing the other browser leaves the first registration in place.
 
@@ -67,7 +67,7 @@ The build creates both browser-specific apps without needing an extension ID. `i
 
 ## Local build package
 
-The packaging script creates a Universal ZIP with a guided installer for the user who built it. It uses an ad-hoc signature. The same installer format is attached to GitHub releases:
+The packaging script creates a Universal ZIP with a guided installer for the user who built it. It uses an ad-hoc signature and is not a binary release for redistribution:
 
 ```sh
 bash NativeReminders/scripts/package-release.sh

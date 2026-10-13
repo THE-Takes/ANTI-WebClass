@@ -707,15 +707,22 @@ function getShikenSinglePageFieldHeightKey(frameName = window.name || "") {
   return `uxShikenSinglePageFieldHeight:${getShikenLayoutContentId(getShikenRootDocument())}:${frameName || "content"}`;
 }
 
+function setShikenFieldHeight(card, height) {
+  card.style.setProperty("height", `${height}px`, "important");
+  card.style.setProperty("min-height", `${height}px`, "important");
+  card.style.setProperty("flex", "none", "important");
+  card.style.setProperty("overflow", "auto", "important");
+}
+
 function restoreShikenSinglePageFieldHeight(card, frameName = window.name || "") {
-  if (!card || !isShikenSinglePageActive()) return;
+  if (!card) return;
   try {
     const stored = sessionStorage.getItem(
       getShikenSinglePageFieldHeightKey(frameName),
     );
     const height = parseInt(stored || "", 10);
     if (Number.isFinite(height) && height >= UX_SHIKEN_SINGLE_PAGE_FIELD_MIN_HEIGHT) {
-      card.style.minHeight = `${height}px`;
+      setShikenFieldHeight(card, height);
     }
   } catch {}
 }
@@ -733,13 +740,7 @@ function saveShikenSinglePageFieldHeight(height, frameName = window.name || "") 
 function postSinglePageShikenFrameHeight() {
   if (!isShikenSinglePageActive() || window.parent === window) return;
   try {
-    const docEl = document.documentElement;
-    const body = document.body;
-    const height = Math.max(
-      docEl ? docEl.scrollHeight : 0,
-      body ? body.scrollHeight : 0,
-      body ? body.offsetHeight : 0,
-    );
+    const height = measureShikenContentHeight(document);
     if (height > 0) {
       window.parent.postMessage(
         {
@@ -759,7 +760,7 @@ function attachShikenSinglePageFieldResizeHandle(card, handle, frameName) {
       UX_SHIKEN_SINGLE_PAGE_FIELD_MIN_HEIGHT,
       Math.round(height),
     );
-    card.style.minHeight = `${nextHeight}px`;
+    setShikenFieldHeight(card, nextHeight);
     handle.setAttribute("aria-valuenow", String(nextHeight));
     postSinglePageShikenFrameHeight();
     return nextHeight;
@@ -837,7 +838,7 @@ function attachShikenFrameResizeHandle(card, options = {}) {
   handle.title = `${label}の高さをドラッグで変更`;
   card.appendChild(handle);
 
-  if (isShikenSinglePageActive()) {
+  if (isShikenSinglePageActive() || !getShikenContentRowsFrameset(getShikenRootDocument())) {
     attachShikenSinglePageFieldResizeHandle(card, handle, frameName);
     return;
   }
@@ -1235,6 +1236,40 @@ function submitShikenAnswerCommand(command, preferredForm = null) {
 
 function submitShikenAnswerGrade(preferredForm = null) {
   return submitShikenAnswerCommand("grade", preferredForm);
+}
+
+function findShikenCompletedAnswerDocument() {
+  return collectShikenAnswerDocuments().find((targetDocument) => {
+    const text = (targetDocument.body?.textContent || "").replace(/\s+/g, "");
+    return text.includes("登録は完了しました");
+  });
+}
+
+function activateShikenFinishAction(preferredForm = null, source = null) {
+  const completedDocument = findShikenCompletedAnswerDocument();
+  if (completedDocument) {
+    // Completion pages must run their native exit handler, not submit again.
+    const exitControl = findShikenAnswerActionControl(
+      [/^終了(?:する)?$/],
+      [],
+      completedDocument,
+    );
+    const control = exitControl || source;
+    if (!control || isUxControlDisabled(control)) return false;
+    control.click();
+    return true;
+  }
+
+  if (submitShikenAnswerGrade(preferredForm)) return true;
+  if (source && !isUxControlDisabled(source)) {
+    source.click();
+    return true;
+  }
+  if (typeof window.gradeAndClose === "function") {
+    window.gradeAndClose();
+    return true;
+  }
+  return false;
 }
 
 function parseUxPositiveInteger(value) {

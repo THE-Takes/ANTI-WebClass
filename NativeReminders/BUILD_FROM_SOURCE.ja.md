@@ -2,7 +2,7 @@
 
 [English version](BUILD_FROM_SOURCE.md)
 
-Appleリマインダー用補助アプリは、利用者が自分のMacでビルドします。ビルド済みインストーラーは[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)から取得できます。この手順は自分のMacでソースからビルドする場合のものです。ChromeとDiaでそれぞれ拡張機能を利用できます。各ブラウザーの拡張機能IDには、そのブラウザー用の補助アプリを1つ登録します。
+Appleリマインダー用補助アプリは、[最新リリース](https://github.com/THE-Takes/ANTI-WebClass/releases/latest)からUniversal版インストーラーZIPを取得するか、この手順で自分のMac上でソースからビルドできます。ChromeとDiaでそれぞれ拡張機能を利用でき、各ブラウザーの拡張機能IDには、そのブラウザー用の補助アプリを1つ登録します。
 
 ## 必要なもの
 
@@ -11,7 +11,7 @@ Appleリマインダー用補助アプリは、利用者が自分のMacでビル
 - GitとXcode Command Line Tools（Xcode本体は不要）
 - 自分のMacでビルドして使うだけなら、Apple Developer Programへの登録、Developer ID証明書、公証用の資格情報は不要です。
 
-ビルドスクリプトはアドホック署名を付けます。この手順では、補助アプリをビルドしたMacにインストールします。生成したアプリやZIPを他の人に配布しないでください。
+ビルドスクリプトは既定でアドホック署名を付けます。この手順は、自分用の補助アプリを同じMacでビルド・インストールする方法です。他の人に導入する場合は公式リリースのパッケージを使用し、自分でビルドしたアプリやZIPは再配布しないでください。
 
 ## 1. 公開ソースを取得する
 

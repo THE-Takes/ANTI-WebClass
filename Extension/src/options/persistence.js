@@ -163,6 +163,7 @@ const saveOptions = async ({
             useRuleCourseNameEnabled,
             useShortCourseNameEnabled: null,
             shikenSelectVisibleCount,
+            shikenBetaEnabled: document.getElementById('shikenBetaEnabled').checked,
             [TODO_API_ENABLED_KEY]: todoApiEnabled,
             [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: todoApiIncludeNotYetStarted,
             todoApiProvider: selectedTodoProvider(),
@@ -239,6 +240,7 @@ const restoreOptions = () => {
             useRuleCourseNameEnabled: null,
             useShortCourseNameEnabled: null,
             shikenSelectVisibleCount: '12',
+            shikenBetaEnabled: false,
             [TODO_API_ENABLED_KEY]: false,
             [TODO_API_INCLUDE_NOT_YET_STARTED_KEY]: false,
             todoApiProvider: 'ticktick',
@@ -349,6 +351,7 @@ const restoreOptions = () => {
             document.getElementById('useCustomCourseNameEnabled').checked = customEnabled;
             document.getElementById('useRuleCourseNameEnabled').checked = ruleEnabled;
             document.getElementById('shikenSelectVisibleCount').value = items.shikenSelectVisibleCount;
+            document.getElementById('shikenBetaEnabled').checked = items.shikenBetaEnabled === true;
             const todoApiEnabled = items[TODO_API_ENABLED_KEY] === true;
             document.getElementById('todoApiEnabled').checked = todoApiEnabled;
             document.getElementById('todoApiIncludeNotYetStarted').checked = items[TODO_API_INCLUDE_NOT_YET_STARTED_KEY] === true;

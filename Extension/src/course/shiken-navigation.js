@@ -266,13 +266,13 @@ function buildShikenAnswerActionArea(form) {
           source: null,
           label,
           className: "ux-btn ux-danger",
-          fallback: () => {
-            if (!submitShikenAnswerGrade(form) && originalFinishBtn) {
-              originalFinishBtn.click();
-            }
-          },
+          fallback: () => activateShikenFinishAction(form, originalFinishBtn),
           disabled: isUxControlDisabled(originalFinishBtn),
-          pendingLabel: isFinishConfirmation ? "終了中…" : "確認中…",
+          pendingLabel: findShikenCompletedAnswerDocument()
+            ? ""
+            : isFinishConfirmation
+              ? "終了中…"
+              : "確認中…",
         }),
       );
       hideMirroredShikenAnswerControl(originalFinishBtn);
@@ -974,12 +974,10 @@ function prepareShikenAnswerSurface(form) {
         "aria-label",
         profile.hasFile ? "回答ファイル" : "回答欄",
       );
-      if (isShikenSinglePageActive()) {
-        attachShikenFrameResizeHandle(answerCard, {
-          frameName: "answer",
-          label: profile.hasFile ? "回答ファイルフィールド" : "回答フィールド",
-        });
-      }
+      attachShikenFrameResizeHandle(answerCard, {
+        frameName: "answer",
+        label: profile.hasFile ? "回答ファイルフィールド" : "回答フィールド",
+      });
     }
   }
 

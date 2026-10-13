@@ -36,5 +36,8 @@ codesign --verify --deep --strict "$INSTALLER_APP"
 ARCHIVE="$OUTPUT/WebClass-Reminders-v$VERSION.zip"
 rm -f "$ARCHIVE" "$ARCHIVE.sha256"
 ditto -c -k --sequesterRsrc --keepParent "$INSTALLER_APP" "$ARCHIVE"
-shasum -a 256 "$ARCHIVE" > "$ARCHIVE.sha256"
+(
+    cd "$OUTPUT"
+    shasum -a 256 "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256"
+)
 echo "$ARCHIVE"

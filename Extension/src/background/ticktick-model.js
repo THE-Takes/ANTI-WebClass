@@ -569,7 +569,7 @@ function applyTickTickRemoteTaskToAssignment(assignment, remoteTask) {
     const remoteContent = typeof remoteTask.content === 'string' ? remoteTask.content : '';
     const deadlineFromNotes = parseStoredDeadlineTextFromTaskBody(remoteContent);
     const hasRemoteDeadlineSignal = !!serializeTickTickDue(remoteTask.dueDate) || !!deadlineFromNotes;
-    if (hasRemoteDeadlineSignal) {
+    if (hasRemoteDeadlineSignal && assignment.webclassDeadlinePending !== true) {
         const remoteDeadlineText = parseTickTickDueToDeadlineText(remoteTask.dueDate, remoteContent);
         if ((assignment.deadline || '') !== remoteDeadlineText) {
             assignment.deadline = remoteDeadlineText;

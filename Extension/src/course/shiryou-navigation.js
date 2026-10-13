@@ -926,6 +926,7 @@ function createModernHeaderInFrame(
       ? tocWidthPx
       : UX_SHIRYOU_TOC_COLLAPSED_WIDTH;
     tocOverlayIframe.style.width = `${displayWidth}px`;
+    setVideoContentFrameLeftInset(topDoc, displayWidth);
     tocResizeHandle.style.left = `${tocWidthPx - 5}px`;
     tocResizeHandle.setAttribute("aria-valuenow", String(tocWidthPx));
     tocResizeHandle.setAttribute(
@@ -1325,6 +1326,11 @@ function createModernHeaderInFrame(
           const tocContent = iframeDoc.getElementById("toc-content");
           if (tocContent) {
             tocContent.innerHTML = tocElement.innerHTML;
+
+            // The chapter's delayed download enhancement may not have run yet.
+            // Build missing controls in the visible copy before hiding its links.
+            enhanceAttachmentLinks(contentName, tocContent);
+            enhancePrimaryPdfLinks(contentName, tocContent, chapterFrame.document);
 
             compactUxSectionLabels(tocContent);
 

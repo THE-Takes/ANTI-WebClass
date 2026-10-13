@@ -39,6 +39,14 @@ function setVideoContentFrameTopInset(frame, inset) {
     safeInset > 0 ? `calc(100vh - ${safeInset}px)` : "100vh";
 }
 
+function setVideoContentFrameLeftInset(topDoc, inset) {
+  const frame = topDoc.getElementById(UX_VIDEO_FULLSCREEN_CONTENT_IFRAME_ID);
+  if (!frame) return;
+  const width = Math.max(0, Number(inset) || 0);
+  frame.style.left = `${width}px`;
+  frame.style.width = `calc(100vw - ${width}px)`;
+}
+
 function syncFullscreenVideoContentFrameLayout(showRibbon) {
   try {
     const topDoc = window.top?.document || document;
@@ -96,6 +104,8 @@ function promoteLegacyVideoFrameToFullscreenIframe() {
     );
 
     topDoc.documentElement.appendChild(iframe);
+    const toc = topDoc.getElementById("ux-toc-overlay-iframe");
+    setVideoContentFrameLeftInset(topDoc, toc ? parseFloat(toc.style.width) : 0);
     return iframe;
   } catch (error) {
     log("Could not create fullscreen-capable video frame:", error);

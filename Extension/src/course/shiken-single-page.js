@@ -362,6 +362,15 @@ function bindShikenHorizontalQuestionResize(
   });
 }
 
+function measureShikenContentHeight(doc) {
+  const body = doc.body;
+  // The document scrollHeight cannot shrink below the current iframe viewport.
+  if (doc.documentElement?.classList.contains("ux-shiken-single-page-frame") && body) {
+    return Math.ceil(Math.max(body.scrollHeight, body.getBoundingClientRect().height));
+  }
+  return Math.max(doc.documentElement?.scrollHeight || 0, body?.scrollHeight || 0, body?.offsetHeight || 0);
+}
+
 function bindSinglePageShikenChildBridge(doc = document) {
   if (!isShikenSinglePageActive() || window.parent === window) return;
   if (doc.__uxShikenSinglePageChildBridgeBound) return;
@@ -376,13 +385,7 @@ function bindSinglePageShikenChildBridge(doc = document) {
   let scheduled = false;
   const measureAndPostHeight = () => {
     scheduled = false;
-    const docEl = doc.documentElement;
-    const body = doc.body;
-    const height = Math.max(
-      docEl ? docEl.scrollHeight : 0,
-      body ? body.scrollHeight : 0,
-      body ? body.offsetHeight : 0,
-    );
+    const height = measureShikenContentHeight(doc);
     if (height > 0) {
       postToParent({
         type: "UX_SHIKEN_SINGLE_PAGE_FRAME_HEIGHT",
@@ -509,13 +512,7 @@ function bindShikenIframeAutoHeight(iframe) {
       cdoc = null;
     }
     if (!cdoc) return;
-    const docEl = cdoc.documentElement;
-    const body = cdoc.body;
-    const height = Math.max(
-      docEl ? docEl.scrollHeight : 0,
-      body ? body.scrollHeight : 0,
-      body ? body.offsetHeight : 0,
-    );
+    const height = measureShikenContentHeight(cdoc);
 
     if (height <= 0) return;
 
